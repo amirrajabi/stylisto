@@ -4,13 +4,16 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import * as SplashScreen from 'expo-splash-screen';
-import { store } from '../store/store'
+import { store } from '../store/store';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { NavigationContainer } from '@react-navigation/native';
+import { Colors } from '../constants/Colors';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
+  
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-SemiBold': Inter_600SemiBold,
@@ -29,8 +32,36 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack 
+        screenOptions={{ 
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.background.primary }
+        }}
+      >
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen 
+          name="item-detail" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Item Details'
+          }} 
+        />
+        <Stack.Screen 
+          name="outfit-builder" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Create Outfit'
+          }} 
+        />
+        <Stack.Screen 
+          name="camera" 
+          options={{ 
+            presentation: 'fullScreenModal',
+            headerShown: false
+          }} 
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

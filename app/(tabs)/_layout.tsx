@@ -1,62 +1,97 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Shirt, Users, BarChart3, User } from 'lucide-react-native';
+import { Shirt, Sparkles, Heart, User } from 'lucide-react-native';
+import { Colors } from '../../constants/Colors';
+import { Typography } from '../../constants/Typography';
+import { Spacing } from '../../constants/Spacing';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: Colors.primary[700],
+        tabBarInactiveTintColor: Colors.text.tertiary,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: Colors.surface.primary,
           borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
-          height: Platform.OS === 'ios' ? 85 : 60,
+          borderTopColor: Colors.border.primary,
+          paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.sm,
+          paddingTop: Spacing.sm,
+          height: Platform.OS === 'ios' ? 85 : 65,
+          elevation: 8,
+          shadowColor: Colors.shadow.medium,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: Typography.caption.medium.fontSize,
+          fontWeight: Typography.caption.medium.fontWeight,
+          fontFamily: Typography.caption.medium.fontFamily,
+          marginTop: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
         },
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="wardrobe"
         options={{
           title: 'Wardrobe',
-          tabBarIcon: ({ color, size }) => (
-            <Shirt size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Shirt 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
+          tabBarAccessibilityLabel: 'Wardrobe tab',
         }}
       />
       <Tabs.Screen
-        name="outfits"
+        name="generate"
         options={{
-          title: 'Outfits',
-          tabBarIcon: ({ color, size }) => (
-            <Users size={size} color={color} />
+          title: 'Generate',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Sparkles 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
+          tabBarAccessibilityLabel: 'Generate outfits tab',
         }}
       />
       <Tabs.Screen
-        name="analytics"
+        name="saved"
         options={{
-          title: 'Analytics',
-          tabBarIcon: ({ color, size }) => (
-            <BarChart3 size={size} color={color} />
+          title: 'Saved',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Heart 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+              fill={focused ? color : 'transparent'}
+            />
           ),
+          tabBarAccessibilityLabel: 'Saved outfits tab',
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <User 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
+          tabBarAccessibilityLabel: 'Profile tab',
         }}
       />
     </Tabs>
