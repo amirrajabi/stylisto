@@ -10,16 +10,7 @@ import {
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
 import { Image } from 'expo-image';
-import { 
-  X, 
-  Camera, 
-  RotateCcw, 
-  Flash, 
-  FlashOff, 
-  Check,
-  RefreshCw,
-  Download
-} from 'lucide-react-native';
+import { X, Camera, RotateCcw, Slash as Flash, FlashlightOff as FlashOff, Check, RefreshCw, Download } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 

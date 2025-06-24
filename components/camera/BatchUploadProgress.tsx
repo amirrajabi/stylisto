@@ -7,12 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Upload,
-  X,
-} from 'lucide-react-native';
+import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Upload, X } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 

@@ -11,14 +11,7 @@ import {
 } from 'react-native';
 import * as ImagePickerExpo from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { 
-  Camera, 
-  Image as ImageIcon, 
-  X, 
-  Plus,
-  Check,
-  AlertCircle,
-} from 'lucide-react-native';
+import { Camera, Image as ImageIcon, X, Plus, Check, CircleAlert as AlertCircle } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
