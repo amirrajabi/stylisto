@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
@@ -21,12 +20,15 @@ import { Colors } from '../../../constants/Colors';
 import { Typography } from '../../../constants/Typography';
 import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
-import { H1, BodyMedium, BodySmall } from '../../../components/ui';
+import { H1, BodyMedium, BodySmall } from '../../../components/ui/AccessibleText';
+import { AccessibilitySettingsCard } from '../../../components/profile/AccessibilitySettingsCard';
+import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
 
 export default function ProfileScreen() {
   const { user, signOut, updateProfile } = useAuth();
+  const { colors, theme, toggleHighContrast } = useAccessibility();
   const [loading, setLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(theme === 'dark');
   const [userPreferences, setUserPreferences] = useState({
     notifications: {
       outfitReminders: true,
@@ -40,7 +42,7 @@ export default function ProfileScreen() {
       analyticsTracking: true,
     },
     appearance: {
-      darkMode: false,
+      darkMode: theme === 'dark',
       fontSize: 'medium',
     }
   });
@@ -95,9 +97,6 @@ export default function ProfileScreen() {
     
     // Save theme preference
     await AsyncStorage.setItem('@theme_preference', value ? 'dark' : 'light');
-    
-    // In a real app, you would apply the theme change here
-    // For example: ThemeProvider.setTheme(value ? 'dark' : 'light');
   };
 
   // Handle notification toggle
@@ -255,7 +254,7 @@ export default function ProfileScreen() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
-        // For mobile: Save to file system or share
+        // For native: Save to file system or share
         // In a real app, you would use expo-file-system and expo-sharing
         Alert.alert(
           'Data Export',
@@ -319,8 +318,8 @@ export default function ProfileScreen() {
     title: string;
     children: React.ReactNode;
   }> = ({ title, children }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.section, { backgroundColor: colors.surface.primary }]}>
+      <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>{title}</Text>
       {children}
     </View>
   );
@@ -335,20 +334,32 @@ export default function ProfileScreen() {
     rightElement?: React.ReactNode;
   }> = ({ icon, title, subtitle, onPress, showArrow = true, destructive = false, rightElement }) => (
     <TouchableOpacity 
-      style={styles.menuItem} 
+      style={[
+        styles.menuItem, 
+        { borderBottomColor: colors.border.primary }
+      ]} 
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityHint={subtitle}
     >
       <View style={styles.menuItemLeft}>
-        <View style={[styles.menuIcon, destructive && styles.destructiveIcon]}>
+        <View style={[
+          styles.menuIcon, 
+          destructive && styles.destructiveIcon,
+          { backgroundColor: destructive ? colors.error[50] : colors.surface.secondary }
+        ]}>
           {icon}
         </View>
         <View>
-          <Text style={[styles.menuTitle, destructive && styles.destructiveText]}>
+          <Text style={[
+            styles.menuTitle, 
+            destructive && styles.destructiveText,
+            { color: destructive ? colors.error[600] : colors.text.primary }
+          ]}>
             {title}
           </Text>
-          {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+          {subtitle && <Text style={[styles.menuSubtitle, { color: colors.text.secondary }]}>{subtitle}</Text>}
         </View>
       </View>
       
@@ -356,88 +367,106 @@ export default function ProfileScreen() {
         rightElement
       ) : (
         showArrow && (
-          <ChevronRight size={20} color={Colors.text.tertiary} />
+          <ChevronRight size={20} color={colors.text.tertiary} />
         )
       )}
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.secondary }]}>
       {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary[700]} />
+        <View style={[styles.loadingOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.3)' }]}>
+          <ActivityIndicator size="large" color={colors.primary[700]} />
         </View>
       )}
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface.primary, borderBottomColor: colors.border.primary }]}>
         <H1>Profile</H1>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Spacing.xl }}
+        accessibilityRole="scrollView"
+        id="main-content"
+      >
         {/* User Info */}
-        <View style={styles.userSection}>
+        <View style={[styles.userSection, { backgroundColor: colors.surface.primary }]}>
           <TouchableOpacity 
             style={styles.avatarContainer}
             onPress={handleUpdateProfilePicture}
+            accessibilityLabel="Update profile picture"
+            accessibilityHint="Double tap to choose a new profile picture"
+            accessibilityRole="button"
           >
             {user?.avatar_url ? (
               <Image
                 source={{ uri: user.avatar_url }}
                 style={styles.avatar}
                 contentFit="cover"
+                accessibilityLabel="Your profile picture"
               />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <User size={40} color={Colors.text.secondary} />
+              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surface.secondary }]}>
+                <User size={40} color={colors.text.secondary} />
               </View>
             )}
-            <View style={styles.cameraButton}>
-              <Camera size={16} color={Colors.white} />
+            <View style={[styles.cameraButton, { backgroundColor: colors.primary[700] }]}>
+              <Camera size={16} color={colors.white} />
             </View>
           </TouchableOpacity>
           
-          <Text style={styles.userName}>{user?.full_name || 'User'}</Text>
+          <Text style={[styles.userName, { color: colors.text.primary }]}>{user?.full_name || 'User'}</Text>
           <BodyMedium color="secondary">{user?.email}</BodyMedium>
         </View>
 
+        {/* Accessibility Settings Card */}
+        <AccessibilitySettingsCard />
+
         {/* Theme Toggle */}
-        <View style={styles.themeToggleContainer}>
+        <View style={[styles.themeToggleContainer, { backgroundColor: colors.surface.primary }]}>
           <View style={styles.themeToggleLeft}>
-            <Moon size={20} color={Colors.text.primary} />
-            <Text style={styles.themeToggleText}>Dark Mode</Text>
+            <Moon size={20} color={colors.text.primary} />
+            <Text style={[styles.themeToggleText, { color: colors.text.primary }]}>Dark Mode</Text>
           </View>
           <Switch
             value={darkMode}
             onValueChange={handleThemeToggle}
-            trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
-            thumbColor={Colors.white}
+            trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
+            thumbColor={Platform.OS === 'ios' ? undefined : colors.white}
+            ios_backgroundColor={colors.neutral[300]}
+            accessibilityLabel="Dark mode"
+            accessibilityHint={darkMode ? "Double tap to turn off dark mode" : "Double tap to turn on dark mode"}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: darkMode }}
           />
         </View>
 
         {/* Menu Sections */}
         <MenuSection title="Account">
           <MenuItem
-            icon={<User size={20} color={Colors.text.secondary} />}
+            icon={<User size={20} color={colors.text.secondary} />}
             title="Personal Information"
             subtitle="Update your profile details"
             onPress={() => router.push('/profile/personal-info')}
           />
           <MenuItem
-            icon={<Bell size={20} color={Colors.text.secondary} />}
+            icon={<Bell size={20} color={colors.text.secondary} />}
             title="Notifications"
             subtitle="Manage your notification preferences"
             onPress={() => router.push('/profile/notifications')}
           />
           <MenuItem
-            icon={<Shield size={20} color={Colors.text.secondary} />}
+            icon={<Shield size={20} color={colors.text.secondary} />}
             title="Privacy & Security"
             subtitle="Control your privacy settings"
             onPress={() => router.push('/profile/privacy')}
           />
           <MenuItem
-            icon={<Download size={20} color={Colors.text.secondary} />}
+            icon={<Download size={20} color={colors.text.secondary} />}
             title="Export Data"
             subtitle="Download all your data (GDPR)"
             onPress={handleExportData}
@@ -446,13 +475,13 @@ export default function ProfileScreen() {
 
         <MenuSection title="App">
           <MenuItem
-            icon={<Settings size={20} color={Colors.text.secondary} />}
+            icon={<Settings size={20} color={colors.text.secondary} />}
             title="Settings"
             subtitle="App preferences and configuration"
             onPress={() => router.push('/profile/settings')}
           />
           <MenuItem
-            icon={<HelpCircle size={20} color={Colors.text.secondary} />}
+            icon={<HelpCircle size={20} color={colors.text.secondary} />}
             title="Help & Support"
             subtitle="Get help and contact support"
             onPress={() => router.push('/profile/help')}
@@ -461,14 +490,14 @@ export default function ProfileScreen() {
 
         <MenuSection title="">
           <MenuItem
-            icon={<LogOut size={20} color={Colors.error[500]} />}
+            icon={<LogOut size={20} color={colors.error[500]} />}
             title="Sign Out"
             onPress={handleSignOut}
             showArrow={false}
             destructive
           />
           <MenuItem
-            icon={<Trash2 size={20} color={Colors.error[500]} />}
+            icon={<Trash2 size={20} color={colors.error[500]} />}
             title="Delete Account"
             subtitle="Permanently delete your account and data"
             onPress={handleDeleteAccount}
@@ -478,7 +507,7 @@ export default function ProfileScreen() {
         </MenuSection>
 
         {/* App Info */}
-        <View style={styles.appInfo}>
+        <View style={[styles.appInfo, { backgroundColor: colors.surface.primary }]}>
           <BodySmall color="tertiary">Stylisto v1.0.0</BodySmall>
           <BodySmall color="tertiary" style={styles.appDescription}>
             Your personal AI-powered wardrobe assistant
@@ -489,27 +518,29 @@ export default function ProfileScreen() {
   );
 }
 
+// Import Text component
+import { Text } from 'react-native';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.secondary,
   },
   header: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
     ...Shadows.sm,
   },
   content: {
     flex: 1,
+    padding: Spacing.md,
   },
   userSection: {
-    backgroundColor: Colors.surface.primary,
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
     marginBottom: Spacing.md,
+    borderRadius: Layout.borderRadius.lg,
+    ...Shadows.sm,
   },
   avatarContainer: {
     position: 'relative',
@@ -524,7 +555,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -535,7 +565,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.primary[700],
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -543,16 +572,16 @@ const styles = StyleSheet.create({
   },
   userName: {
     ...Typography.heading.h3,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   themeToggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.surface.primary,
     padding: Spacing.md,
     marginBottom: Spacing.md,
+    borderRadius: Layout.borderRadius.lg,
+    ...Shadows.sm,
   },
   themeToggleLeft: {
     flexDirection: 'row',
@@ -561,15 +590,15 @@ const styles = StyleSheet.create({
   },
   themeToggleText: {
     ...Typography.body.medium,
-    color: Colors.text.primary,
   },
   section: {
-    backgroundColor: Colors.surface.primary,
     marginBottom: Spacing.md,
+    borderRadius: Layout.borderRadius.lg,
+    overflow: 'hidden',
+    ...Shadows.sm,
   },
   sectionTitle: {
     ...Typography.caption.large,
-    color: Colors.text.secondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     paddingHorizontal: Spacing.md,
@@ -583,7 +612,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
     minHeight: Layout.touchTarget.minimum,
   },
   menuItemLeft: {
@@ -595,7 +623,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.md,
@@ -605,7 +632,6 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     ...Typography.body.medium,
-    color: Colors.text.primary,
     marginBottom: 2,
     fontWeight: '500',
   },
@@ -614,12 +640,13 @@ const styles = StyleSheet.create({
   },
   menuSubtitle: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
   },
   appInfo: {
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
     paddingHorizontal: Spacing.md,
+    borderRadius: Layout.borderRadius.lg,
+    ...Shadows.sm,
   },
   appDescription: {
     textAlign: 'center',
@@ -627,7 +654,6 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,

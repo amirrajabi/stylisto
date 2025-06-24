@@ -13,6 +13,8 @@ import { AppErrorBoundary } from '../components/error/ErrorBoundary';
 import { NetworkStatusBar } from '../components/error/NetworkStatusBar';
 import { OfflineNotice } from '../components/error/OfflineNotice';
 import { errorHandling } from '../lib/errorHandling';
+import { AccessibilityProvider } from '../components/ui/AccessibilityProvider';
+import { SkipToContentLink } from '../components/ui/SkipToContentLink';
 
 // Initialize error handling service
 errorHandling.initialize();
@@ -47,68 +49,71 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <AppErrorBoundary>
-          <NetworkStatusBar />
-          <OfflineNotice />
-          
-          <Stack 
-            screenOptions={{ 
-              headerShown: false,
-              contentStyle: { backgroundColor: Colors.background.primary }
-            }}
-          >
-            <Stack.Screen name="(auth)" options={{ headerShown: false, title: 'Authentication' }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Main App' }} />
-            <Stack.Screen 
-              name="item-detail" 
-              options={{ 
-                presentation: 'modal',
-                headerShown: true,
-                title: 'Item Details'
-              }} 
-            />
-            <Stack.Screen 
-              name="item-tag-editor" 
-              options={{ 
-                presentation: 'modal',
-                headerShown: true,
-                title: 'Edit Tags'
-              }} 
-            />
-            <Stack.Screen 
-              name="outfit-detail" 
-              options={{ 
-                presentation: 'modal',
-                headerShown: true,
-                title: 'Outfit Details'
-              }} 
-            />
-            <Stack.Screen 
-              name="outfit-builder" 
-              options={{ 
-                presentation: 'modal',
-                headerShown: true,
-                title: 'Create Outfit'
-              }} 
-            />
-            <Stack.Screen 
-              name="camera" 
-              options={{ 
-                presentation: 'fullScreenModal',
+        <AccessibilityProvider>
+          <AppErrorBoundary>
+            <SkipToContentLink contentId="main-content" />
+            <NetworkStatusBar />
+            <OfflineNotice />
+            
+            <Stack 
+              screenOptions={{ 
                 headerShown: false,
-                title: 'Camera'
-              }} 
-            />
-            <Stack.Screen 
-              name="+not-found" 
-              options={{ 
-                headerShown: false,
-                title: 'Not Found'
-              }} 
-            />
-          </Stack>
-          <StatusBar style="auto" />
-        </AppErrorBoundary>
+                contentStyle: { backgroundColor: Colors.background.primary }
+              }}
+            >
+              <Stack.Screen name="(auth)" options={{ headerShown: false, title: 'Authentication' }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Main App' }} />
+              <Stack.Screen 
+                name="item-detail" 
+                options={{ 
+                  presentation: 'modal',
+                  headerShown: true,
+                  title: 'Item Details'
+                }} 
+              />
+              <Stack.Screen 
+                name="item-tag-editor" 
+                options={{ 
+                  presentation: 'modal',
+                  headerShown: true,
+                  title: 'Edit Tags'
+                }} 
+              />
+              <Stack.Screen 
+                name="outfit-detail" 
+                options={{ 
+                  presentation: 'modal',
+                  headerShown: true,
+                  title: 'Outfit Details'
+                }} 
+              />
+              <Stack.Screen 
+                name="outfit-builder" 
+                options={{ 
+                  presentation: 'modal',
+                  headerShown: true,
+                  title: 'Create Outfit'
+                }} 
+              />
+              <Stack.Screen 
+                name="camera" 
+                options={{ 
+                  presentation: 'fullScreenModal',
+                  headerShown: false,
+                  title: 'Camera'
+                }} 
+              />
+              <Stack.Screen 
+                name="error" 
+                options={{ 
+                  headerShown: false,
+                  title: 'Error'
+                }} 
+              />
+            </Stack>
+            <StatusBar style="auto" />
+          </AppErrorBoundary>
+        </AccessibilityProvider>
       </Provider>
     </GestureHandlerRootView>
   );
