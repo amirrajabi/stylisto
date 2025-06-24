@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { store } from '../store/store';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { Colors } from '../constants/Colors';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,47 +31,49 @@ export default function RootLayout() {
   }
 
   return (
-    <Provider store={store}>
-      <Stack 
-        screenOptions={{ 
-          headerShown: false,
-          contentStyle: { backgroundColor: Colors.background.primary }
-        }}
-      >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="item-detail" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: true,
-            title: 'Item Details'
-          }} 
-        />
-        <Stack.Screen 
-          name="outfit-builder" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: true,
-            title: 'Create Outfit'
-          }} 
-        />
-        <Stack.Screen 
-          name="camera" 
-          options={{ 
-            presentation: 'fullScreenModal',
-            headerShown: false
-          }} 
-        />
-        <Stack.Screen 
-          name="+not-found" 
-          options={{ 
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <Stack 
+          screenOptions={{ 
             headerShown: false,
-            title: 'Not Found'
-          }} 
-        />
-      </Stack>
-      <StatusBar style="auto" />
-    </Provider>
+            contentStyle: { backgroundColor: Colors.background.primary }
+          }}
+        >
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen 
+            name="item-detail" 
+            options={{ 
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Item Details'
+            }} 
+          />
+          <Stack.Screen 
+            name="outfit-builder" 
+            options={{ 
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Create Outfit'
+            }} 
+          />
+          <Stack.Screen 
+            name="camera" 
+            options={{ 
+              presentation: 'fullScreenModal',
+              headerShown: false
+            }} 
+          />
+          <Stack.Screen 
+            name="+not-found" 
+            options={{ 
+              headerShown: false,
+              title: 'Not Found'
+            }} 
+          />
+        </Stack>
+        <StatusBar style="auto" />
+      </Provider>
+    </GestureHandlerRootView>
   );
 }

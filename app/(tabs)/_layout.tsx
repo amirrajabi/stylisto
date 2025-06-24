@@ -52,9 +52,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="generate"
+        name="recommendations"
         options={{
-          title: 'Generate',
+          title: 'Outfits',
           tabBarIcon: ({ color, size, focused }) => (
             <Sparkles 
               size={size} 
@@ -62,7 +62,7 @@ export default function TabLayout() {
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
-          tabBarAccessibilityLabel: 'Generate outfits tab',
+          tabBarAccessibilityLabel: 'Outfit recommendations tab',
         }}
       />
       <Tabs.Screen
