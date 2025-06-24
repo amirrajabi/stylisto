@@ -9,7 +9,7 @@ import {
   Switch,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Sliders, Sparkles, Palette, Layers, Shirt } from 'lucide-react-native';
+import { ArrowLeft, FileSliders as Sliders, Sparkles, Palette, Layers, Shirt } from 'lucide-react-native';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylePreference } from '../../lib/outfitGenerator';
