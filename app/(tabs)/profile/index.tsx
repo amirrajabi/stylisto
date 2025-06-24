@@ -14,19 +14,7 @@ import {
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  Settings, 
-  User, 
-  Bell, 
-  Shield, 
-  HelpCircle, 
-  LogOut, 
-  ChevronRight,
-  Moon,
-  Download,
-  Trash2,
-  Camera
-} from 'lucide-react-native';
+import { Settings, User, Bell, Shield, CircleHelp as HelpCircle, LogOut, ChevronRight, Moon, Download, Trash2, Camera } from 'lucide-react-native';
 import { useAuth } from '../../../hooks/useAuth';
 import { supabase } from '../../../lib/supabase';
 import { Colors } from '../../../constants/Colors';

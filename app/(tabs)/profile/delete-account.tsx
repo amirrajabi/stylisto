@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, AlertTriangle, Trash2, Download } from 'lucide-react-native';
+import { ArrowLeft, TriangleAlert as AlertTriangle, Trash2, Download } from 'lucide-react-native';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../hooks/useAuth';
 import { Colors } from '../../../constants/Colors';

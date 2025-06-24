@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, HelpCircle, Mail, MessageSquare, FileText, ExternalLink, BookOpen } from 'lucide-react-native';
+import { ArrowLeft, CircleHelp as HelpCircle, Mail, MessageSquare, FileText, ExternalLink, BookOpen } from 'lucide-react-native';
 import { Colors } from '../../../constants/Colors';
 import { Typography } from '../../../constants/Typography';
 import { Spacing, Layout } from '../../../constants/Spacing';
