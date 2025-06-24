@@ -4,11 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import * as SplashScreen from 'expo-splash-screen';
-import { store } from '../store/store';
+import { store } from '../store/store'
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  useFrameworkReady();
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-SemiBold': Inter_600SemiBold,
