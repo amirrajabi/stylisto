@@ -1,27 +1,59 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  TextInput,
   FlatList,
   Alert,
   ActionSheetIOS,
   Platform,
+  RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Search, Filter, Plus, Grid, List, SortAsc, Camera } from 'lucide-react-native';
+import { 
+  Grid, 
+  List, 
+  SortAsc, 
+  Camera, 
+  Plus, 
+  Filter,
+  MoreVertical,
+} from 'lucide-react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import { useWardrobe } from '../../../hooks/useWardrobe';
-import { ClothingItemCard } from '../../../components/wardrobe/ClothingItemCard';
-import { FilterModal } from '../../../components/wardrobe/FilterModal';
+import { WardrobeItemCard } from '../../../components/wardrobe/WardrobeItemCard';
+import { WardrobeFilters } from '../../../components/wardrobe/WardrobeFilters';
+import { WardrobeSearch } from '../../../components/wardrobe/WardrobeSearch';
+import { WardrobeEmptyState } from '../../../components/wardrobe/WardrobeEmptyState';
+import { WardrobeLoadingState } from '../../../components/wardrobe/WardrobeLoadingState';
 import { ClothingItem, SortOptions } from '../../../types/wardrobe';
 import { Colors } from '../../../constants/Colors';
 import { Typography } from '../../../constants/Typography';
 import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
-import { Button } from '../../../components/ui';
+import { Button, H1 } from '../../../components/ui';
+
+const { width: screenWidth } = Dimensions.get('window');
+const ITEMS_PER_PAGE = 20;
+
+interface FilterOptions {
+  categories: string[];
+  seasons: string[];
+  occasions: string[];
+  colors: string[];
+  brands: string[];
+  priceRange: [number, number] | null;
+  favorites: boolean;
+}
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function WardrobeScreen() {
   const {
@@ -31,22 +63,58 @@ export default function WardrobeScreen() {
     sortOptions,
     searchQuery,
     actions,
+    stats,
   } = useWardrobe();
 
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  // UI State
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Get unique values for filter options
+  // Refs
+  const flatListRef = useRef<FlatList>(null);
+
+  // Animations
+  const headerScale = useSharedValue(1);
+  const fabScale = useSharedValue(1);
+
+  // Pagination
+  const paginatedItems = useMemo(() => {
+    const startIndex = 0;
+    const endIndex = currentPage * ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, endIndex);
+  }, [filteredItems, currentPage]);
+
+  const hasMoreItems = useMemo(() => {
+    return filteredItems.length > currentPage * ITEMS_PER_PAGE;
+  }, [filteredItems.length, currentPage]);
+
+  // Filter options for modal
   const filterOptions = useMemo(() => {
     const allItems = filteredItems;
     return {
+      categories: [...new Set(allItems.map(item => item.category))],
+      seasons: ['spring', 'summer', 'fall', 'winter'],
+      occasions: ['casual', 'work', 'formal', 'party', 'sport', 'travel', 'date', 'special'],
       colors: [...new Set(allItems.map(item => item.color))],
       brands: [...new Set(allItems.map(item => item.brand).filter(Boolean))],
-      tags: [...new Set(allItems.flatMap(item => item.tags))],
     };
   }, [filteredItems]);
 
-  const handleItemPress = (item: ClothingItem) => {
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(filters).reduce((count, filter) => {
+      if (Array.isArray(filter)) {
+        return count + filter.length;
+      }
+      return count + (filter ? 1 : 0);
+    }, 0);
+  }, [filters]);
+
+  // Handlers
+  const handleItemPress = useCallback((item: ClothingItem) => {
     if (selectedItems.length > 0) {
       // Multi-select mode
       if (selectedItems.includes(item.id)) {
@@ -61,15 +129,15 @@ export default function WardrobeScreen() {
         params: { itemId: item.id }
       });
     }
-  };
+  }, [selectedItems, actions]);
 
-  const handleItemLongPress = (item: ClothingItem) => {
+  const handleItemLongPress = useCallback((item: ClothingItem) => {
     if (!selectedItems.includes(item.id)) {
       actions.selectItem(item.id);
     }
-  };
+  }, [selectedItems, actions]);
 
-  const handleMoreOptions = (item: ClothingItem) => {
+  const handleMoreOptions = useCallback((item: ClothingItem) => {
     const options = ['Edit', 'Delete', 'Cancel'];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
@@ -136,9 +204,9 @@ export default function WardrobeScreen() {
         ]
       );
     }
-  };
+  }, [actions]);
 
-  const handleSort = () => {
+  const handleSort = useCallback(() => {
     const sortFields: Array<{ label: string; value: SortOptions['field'] }> = [
       { label: 'Name', value: 'name' },
       { label: 'Category', value: 'category' },
@@ -173,44 +241,114 @@ export default function WardrobeScreen() {
         }
       );
     }
-  };
+  }, [actions]);
 
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     router.push('/wardrobe/add-item');
-  };
+  }, []);
 
-  const handleCameraPress = () => {
+  const handleCameraPress = useCallback(() => {
     router.push('/camera');
-  };
+  }, []);
 
-  const renderItem = ({ item }: { item: ClothingItem }) => (
-    <ClothingItemCard
+  const handleViewModeToggle = useCallback(() => {
+    const newMode = viewMode === 'grid' ? 'list' : 'grid';
+    setViewMode(newMode);
+    
+    // Animate header
+    headerScale.value = withSpring(0.95, {}, () => {
+      headerScale.value = withSpring(1);
+    });
+  }, [viewMode]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    // Simulate refresh delay
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setCurrentPage(1);
+    }, 1000);
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMoreItems && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setTimeout(() => {
+        setCurrentPage(prev => prev + 1);
+        setIsLoadingMore(false);
+      }, 500);
+    }
+  }, [hasMoreItems, isLoadingMore]);
+
+  const handleCreateOutfit = useCallback(() => {
+    if (selectedItems.length > 0) {
+      router.push('/outfit-builder');
+    }
+  }, [selectedItems]);
+
+  // Render functions
+  const renderItem = useCallback(({ item, index }: { item: ClothingItem; index: number }) => (
+    <WardrobeItemCard
       item={item}
+      viewMode={viewMode}
       isSelected={selectedItems.includes(item.id)}
       onPress={() => handleItemPress(item)}
       onLongPress={() => handleItemLongPress(item)}
       onToggleFavorite={() => actions.toggleFavorite(item.id)}
       onMoreOptions={() => handleMoreOptions(item)}
       showStats
+      index={index}
     />
-  );
+  ), [viewMode, selectedItems, handleItemPress, handleItemLongPress, handleMoreOptions, actions]);
 
-  const activeFiltersCount = Object.values(filters).reduce((count, filter) => {
-    if (Array.isArray(filter)) {
-      return count + filter.length;
+  const renderFooter = useCallback(() => {
+    if (!isLoadingMore) return null;
+    return <WardrobeLoadingState viewMode={viewMode} itemCount={4} />;
+  }, [isLoadingMore, viewMode]);
+
+  const renderEmpty = useCallback(() => {
+    if (isLoading) {
+      return <WardrobeLoadingState viewMode={viewMode} />;
     }
-    return count + (filter ? 1 : 0);
-  }, 0);
+
+    if (searchQuery || activeFiltersCount > 0) {
+      return (
+        <WardrobeEmptyState
+          type={searchQuery ? 'no-results' : 'filtered'}
+          searchQuery={searchQuery}
+          activeFiltersCount={activeFiltersCount}
+          onAddItem={handleAddItem}
+          onClearSearch={() => actions.setSearchQuery('')}
+          onClearFilters={() => actions.clearFilters()}
+        />
+      );
+    }
+
+    return (
+      <WardrobeEmptyState
+        type="empty"
+        onAddItem={handleAddItem}
+      />
+    );
+  }, [isLoading, searchQuery, activeFiltersCount, viewMode, handleAddItem, actions]);
+
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: headerScale.value }],
+  }));
+
+  const fabAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: fabScale.value }],
+  }));
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>My Wardrobe</Text>
+      <Animated.View style={[styles.header, headerAnimatedStyle]}>
+        <H1 style={styles.title}>My Wardrobe</H1>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            onPress={handleViewModeToggle}
             accessibilityLabel={`Switch to ${viewMode === 'grid' ? 'list' : 'grid'} view`}
           >
             {viewMode === 'grid' ? (
@@ -219,6 +357,7 @@ export default function WardrobeScreen() {
               <Grid size={24} color={Colors.text.secondary} />
             )}
           </TouchableOpacity>
+          
           <TouchableOpacity 
             style={styles.headerButton} 
             onPress={handleSort}
@@ -226,6 +365,7 @@ export default function WardrobeScreen() {
           >
             <SortAsc size={24} color={Colors.text.secondary} />
           </TouchableOpacity>
+          
           <TouchableOpacity
             style={styles.cameraButton}
             onPress={handleCameraPress}
@@ -233,35 +373,31 @@ export default function WardrobeScreen() {
           >
             <Camera size={20} color={Colors.white} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAddItem}
-            accessibilityLabel="Add new item"
-          >
-            <Plus size={24} color={Colors.white} />
-          </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Search and Filter */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Search size={20} color={Colors.text.tertiary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search items..."
+        <View style={styles.searchWrapper}>
+          <WardrobeSearch
             value={searchQuery}
             onChangeText={actions.setSearchQuery}
-            placeholderTextColor={Colors.text.tertiary}
-            accessibilityLabel="Search wardrobe items"
+            placeholder="Search your wardrobe..."
           />
         </View>
+        
         <TouchableOpacity
-          style={[styles.filterButton, activeFiltersCount > 0 && styles.activeFilterButton]}
+          style={[
+            styles.filterButton,
+            activeFiltersCount > 0 && styles.activeFilterButton
+          ]}
           onPress={() => setShowFilterModal(true)}
           accessibilityLabel={`Filter items${activeFiltersCount > 0 ? `, ${activeFiltersCount} filters active` : ''}`}
         >
-          <Filter size={20} color={activeFiltersCount > 0 ? Colors.white : Colors.text.secondary} />
+          <Filter 
+            size={20} 
+            color={activeFiltersCount > 0 ? Colors.white : Colors.text.secondary} 
+          />
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -281,7 +417,7 @@ export default function WardrobeScreen() {
               title="Create Outfit"
               size="small"
               variant="secondary"
-              onPress={() => router.push('/outfit-builder')}
+              onPress={handleCreateOutfit}
             />
             <TouchableOpacity
               style={styles.clearSelectionButton}
@@ -296,42 +432,56 @@ export default function WardrobeScreen() {
 
       {/* Items List */}
       <FlatList
-        data={filteredItems}
+        ref={flatListRef}
+        data={paginatedItems}
         renderItem={renderItem}
         keyExtractor={item => item.id}
         numColumns={viewMode === 'grid' ? 2 : 1}
         key={viewMode} // Force re-render when view mode changes
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[
+          styles.listContainer,
+          paginatedItems.length === 0 && styles.emptyListContainer,
+        ]}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Shirt size={64} color={Colors.text.disabled} />
-            <Text style={styles.emptyTitle}>No items found</Text>
-            <Text style={styles.emptySubtitle}>
-              {searchQuery || activeFiltersCount > 0
-                ? 'Try adjusting your search or filters'
-                : 'Add your first clothing item to get started'}
-            </Text>
-            {!searchQuery && activeFiltersCount === 0 && (
-              <Button
-                title="Add Item"
-                onPress={handleAddItem}
-                style={styles.emptyButton}
-              />
-            )}
-          </View>
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={Colors.primary[700]}
+            colors={[Colors.primary[700]]}
+          />
         }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={8}
+        getItemLayout={viewMode === 'list' ? (data, index) => ({
+          length: 120 + Spacing.md,
+          offset: (120 + Spacing.md) * index,
+          index,
+        }) : undefined}
       />
 
-      {/* Modals */}
-      <FilterModal
+      {/* Floating Action Button */}
+      <AnimatedTouchableOpacity
+        style={[styles.fab, fabAnimatedStyle]}
+        onPress={handleAddItem}
+        accessibilityLabel="Add new item"
+      >
+        <Plus size={24} color={Colors.white} />
+      </AnimatedTouchableOpacity>
+
+      {/* Filter Modal */}
+      <WardrobeFilters
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         filters={filters}
         onApplyFilters={actions.setFilters}
-        availableColors={filterOptions.colors}
-        availableBrands={filterOptions.brands}
-        availableTags={filterOptions.tags}
+        availableOptions={filterOptions}
       />
     </SafeAreaView>
   );
@@ -354,7 +504,6 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   title: {
-    ...Typography.heading.h1,
     color: Colors.text.primary,
   },
   headerActions: {
@@ -372,11 +521,6 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Layout.borderRadius.md,
   },
-  addButton: {
-    backgroundColor: Colors.primary[700],
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-  },
   searchContainer: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.md,
@@ -384,26 +528,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface.primary,
     gap: Spacing.md,
   },
-  searchInputContainer: {
+  searchWrapper: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    ...Typography.body.medium,
-    color: Colors.text.primary,
   },
   filterButton: {
     position: 'relative',
     padding: Spacing.md,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   activeFilterButton: {
     backgroundColor: Colors.primary[700],
@@ -455,25 +589,19 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     paddingBottom: 100,
   },
-  emptyContainer: {
-    flex: 1,
+  emptyListContainer: {
+    flexGrow: 1,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.primary[700],
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing['4xl'],
-  },
-  emptyTitle: {
-    ...Typography.heading.h3,
-    color: Colors.text.primary,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  emptySubtitle: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  emptyButton: {
-    marginTop: Spacing.md,
+    ...Shadows.lg,
   },
 });
