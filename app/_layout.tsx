@@ -6,7 +6,6 @@ import { Provider } from 'react-redux';
 import * as SplashScreen from 'expo-splash-screen';
 import { store } from '../store/store';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { NavigationContainer } from '@react-navigation/native';
 import { Colors } from '../constants/Colors';
 
 SplashScreen.preventAutoHideAsync();
@@ -38,7 +37,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: Colors.background.primary }
         }}
       >
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen 
           name="item-detail" 
           options={{ 
