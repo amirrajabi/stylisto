@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
-import { Heart, Edit, Trash2, Share } from 'lucide-react-native';
+import { Heart, Edit, Trash2, Share, Tag } from 'lucide-react-native';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -64,6 +64,13 @@ export default function ItemDetailScreen() {
   const handleShare = () => {
     // Implement share functionality
     console.log('Share item:', item.name);
+  };
+  
+  const handleEditTags = () => {
+    router.push({
+      pathname: '/item-tag-editor',
+      params: { itemId: item.id }
+    });
   };
 
   return (
@@ -139,6 +146,32 @@ export default function ItemDetailScreen() {
             )}
           </View>
 
+          {/* Tags Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <H3 style={styles.sectionTitle}>Tags</H3>
+              <TouchableOpacity 
+                style={styles.editTagsButton}
+                onPress={handleEditTags}
+              >
+                <Tag size={16} color={Colors.primary[700]} />
+                <Text style={styles.editTagsText}>Edit Tags</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.tagsContainer}>
+              {item.tags.length > 0 ? (
+                item.tags.map((tag) => (
+                  <View key={tag} style={styles.customTag}>
+                    <Text style={styles.customTagText}>{tag}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noTagsText}>No tags added yet</Text>
+              )}
+            </View>
+          </View>
+
           {/* Seasons */}
           {item.season.length > 0 && (
             <View style={styles.section}>
@@ -167,20 +200,6 @@ export default function ItemDetailScreen() {
                     style={[styles.tag, { backgroundColor: getOccasionColor(occasion) }]}
                   >
                     <Text style={styles.tagText}>{occasion}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Tags */}
-          {item.tags.length > 0 && (
-            <View style={styles.section}>
-              <H3 style={styles.sectionTitle}>Tags</H3>
-              <View style={styles.tagsContainer}>
-                {item.tags.map((tag) => (
-                  <View key={tag} style={styles.customTag}>
-                    <Text style={styles.customTagText}>{tag}</Text>
                   </View>
                 ))}
               </View>
@@ -307,8 +326,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
   },
-  sectionTitle: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    marginBottom: 0,
+  },
+  editTagsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary[50],
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.md,
+    gap: Spacing.xs,
+  },
+  editTagsText: {
+    ...Typography.caption.medium,
+    color: Colors.primary[700],
+    fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -337,6 +376,11 @@ const styles = StyleSheet.create({
   customTagText: {
     ...Typography.caption.medium,
     color: Colors.text.secondary,
+  },
+  noTagsText: {
+    ...Typography.body.small,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
   },
   statsContainer: {
     flexDirection: 'row',

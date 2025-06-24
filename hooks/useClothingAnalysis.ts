@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { useVisionAI, ClothingAnalysisResult } from '../lib/visionAI';
 import { ClothingCategory, Season, Occasion } from '../types/wardrobe';
+import { supabase } from '../lib/supabase';
 
 export interface AnalysisState {
   loading: boolean;
@@ -55,11 +56,19 @@ export const useClothingAnalysis = () => {
         }
         
         setState({ loading: false, error: null, result: data.data });
+        
+        // Record analysis in feedback table for improvement
+        await recordAnalysisResult(imageUri, data.data);
+        
         return data.data;
       } else {
         // For native environment, use the service directly
         const result = await analyzeClothing(imageUri);
         setState({ loading: false, error: null, result });
+        
+        // Record analysis in feedback table for improvement
+        await recordAnalysisResult(imageUri, result);
+        
         return result;
       }
     } catch (error) {
@@ -99,6 +108,12 @@ export const useClothingAnalysis = () => {
         // For native environment, use batch analysis
         const results = await analyzeBatch(imageUris, onProgress);
         setState({ loading: false, error: null, result: results[0] || null });
+        
+        // Record analysis results for improvement
+        for (let i = 0; i < imageUris.length; i++) {
+          await recordAnalysisResult(imageUris[i], results[i]);
+        }
+        
         return results;
       }
     } catch (error) {
@@ -109,6 +124,28 @@ export const useClothingAnalysis = () => {
       return imageUris.map(() => getFallbackResult());
     }
   }, [analyzeImage, analyzeBatch]);
+  
+  // Record analysis result for AI improvement
+  const recordAnalysisResult = async (imageUri: string, result: ClothingAnalysisResult) => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Create a record in the ai_feedback table
+      await supabase.from('ai_feedback').insert({
+        user_id: user.id,
+        feedback_type: 'item_categorization',
+        context_data: {
+          image_hash: imageUri.split('/').pop(),
+        },
+        ai_response: result,
+      });
+    } catch (error) {
+      console.error('Error recording analysis result:', error);
+      // Don't throw - this is a background operation
+    }
+  };
 
   return {
     ...state,
