@@ -16,6 +16,7 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from 'react-native-reanimated';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../../constants/Colors';
 import { Typography } from '../../../constants/Typography';
@@ -398,9 +399,6 @@ export default function RecommendationSettingsScreen() {
     </View>
   );
 }
-
-// Import GestureDetector from react-native-gesture-handler
-import { GestureDetector } from 'react-native-gesture-handler';
 
 const styles = StyleSheet.create({
   container: {
