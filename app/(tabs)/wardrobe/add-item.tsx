@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,8 +19,13 @@ import {
   Save,
   Plus,
   Trash2,
+  Sparkles,
 } from 'lucide-react-native';
 import { useImageProcessing } from '../../../utils/imageProcessing';
+import { ClothingAnalyzer } from '../../../components/ai/ClothingAnalyzer';
+import { useClothingAnalysis, AnalysisState } from '../../../hooks/useClothingAnalysis';
+import { ClothingAnalysisResult } from '../../../lib/visionAI';
+import { ClothingCategory, Season, Occasion } from '../../../types/wardrobe';
 
 interface ClothingItemForm {
   name: string;
@@ -77,8 +82,26 @@ export default function AddItemScreen() {
 
   const [newTag, setNewTag] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAnalyzer, setShowAnalyzer] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { optimizeForClothing, validateImage } = useImageProcessing();
+  const { loading: analysisLoading, error: analysisError, result: analysisResult, analyzeImage } = useClothingAnalysis();
+
+  // Apply analysis results to form data
+  useEffect(() => {
+    if (analysisResult) {
+      setFormData(prev => ({
+        ...prev,
+        category: analysisResult.category,
+        subcategory: analysisResult.subcategory || prev.subcategory,
+        color: analysisResult.color || prev.color,
+        seasons: [...analysisResult.seasons],
+        occasions: [...analysisResult.occasions],
+        tags: [...new Set([...prev.tags, ...analysisResult.tags])],
+      }));
+    }
+  }, [analysisResult]);
 
   const handleClose = useCallback(() => {
     router.back();
@@ -111,7 +134,11 @@ export default function AddItemScreen() {
       ...prev,
       images: prev.images.filter((_, index) => index !== indexToRemove),
     }));
-  }, []);
+    
+    if (selectedImageIndex >= indexToRemove && selectedImageIndex > 0) {
+      setSelectedImageIndex(prev => prev - 1);
+    }
+  }, [selectedImageIndex]);
 
   const handleToggleArrayItem = useCallback((array: string[], item: string, field: keyof ClothingItemForm) => {
     const newArray = array.includes(item)
@@ -136,6 +163,19 @@ export default function AddItemScreen() {
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove),
     }));
+  }, []);
+
+  const handleAnalyzeImage = useCallback(() => {
+    if (formData.images.length === 0) {
+      Alert.alert('No Image', 'Please add an image to analyze');
+      return;
+    }
+    
+    setShowAnalyzer(true);
+  }, [formData.images]);
+
+  const handleAnalysisComplete = useCallback((result: ClothingAnalysisResult) => {
+    // Analysis results are applied via the useEffect
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -231,12 +271,30 @@ export default function AddItemScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Photos Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Photos</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Photos</Text>
+            {formData.images.length > 0 && (
+              <TouchableOpacity 
+                style={styles.analyzeButton}
+                onPress={handleAnalyzeImage}
+              >
+                <Sparkles size={16} color="#FFFFFF" />
+                <Text style={styles.analyzeButtonText}>Analyze with AI</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
             <View style={styles.photosContainer}>
               {formData.images.map((imageUri, index) => (
-                <View key={index} style={styles.photoContainer}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={[
+                    styles.photoContainer,
+                    selectedImageIndex === index && styles.selectedPhotoContainer
+                  ]}
+                  onPress={() => setSelectedImageIndex(index)}
+                >
                   <Image
                     source={{ uri: imageUri }}
                     style={styles.photo}
@@ -248,7 +306,7 @@ export default function AddItemScreen() {
                   >
                     <X size={16} color="#FFFFFF" />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ))}
               
               {formData.images.length < 5 && (
@@ -267,6 +325,28 @@ export default function AddItemScreen() {
             </View>
           </ScrollView>
         </View>
+
+        {/* AI Analysis Section */}
+        {showAnalyzer && formData.images.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.analyzerContainer}>
+              <View style={styles.analyzerHeader}>
+                <Text style={styles.analyzerTitle}>AI Analysis</Text>
+                <TouchableOpacity 
+                  style={styles.closeAnalyzerButton}
+                  onPress={() => setShowAnalyzer(false)}
+                >
+                  <X size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <ClothingAnalyzer 
+                imageUri={formData.images[selectedImageIndex]}
+                onAnalysisComplete={handleAnalysisComplete}
+              />
+            </View>
+          </View>
+        )}
 
         {/* Basic Information */}
         <View style={styles.section}>
@@ -509,11 +589,31 @@ const styles = StyleSheet.create({
   section: {
     marginVertical: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 16,
+  },
+  analyzeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  analyzeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   photosScroll: {
     marginBottom: 16,
@@ -528,6 +628,11 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedPhotoContainer: {
+    borderColor: '#3B82F6',
   },
   photo: {
     width: '100%',
@@ -563,6 +668,29 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 4,
     fontWeight: '500',
+  },
+  analyzerContainer: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  analyzerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  analyzerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  closeAnalyzerButton: {
+    padding: 4,
   },
   inputGroup: {
     marginBottom: 20,
