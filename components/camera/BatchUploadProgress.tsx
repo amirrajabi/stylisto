@@ -4,10 +4,11 @@ import {
   Text,
   StyleSheet,
   Modal,
+  TouchableOpacity,
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Upload, X } from 'lucide-react-native';
+import { CheckCircle, AlertCircle, Upload, X } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
