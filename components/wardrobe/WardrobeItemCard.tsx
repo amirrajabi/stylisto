@@ -1,46 +1,23 @@
-import React, { memo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { Heart, MoveVertical as MoreVertical, Eye, Calendar, DollarSign } from 'lucide-react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { Heart, MoreVertical } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withSpring,
-  withTiming,
-  interpolate,
+  withSpring, 
+  withSequence,
+  withDelay
 } from 'react-native-reanimated';
+import { ClothingItem } from '../../types/wardrobe';
+import { formatDate, getSeasonColor } from '../../utils/wardrobeUtils';
+import OptimizedImage from '../ui/OptimizedImage';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
 
-interface WardrobeItem {
-  id: string;
-  name: string;
-  category: string;
-  color: string;
-  brand?: string;
-  size?: string;
-  image_url: string;
-  is_favorite: boolean;
-  times_worn: number;
-  last_worn?: string;
-  price?: number;
-  seasons: string[];
-  occasions: string[];
-  tags: string[];
-  created_at: string;
-}
-
 interface WardrobeItemCardProps {
-  item: WardrobeItem;
+  item: ClothingItem;
   viewMode: 'grid' | 'list';
   isSelected?: boolean;
   onPress: () => void;
@@ -51,13 +28,12 @@ interface WardrobeItemCardProps {
   index: number;
 }
 
-const { width: screenWidth } = Dimensions.get('window');
-const GRID_ITEM_WIDTH = (screenWidth - Spacing.lg * 3) / 2;
-const LIST_ITEM_HEIGHT = 120;
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 48) / 2;
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
-export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
+const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
   item,
   viewMode,
   isSelected = false,
@@ -68,15 +44,37 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
   showStats = false,
   index,
 }) => {
+  // Animation values
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
-
+  
+  // Initialize animations
   React.useEffect(() => {
-    opacity.value = withTiming(1, { duration: 300 + index * 50 });
-    translateY.value = withTiming(0, { duration: 300 + index * 50 });
+    // Stagger animations based on index
+    const delay = Math.min(index * 50, 500);
+    
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, { duration: 300 })
+    );
+    
+    translateY.value = withDelay(
+      delay,
+      withTiming(0, { duration: 300 })
+    );
   }, [index]);
-
+  
+  // Handle press animations
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.95, { damping: 10, stiffness: 200 });
+  }, []);
+  
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+  }, []);
+  
+  // Animated styles
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
@@ -84,62 +82,32 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
       { translateY: translateY.value },
     ],
   }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95);
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Never';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const formatPrice = (price?: number) => {
-    if (!price) return '';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
-  const getSeasonColor = (season: string) => {
-    const colors = {
-      spring: Colors.success[400],
-      summer: Colors.warning[400],
-      fall: Colors.secondary[400],
-      winter: Colors.info[400],
-    };
-    return colors[season as keyof typeof colors] || Colors.neutral[400];
-  };
-
+  
+  // Render grid or list view
   if (viewMode === 'list') {
     return (
       <AnimatedTouchableOpacity
-        style={[
-          styles.listCard,
-          isSelected && styles.selectedCard,
-          animatedStyle,
-        ]}
+        style={[styles.listCard, isSelected && styles.selectedCard, animatedStyle]}
         onPress={onPress}
         onLongPress={onLongPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.9}
+        accessibilityLabel={`${item.name}, ${item.category}`}
+        accessibilityHint="Double tap to view details, long press to select"
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
       >
         <View style={styles.listImageContainer}>
-          <Image
-            source={{ uri: item.image_url }}
+          <OptimizedImage
+            source={{ uri: item.imageUrl }}
             style={styles.listImage}
             contentFit="cover"
             transition={200}
-            cachePolicy="memory-disk"
-            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+            priority={index < 10 ? 'high' : 'normal'}
+            placeholder={{ uri: 'https://via.placeholder.com/88?text=Loading' }}
           />
+          
           {isSelected && (
             <View style={styles.selectionOverlay}>
               <View style={styles.checkmark} />
@@ -149,7 +117,11 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
 
         <View style={styles.listContent}>
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle} numberOfLines={1}>
+            <Text 
+              style={styles.listTitle} 
+              numberOfLines={1}
+              accessibilityLabel={item.name}
+            >
               {item.name}
             </Text>
             <View style={styles.listActions}>
@@ -157,17 +129,21 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
                 style={styles.actionButton}
                 onPress={onToggleFavorite}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                accessibilityRole="button"
               >
                 <Heart
                   size={18}
-                  color={item.is_favorite ? Colors.error[500] : Colors.text.tertiary}
-                  fill={item.is_favorite ? Colors.error[500] : 'transparent'}
+                  color={item.isFavorite ? Colors.error[500] : Colors.text.tertiary}
+                  fill={item.isFavorite ? Colors.error[500] : 'transparent'}
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={onMoreOptions}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="More options"
+                accessibilityRole="button"
               >
                 <MoreVertical size={18} color={Colors.text.tertiary} />
               </TouchableOpacity>
@@ -187,31 +163,22 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
 
           {showStats && (
             <View style={styles.listStats}>
-              <View style={styles.statItem}>
-                <Eye size={12} color={Colors.text.tertiary} />
-                <Text style={styles.statText}>{item.times_worn}</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Calendar size={12} color={Colors.text.tertiary} />
-                <Text style={styles.statText}>{formatDate(item.last_worn)}</Text>
-              </View>
-              {item.price && (
-                <View style={styles.statItem}>
-                  <DollarSign size={12} color={Colors.text.tertiary} />
-                  <Text style={styles.statText}>{formatPrice(item.price)}</Text>
-                </View>
+              <Text style={styles.statText}>
+                Worn {item.timesWorn} times
+              </Text>
+              {item.lastWorn && (
+                <Text style={styles.statText}>
+                  Last: {formatDate(item.lastWorn)}
+                </Text>
               )}
             </View>
           )}
 
           <View style={styles.listTags}>
-            {item.seasons.slice(0, 2).map((season) => (
+            {item.season.slice(0, 2).map((season) => (
               <View
                 key={season}
-                style={[
-                  styles.seasonTag,
-                  { backgroundColor: getSeasonColor(season) },
-                ]}
+                style={[styles.seasonTag, { backgroundColor: getSeasonColor(season) }]}
               >
                 <Text style={styles.seasonText}>{season}</Text>
               </View>
@@ -224,25 +191,25 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
 
   return (
     <AnimatedTouchableOpacity
-      style={[
-        styles.gridCard,
-        isSelected && styles.selectedCard,
-        animatedStyle,
-      ]}
+      style={[styles.gridCard, isSelected && styles.selectedCard, animatedStyle]}
       onPress={onPress}
       onLongPress={onLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={0.9}
+      accessibilityLabel={`${item.name}, ${item.category}`}
+      accessibilityHint="Double tap to view details, long press to select"
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
     >
       <View style={styles.gridImageContainer}>
-        <Image
-          source={{ uri: item.image_url }}
+        <OptimizedImage
+          source={{ uri: item.imageUrl }}
           style={styles.gridImage}
           contentFit="cover"
           transition={200}
-          cachePolicy="memory-disk"
-          placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+          priority={index < 10 ? 'high' : 'normal'}
+          placeholder={{ uri: 'https://via.placeholder.com/200?text=Loading' }}
         />
         
         <View style={styles.gridOverlay}>
@@ -250,11 +217,13 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
             style={styles.favoriteButton}
             onPress={onToggleFavorite}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            accessibilityRole="button"
           >
             <Heart
               size={16}
-              color={item.is_favorite ? Colors.error[500] : Colors.white}
-              fill={item.is_favorite ? Colors.error[500] : 'transparent'}
+              color={item.isFavorite ? Colors.error[500] : Colors.white}
+              fill={item.isFavorite ? Colors.error[500] : 'transparent'}
             />
           </TouchableOpacity>
           
@@ -262,6 +231,8 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
             style={styles.moreButton}
             onPress={onMoreOptions}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="More options"
+            accessibilityRole="button"
           >
             <MoreVertical size={16} color={Colors.white} />
           </TouchableOpacity>
@@ -275,7 +246,11 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
       </View>
 
       <View style={styles.gridContent}>
-        <Text style={styles.gridTitle} numberOfLines={2}>
+        <Text 
+          style={styles.gridTitle} 
+          numberOfLines={2}
+          accessibilityLabel={item.name}
+        >
           {item.name}
         </Text>
         
@@ -286,13 +261,10 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
         )}
 
         <View style={styles.gridTags}>
-          {item.seasons.slice(0, 2).map((season) => (
+          {item.season.slice(0, 2).map((season) => (
             <View
               key={season}
-              style={[
-                styles.seasonTag,
-                { backgroundColor: getSeasonColor(season) },
-              ]}
+              style={[styles.seasonTag, { backgroundColor: getSeasonColor(season) }]}
             >
               <Text style={styles.seasonText}>{season}</Text>
             </View>
@@ -302,11 +274,10 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
         {showStats && (
           <View style={styles.gridStats}>
             <View style={styles.statRow}>
-              <Eye size={10} color={Colors.text.tertiary} />
-              <Text style={styles.gridStatText}>{item.times_worn}</Text>
+              <Text style={styles.gridStatText}>{item.timesWorn} worn</Text>
             </View>
             {item.price && (
-              <Text style={styles.gridPrice}>{formatPrice(item.price)}</Text>
+              <Text style={styles.gridPrice}>${item.price}</Text>
             )}
           </View>
         )}
@@ -320,12 +291,12 @@ export const WardrobeItemCard = memo<WardrobeItemCardProps>(({
       </View>
     </AnimatedTouchableOpacity>
   );
-});
+};
 
 const styles = StyleSheet.create({
   // Grid styles
   gridCard: {
-    width: GRID_ITEM_WIDTH,
+    width: cardWidth,
     backgroundColor: Colors.surface.primary,
     borderRadius: Layout.borderRadius.lg,
     marginBottom: Spacing.md,
@@ -333,7 +304,7 @@ const styles = StyleSheet.create({
   },
   gridImageContainer: {
     position: 'relative',
-    height: GRID_ITEM_WIDTH * 1.2,
+    height: cardWidth * 1.2,
     borderTopLeftRadius: Layout.borderRadius.lg,
     borderTopRightRadius: Layout.borderRadius.lg,
     overflow: 'hidden',
@@ -432,7 +403,7 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.lg,
     marginBottom: Spacing.md,
     padding: Spacing.md,
-    height: LIST_ITEM_HEIGHT,
+    height: 120,
     ...Shadows.sm,
   },
   listImageContainer: {
@@ -489,11 +460,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
   },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   statText: {
     ...Typography.caption.small,
     color: Colors.text.tertiary,
@@ -534,3 +500,5 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
 });
+
+export default memo(WardrobeItemCard);

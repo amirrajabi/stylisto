@@ -1,19 +1,43 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MMKV } from 'react-native-mmkv';
+import { LRUCache } from 'lru-cache';
+import * as FileSystem from 'expo-file-system';
+import { errorHandling, ErrorSeverity, ErrorCategory } from '../lib/errorHandling';
+
+// Create MMKV instance for faster storage
+const storage = new MMKV({
+  id: 'image-cache',
+  encryptionKey: 'stylisto-image-cache',
+});
 
 interface CacheEntry {
   url: string;
   timestamp: number;
   size?: number;
+  localUri?: string;
+  width?: number;
+  height?: number;
+}
+
+interface CacheOptions {
+  maxAge?: number;
+  maxEntries?: number;
+  maxSize?: number;
+  prefetch?: boolean;
 }
 
 class ImageCacheManager {
   private static instance: ImageCacheManager;
-  private cache = new Map<string, CacheEntry>();
+  private memoryCache: LRUCache<string, CacheEntry>;
   private readonly CACHE_KEY = '@wardrobe_image_cache';
-  private readonly MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB
+  private readonly CACHE_DIR = `${FileSystem.cacheDirectory}image-cache/`;
+  private readonly MAX_CACHE_SIZE = 200 * 1024 * 1024; // 200MB
   private readonly MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
-  private readonly MAX_ENTRIES = 500;
+  private readonly MAX_ENTRIES = 1000;
+  private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
+  private pendingDownloads = new Map<string, Promise<string>>();
 
   static getInstance(): ImageCacheManager {
     if (!ImageCacheManager.instance) {
@@ -22,140 +46,300 @@ class ImageCacheManager {
     return ImageCacheManager.instance;
   }
 
+  constructor() {
+    // Initialize LRU cache for in-memory caching
+    this.memoryCache = new LRUCache<string, CacheEntry>({
+      max: 200, // Maximum number of items in memory
+      ttl: 30 * 60 * 1000, // 30 minutes
+      updateAgeOnGet: true,
+      allowStale: false,
+    });
+
+    // Start initialization
+    this.initPromise = this.initialize();
+  }
+
   async initialize() {
+    if (this.isInitialized) return;
+    
     try {
+      // Create cache directory if it doesn't exist
+      const dirInfo = await FileSystem.getInfoAsync(this.CACHE_DIR);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(this.CACHE_DIR, { intermediates: true });
+      }
+
+      // Load cache metadata
+      await this.loadCacheMetadata();
+      
+      // Clean expired entries
+      await this.cleanExpiredEntries();
+      
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize image cache:', error);
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Failed to initialize image cache'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.STORAGE,
+        }
+      );
+    }
+  }
+
+  private async loadCacheMetadata() {
+    try {
+      // Try to load from MMKV first (faster)
+      const mmkvData = storage.getString(this.CACHE_KEY);
+      if (mmkvData) {
+        const entries: CacheEntry[] = JSON.parse(mmkvData);
+        entries.forEach(entry => {
+          this.memoryCache.set(entry.url, entry);
+        });
+        return;
+      }
+      
+      // Fall back to AsyncStorage
       const cachedData = await AsyncStorage.getItem(this.CACHE_KEY);
       if (cachedData) {
         const entries: CacheEntry[] = JSON.parse(cachedData);
         entries.forEach(entry => {
-          this.cache.set(entry.url, entry);
+          this.memoryCache.set(entry.url, entry);
         });
         
-        // Clean expired entries
-        await this.cleanExpiredEntries();
+        // Migrate to MMKV for future faster access
+        storage.set(this.CACHE_KEY, cachedData);
       }
     } catch (error) {
-      console.error('Failed to initialize image cache:', error);
+      console.error('Failed to load cache metadata:', error);
     }
   }
 
-  async addToCache(url: string, size?: number) {
-    const entry: CacheEntry = {
-      url,
-      timestamp: Date.now(),
-      size,
-    };
-
-    this.cache.set(url, entry);
-    
-    // Check cache limits
-    await this.enforceCacheLimits();
-    await this.persistCache();
-  }
-
-  isCached(url: string): boolean {
-    const entry = this.cache.get(url);
-    if (!entry) return false;
-    
-    // Check if entry is expired
-    const isExpired = Date.now() - entry.timestamp > this.MAX_CACHE_AGE;
-    if (isExpired) {
-      this.cache.delete(url);
-      return false;
+  async getCachedImageUri(url: string, options: CacheOptions = {}): Promise<string> {
+    // Wait for initialization if needed
+    if (!this.isInitialized && this.initPromise) {
+      await this.initPromise;
     }
     
-    return true;
+    // Check if URL is already being downloaded
+    if (this.pendingDownloads.has(url)) {
+      return this.pendingDownloads.get(url)!;
+    }
+    
+    // Check memory cache first
+    const cachedEntry = this.memoryCache.get(url);
+    if (cachedEntry && cachedEntry.localUri) {
+      // Check if file exists
+      const fileInfo = await FileSystem.getInfoAsync(cachedEntry.localUri);
+      if (fileInfo.exists) {
+        // Check if expired
+        const isExpired = Date.now() - cachedEntry.timestamp > (options.maxAge || this.MAX_CACHE_AGE);
+        if (!isExpired) {
+          return cachedEntry.localUri;
+        }
+      }
+    }
+    
+    // Download and cache the image
+    const downloadPromise = this.downloadAndCacheImage(url, options);
+    this.pendingDownloads.set(url, downloadPromise);
+    
+    try {
+      const localUri = await downloadPromise;
+      return localUri;
+    } finally {
+      this.pendingDownloads.delete(url);
+    }
   }
 
-  getCacheInfo() {
-    const entries = Array.from(this.cache.values());
+  private async downloadAndCacheImage(url: string, options: CacheOptions = {}): Promise<string> {
+    try {
+      // Generate a filename based on URL
+      const filename = this.getFilenameFromUrl(url);
+      const localUri = `${this.CACHE_DIR}${filename}`;
+      
+      // Download the image
+      const downloadResult = await FileSystem.downloadAsync(url, localUri);
+      
+      if (downloadResult.status !== 200) {
+        throw new Error(`Failed to download image: ${downloadResult.status}`);
+      }
+      
+      // Get file info
+      const fileInfo = await FileSystem.getInfoAsync(localUri);
+      
+      // Create cache entry
+      const entry: CacheEntry = {
+        url,
+        timestamp: Date.now(),
+        localUri,
+        size: fileInfo.size,
+      };
+      
+      // Add to memory cache
+      this.memoryCache.set(url, entry);
+      
+      // Update persistent cache metadata
+      await this.persistCacheMetadata();
+      
+      // Check cache limits
+      await this.enforceCacheLimits();
+      
+      return localUri;
+    } catch (error) {
+      console.error(`Failed to download and cache image: ${url}`, error);
+      // Return original URL as fallback
+      return url;
+    }
+  }
+
+  private getFilenameFromUrl(url: string): string {
+    // Create a hash of the URL to use as filename
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+      hash = ((hash << 5) - hash) + url.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+    }
+    
+    // Extract extension from URL or default to jpg
+    const extension = url.split('.').pop()?.split('?')[0]?.toLowerCase() || 'jpg';
+    return `${Math.abs(hash)}.${extension}`;
+  }
+
+  private async persistCacheMetadata() {
+    try {
+      const entries = Array.from(this.memoryCache.values());
+      const data = JSON.stringify(entries);
+      
+      // Store in MMKV (faster)
+      storage.set(this.CACHE_KEY, data);
+      
+      // Also update AsyncStorage for backward compatibility
+      await AsyncStorage.setItem(this.CACHE_KEY, data);
+    } catch (error) {
+      console.error('Failed to persist cache metadata:', error);
+    }
+  }
+
+  private async enforceCacheLimits() {
+    try {
+      // Check number of entries
+      if (this.memoryCache.size > this.MAX_ENTRIES) {
+        // LRU cache will automatically handle eviction
+        // We just need to delete the files for evicted entries
+        const entriesToRemove = this.memoryCache.size - this.MAX_ENTRIES;
+        const entries = Array.from(this.memoryCache.entries())
+          .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+          .slice(0, entriesToRemove);
+        
+        for (const [url, entry] of entries) {
+          this.memoryCache.delete(url);
+          if (entry.localUri) {
+            await FileSystem.deleteAsync(entry.localUri, { idempotent: true });
+          }
+        }
+      }
+      
+      // Check total size
+      const entries = Array.from(this.memoryCache.values());
+      const totalSize = entries.reduce((sum, entry) => sum + (entry.size || 0), 0);
+      
+      if (totalSize > this.MAX_CACHE_SIZE) {
+        // Remove oldest entries until we're under the limit
+        const sortedEntries = [...entries].sort((a, b) => a.timestamp - b.timestamp);
+        let currentSize = totalSize;
+        
+        for (const entry of sortedEntries) {
+          if (currentSize <= this.MAX_CACHE_SIZE * 0.8) break; // Stop when we reach 80% capacity
+          
+          this.memoryCache.delete(entry.url);
+          if (entry.localUri) {
+            await FileSystem.deleteAsync(entry.localUri, { idempotent: true });
+          }
+          
+          currentSize -= entry.size || 0;
+        }
+        
+        // Update persistent cache
+        await this.persistCacheMetadata();
+      }
+    } catch (error) {
+      console.error('Failed to enforce cache limits:', error);
+    }
+  }
+
+  async cleanExpiredEntries(): Promise<number> {
+    try {
+      const now = Date.now();
+      const expiredUrls: string[] = [];
+      
+      this.memoryCache.forEach((entry, url) => {
+        if (now - entry.timestamp > this.MAX_CACHE_AGE) {
+          expiredUrls.push(url);
+        }
+      });
+      
+      // Delete expired entries
+      for (const url of expiredUrls) {
+        const entry = this.memoryCache.get(url);
+        this.memoryCache.delete(url);
+        
+        if (entry?.localUri) {
+          await FileSystem.deleteAsync(entry.localUri, { idempotent: true });
+        }
+      }
+      
+      if (expiredUrls.length > 0) {
+        await this.persistCacheMetadata();
+      }
+      
+      return expiredUrls.length;
+    } catch (error) {
+      console.error('Failed to clean expired entries:', error);
+      return 0;
+    }
+  }
+
+  async clearCache(): Promise<void> {
+    try {
+      // Clear memory cache
+      this.memoryCache.clear();
+      
+      // Clear persistent metadata
+      storage.delete(this.CACHE_KEY);
+      await AsyncStorage.removeItem(this.CACHE_KEY);
+      
+      // Delete all cached files
+      await FileSystem.deleteAsync(this.CACHE_DIR, { idempotent: true });
+      await FileSystem.makeDirectoryAsync(this.CACHE_DIR, { intermediates: true });
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+    }
+  }
+
+  getCacheStats() {
+    const entries = Array.from(this.memoryCache.values());
     const totalSize = entries.reduce((sum, entry) => sum + (entry.size || 0), 0);
     
     return {
-      entryCount: this.cache.size,
-      totalSize,
-      maxSize: this.MAX_CACHE_SIZE,
+      entries: this.memoryCache.size,
+      size: totalSize,
       maxEntries: this.MAX_ENTRIES,
+      maxSize: this.MAX_CACHE_SIZE,
       utilizationPercent: (totalSize / this.MAX_CACHE_SIZE) * 100,
     };
   }
 
-  async clearCache() {
-    this.cache.clear();
-    await AsyncStorage.removeItem(this.CACHE_KEY);
-  }
-
-  async clearExpiredEntries() {
-    const now = Date.now();
-    const expiredUrls: string[] = [];
-    
-    this.cache.forEach((entry, url) => {
-      if (now - entry.timestamp > this.MAX_CACHE_AGE) {
-        expiredUrls.push(url);
-      }
-    });
-    
-    expiredUrls.forEach(url => this.cache.delete(url));
-    
-    if (expiredUrls.length > 0) {
-      await this.persistCache();
-    }
-    
-    return expiredUrls.length;
-  }
-
-  private async enforceCacheLimits() {
-    // Remove oldest entries if we exceed max entries
-    if (this.cache.size > this.MAX_ENTRIES) {
-      const entries = Array.from(this.cache.entries())
-        .sort(([, a], [, b]) => a.timestamp - b.timestamp);
-      
-      const entriesToRemove = entries.slice(0, this.cache.size - this.MAX_ENTRIES);
-      entriesToRemove.forEach(([url]) => this.cache.delete(url));
-    }
-    
-    // Remove oldest entries if we exceed max size
-    const totalSize = Array.from(this.cache.values())
-      .reduce((sum, entry) => sum + (entry.size || 0), 0);
-    
-    if (totalSize > this.MAX_CACHE_SIZE) {
-      const entries = Array.from(this.cache.entries())
-        .sort(([, a], [, b]) => a.timestamp - b.timestamp);
-      
-      let currentSize = totalSize;
-      for (const [url, entry] of entries) {
-        if (currentSize <= this.MAX_CACHE_SIZE * 0.8) break; // Remove until 80% capacity
-        
-        this.cache.delete(url);
-        currentSize -= entry.size || 0;
-      }
-    }
-  }
-
-  private async persistCache() {
-    try {
-      const entries = Array.from(this.cache.values());
-      await AsyncStorage.setItem(this.CACHE_KEY, JSON.stringify(entries));
-    } catch (error) {
-      console.error('Failed to persist image cache:', error);
-    }
-  }
-
   // Preload images for better performance
-  async preloadImages(urls: string[]) {
-    const preloadPromises = urls.map(async (url) => {
-      if (this.isCached(url)) return;
-      
-      try {
-        // For React Native, we can't actually preload images like in web
-        // But we can mark them as "seen" in our cache
-        await this.addToCache(url);
-      } catch (error) {
-        console.warn(`Failed to preload image: ${url}`, error);
-      }
-    });
+  async preloadImages(urls: string[], options: CacheOptions = {}) {
+    // Wait for initialization if needed
+    if (!this.isInitialized && this.initPromise) {
+      await this.initPromise;
+    }
     
-    await Promise.allSettled(preloadPromises);
+    const preloadPromises = urls.map(url => this.getCachedImageUri(url, options));
+    return Promise.allSettled(preloadPromises);
   }
 
   // Get optimized image URL based on device capabilities
@@ -164,16 +348,23 @@ class ImageCacheManager {
     
     // For Pexels images, we can use their resize API
     if (originalUrl.includes('pexels.com')) {
-      const url = new URL(originalUrl);
-      
-      if (targetWidth && targetHeight) {
-        // Add resize parameters
-        url.searchParams.set('w', targetWidth.toString());
-        url.searchParams.set('h', targetHeight.toString());
-        url.searchParams.set('fit', 'crop');
+      try {
+        const url = new URL(originalUrl);
+        
+        if (targetWidth && targetHeight) {
+          // Add resize parameters
+          url.searchParams.set('auto', 'compress');
+          url.searchParams.set('cs', 'tinysrgb');
+          url.searchParams.set('w', targetWidth.toString());
+          url.searchParams.set('h', targetHeight.toString());
+          url.searchParams.set('dpr', (Platform.OS === 'web' ? window.devicePixelRatio : 2).toString());
+        }
+        
+        return url.toString();
+      } catch (error) {
+        // If URL parsing fails, return original URL
+        return originalUrl;
       }
-      
-      return url.toString();
     }
     
     return originalUrl;
@@ -184,24 +375,20 @@ export const imageCache = ImageCacheManager.getInstance();
 
 // Hook for using image cache in components
 export const useImageCache = () => {
-  const addToCache = (url: string, size?: number) => {
-    imageCache.addToCache(url, size);
-  };
-
-  const isCached = (url: string) => {
-    return imageCache.isCached(url);
+  const getCachedImageUri = (url: string, options?: CacheOptions) => {
+    return imageCache.getCachedImageUri(url, options);
   };
 
   const getOptimizedUrl = (url: string, width?: number, height?: number) => {
     return imageCache.getOptimizedImageUrl(url, width, height);
   };
 
-  const preloadImages = (urls: string[]) => {
-    return imageCache.preloadImages(urls);
+  const preloadImages = (urls: string[], options?: CacheOptions) => {
+    return imageCache.preloadImages(urls, options);
   };
 
-  const getCacheInfo = () => {
-    return imageCache.getCacheInfo();
+  const getCacheStats = () => {
+    return imageCache.getCacheStats();
   };
 
   const clearCache = () => {
@@ -209,11 +396,10 @@ export const useImageCache = () => {
   };
 
   return {
-    addToCache,
-    isCached,
+    getCachedImageUri,
     getOptimizedUrl,
     preloadImages,
-    getCacheInfo,
+    getCacheStats,
     clearCache,
   };
 };

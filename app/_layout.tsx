@@ -15,9 +15,13 @@ import { OfflineNotice } from '../components/error/OfflineNotice';
 import { errorHandling } from '../lib/errorHandling';
 import { AccessibilityProvider } from '../components/ui/AccessibilityProvider';
 import { SkipToContentLink } from '../components/ui/SkipToContentLink';
+import { imageCache } from '../utils/imageCache';
 
 // Initialize error handling service
 errorHandling.initialize();
+
+// Initialize image cache
+imageCache.initialize();
 
 // Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync();
@@ -58,7 +62,9 @@ export default function RootLayout() {
             <Stack 
               screenOptions={{ 
                 headerShown: false,
-                contentStyle: { backgroundColor: Colors.background.primary }
+                contentStyle: { backgroundColor: Colors.background.primary },
+                animation: 'fade_from_bottom',
+                animationDuration: 200,
               }}
             >
               <Stack.Screen name="(auth)" options={{ headerShown: false, title: 'Authentication' }} />
