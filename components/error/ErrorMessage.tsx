@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { AlertCircle, X } from 'lucide-react-native';
+import { CircleAlert as AlertCircle, X } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Spacing, Layout } from '../../constants/Spacing';

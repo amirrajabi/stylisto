@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 import { router } from 'expo-router';
-import { AlertCircle, RefreshCw, Home, ArrowLeft } from 'lucide-react-native';
+import { CircleAlert as AlertCircle, RefreshCw, Home, ArrowLeft } from 'lucide-react-native';
 import * as Sentry from '@sentry/react-native';
 import { errorHandling, ErrorSeverity, ErrorCategory } from '../../lib/errorHandling';
 import { Colors } from '../../constants/Colors';
