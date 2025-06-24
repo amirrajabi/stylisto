@@ -16,6 +16,8 @@ import { errorHandling } from '../lib/errorHandling';
 import { AccessibilityProvider } from '../components/ui/AccessibilityProvider';
 import { SkipToContentLink } from '../components/ui/SkipToContentLink';
 import { imageCache } from '../utils/imageCache';
+import { ConsentManager } from '../components/analytics/ConsentManager';
+import { analytics, ConsentStatus } from '../lib/analytics';
 
 // Initialize error handling service
 errorHandling.initialize();
@@ -46,6 +48,16 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  // Handle analytics consent change
+  const handleConsentChange = (status: ConsentStatus) => {
+    if (status === ConsentStatus.GRANTED) {
+      // Track app first open or return
+      analytics.trackEvent('app_opened', {
+        is_first_open: true, // You would determine this based on storage
+      });
+    }
+  };
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -58,6 +70,7 @@ export default function RootLayout() {
             <SkipToContentLink contentId="main-content" />
             <NetworkStatusBar />
             <OfflineNotice />
+            <ConsentManager onConsentChange={handleConsentChange} />
             
             <Stack 
               screenOptions={{ 

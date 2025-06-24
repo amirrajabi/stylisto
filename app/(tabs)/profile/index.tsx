@@ -13,7 +13,7 @@ import {
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Settings, User, Bell, Shield, CircleHelp as HelpCircle, LogOut, ChevronRight, Moon, Download, Trash2, Camera } from 'lucide-react-native';
+import { Settings, User, Bell, Shield, HelpCircle, LogOut, ChevronRight, Moon, Download, Trash2, Camera, BarChart } from 'lucide-react-native';
 import { useAuth } from '../../../hooks/useAuth';
 import { supabase } from '../../../lib/supabase';
 import { Colors } from '../../../constants/Colors';
@@ -23,10 +23,12 @@ import { Shadows } from '../../../constants/Shadows';
 import { H1, BodyMedium, BodySmall } from '../../../components/ui/AccessibleText';
 import { AccessibilitySettingsCard } from '../../../components/profile/AccessibilitySettingsCard';
 import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
+import { useAnalytics } from '../../../hooks/useAnalytics';
 
 export default function ProfileScreen() {
   const { user, signOut, updateProfile } = useAuth();
   const { colors, theme, toggleHighContrast } = useAccessibility();
+  const { trackScreenView, trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(theme === 'dark');
   const [userPreferences, setUserPreferences] = useState({
@@ -46,6 +48,11 @@ export default function ProfileScreen() {
       fontSize: 'medium',
     }
   });
+
+  // Track screen view
+  useEffect(() => {
+    trackScreenView('Profile');
+  }, [trackScreenView]);
 
   // Load user preferences from AsyncStorage
   useEffect(() => {
@@ -97,6 +104,11 @@ export default function ProfileScreen() {
     
     // Save theme preference
     await AsyncStorage.setItem('@theme_preference', value ? 'dark' : 'light');
+    
+    // Track event
+    trackEvent('theme_changed', {
+      theme: value ? 'dark' : 'light'
+    });
   };
 
   // Handle notification toggle
@@ -108,6 +120,12 @@ export default function ProfileScreen() {
         [key]: value
       }
     }));
+    
+    // Track event
+    trackEvent('notification_preference_changed', {
+      notification_type: key,
+      enabled: value
+    });
   };
 
   // Handle privacy toggle
@@ -119,6 +137,12 @@ export default function ProfileScreen() {
         [key]: value
       }
     }));
+    
+    // Track event
+    trackEvent('privacy_preference_changed', {
+      privacy_setting: key,
+      value: value
+    });
   };
 
   // Handle sign out
@@ -134,6 +158,10 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               setLoading(true);
+              
+              // Track sign out event
+              trackEvent('user_signed_out');
+              
               await signOut();
               router.replace('/(auth)/login');
             } catch (error) {
@@ -164,6 +192,9 @@ export default function ProfileScreen() {
               // First export data for GDPR compliance
               await handleExportData();
               
+              // Track account deletion event
+              trackEvent('account_deleted');
+              
               // Delete user data from Supabase
               const { error } = await supabase.rpc('delete_user_account');
               
@@ -193,6 +224,9 @@ export default function ProfileScreen() {
   const handleExportData = async () => {
     try {
       setLoading(true);
+      
+      // Track data export event
+      trackEvent('data_export_requested');
       
       // Fetch user data from Supabase
       const { data: userData, error: userError } = await supabase
@@ -284,6 +318,11 @@ export default function ProfileScreen() {
         { 
           text: 'Take Photo', 
           onPress: () => {
+            // Track camera usage
+            trackEvent('camera_opened', {
+              purpose: 'profile_picture'
+            });
+            
             router.push({
               pathname: '/camera',
               params: {
@@ -298,6 +337,11 @@ export default function ProfileScreen() {
         { 
           text: 'Choose from Gallery', 
           onPress: () => {
+            // Track gallery usage
+            trackEvent('gallery_opened', {
+              purpose: 'profile_picture'
+            });
+            
             router.push({
               pathname: '/camera',
               params: {
@@ -338,7 +382,14 @@ export default function ProfileScreen() {
         styles.menuItem, 
         { borderBottomColor: colors.border.primary }
       ]} 
-      onPress={onPress}
+      onPress={() => {
+        // Track menu item click
+        trackEvent('profile_menu_item_clicked', {
+          item: title.toLowerCase().replace(/\s+/g, '_')
+        });
+        
+        onPress();
+      }}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={subtitle}
@@ -464,6 +515,12 @@ export default function ProfileScreen() {
             title="Privacy & Security"
             subtitle="Control your privacy settings"
             onPress={() => router.push('/profile/privacy')}
+          />
+          <MenuItem
+            icon={<BarChart size={20} color={colors.text.secondary} />}
+            title="Analytics & Privacy"
+            subtitle="Manage data collection settings"
+            onPress={() => router.push('/profile/analytics')}
           />
           <MenuItem
             icon={<Download size={20} color={colors.text.secondary} />}
