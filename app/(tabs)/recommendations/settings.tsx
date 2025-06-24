@@ -9,7 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Sliders, Sparkles, Palette, ThermometerSun, Calendar } from 'lucide-react-native';
+import { ArrowLeft, FileSliders as Sliders, Sparkles, Palette, ThermometerSun, Calendar } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
