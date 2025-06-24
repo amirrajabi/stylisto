@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Sparkles, AlertCircle, RefreshCw, Check, Tag } from 'lucide-react-native';
+import { Sparkles, CircleAlert as AlertCircle, RefreshCw, Check, Tag } from 'lucide-react-native';
 import { useVisionAI, ClothingAnalysisResult } from '../../lib/visionAI';
 import { ClothingCategory, Season, Occasion } from '../../types/wardrobe';
 import { Colors } from '../../constants/Colors';
