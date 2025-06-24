@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Heart, MoreVertical, Eye, Calendar, DollarSign } from 'lucide-react-native';
+import { Heart, MoveVertical as MoreVertical, Eye, Calendar, DollarSign } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 

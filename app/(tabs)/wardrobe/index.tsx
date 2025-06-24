@@ -12,15 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { 
-  Grid, 
-  List, 
-  SortAsc, 
-  Camera, 
-  Plus, 
-  Filter,
-  MoreVertical,
-} from 'lucide-react-native';
+import { Grid2x2 as Grid, List, Import as SortAsc, Camera, Plus, Filter, MoveVertical as MoreVertical } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
