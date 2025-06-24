@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react-native';
+import { Eye, EyeOff, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAccessibility } from './AccessibilityProvider';
 import { Body, Caption } from './AccessibleText';
 import { Spacing, Layout } from '../../constants/Spacing';
