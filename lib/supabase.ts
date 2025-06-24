@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { errorHandling, ErrorSeverity, ErrorCategory } from './errorHandling';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -12,6 +13,14 @@ const customStorage = Platform.OS !== 'web' ? {
       return await AsyncStorage.getItem(key);
     } catch (error) {
       console.error('Error getting item from storage:', error);
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Error getting item from storage'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.STORAGE,
+          context: { key },
+        }
+      );
       return null;
     }
   },
@@ -20,6 +29,14 @@ const customStorage = Platform.OS !== 'web' ? {
       await AsyncStorage.setItem(key, value);
     } catch (error) {
       console.error('Error setting item in storage:', error);
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Error setting item in storage'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.STORAGE,
+          context: { key },
+        }
+      );
     }
   },
   removeItem: async (key: string) => {
@@ -27,10 +44,19 @@ const customStorage = Platform.OS !== 'web' ? {
       await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error('Error removing item from storage:', error);
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Error removing item from storage'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.STORAGE,
+          context: { key },
+        }
+      );
     }
   },
 } : undefined;
 
+// Create Supabase client with error handling
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Use custom storage for React Native, default for web
@@ -51,9 +77,51 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 10,
     },
   },
+  // Add error handling
+  fetch: async (url, options) => {
+    const startTime = performance.now();
+    
+    try {
+      const response = await fetch(url, options);
+      
+      // Track request performance
+      const endTime = performance.now();
+      const requestTime = endTime - startTime;
+      
+      // Log slow requests
+      if (requestTime > 1000) {
+        errorHandling.captureMessage(`Slow Supabase request: ${requestTime.toFixed(2)}ms`, {
+          severity: ErrorSeverity.WARNING,
+          category: ErrorCategory.NETWORK,
+          context: {
+            url: url.toString(),
+            method: options?.method || 'GET',
+            requestTime,
+          },
+        });
+      }
+      
+      return response;
+    } catch (error) {
+      // Log network errors
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Supabase network error'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.NETWORK,
+          context: {
+            url: url.toString(),
+            method: options?.method || 'GET',
+          },
+        }
+      );
+      
+      throw error;
+    }
+  },
 });
 
-// Enhanced error handling
+// Enhanced error handling for Supabase auth
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     // Clear any cached data
@@ -64,14 +132,40 @@ supabase.auth.onAuthStateChange((event, session) => {
         'outfit_cache',
       ]).catch(console.error);
     }
+    
+    // Log sign out event
+    errorHandling.captureMessage('User signed out', {
+      severity: ErrorSeverity.INFO,
+      category: ErrorCategory.AUTH,
+    });
   }
 
   if (event === 'TOKEN_REFRESHED') {
     console.log('Token refreshed successfully');
+    
+    // Log token refresh
+    errorHandling.captureMessage('Token refreshed', {
+      severity: ErrorSeverity.DEBUG,
+      category: ErrorCategory.AUTH,
+    });
   }
 
   if (event === 'SIGNED_IN') {
     console.log('User signed in:', session?.user?.email);
+    
+    // Set user in error handling service
+    if (session?.user) {
+      errorHandling.setUser(session.user.id, session.user.email);
+    }
+    
+    // Log sign in event
+    errorHandling.captureMessage('User signed in', {
+      severity: ErrorSeverity.INFO,
+      category: ErrorCategory.AUTH,
+      context: {
+        email: session?.user?.email,
+      },
+    });
   }
 });
 
@@ -179,6 +273,64 @@ export interface Database {
           deleted_at?: string | null;
         };
       };
+      error_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          error_message: string;
+          error_stack: string | null;
+          error_name: string | null;
+          context: Record<string, any>;
+          feedback: string | null;
+          platform: string;
+          app_version: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          error_message: string;
+          error_stack?: string | null;
+          error_name?: string | null;
+          context?: Record<string, any>;
+          feedback?: string | null;
+          platform: string;
+          app_version: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          error_message?: string;
+          error_stack?: string | null;
+          error_name?: string | null;
+          context?: Record<string, any>;
+          feedback?: string | null;
+          platform?: string;
+          app_version?: string;
+          created_at?: string;
+        };
+      };
+      health_checks: {
+        Row: {
+          id: string;
+          status: string;
+          message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          status: string;
+          message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          status?: string;
+          message?: string | null;
+          created_at?: string;
+        };
+      };
       // Add other table types as needed
     };
     Views: {
@@ -206,6 +358,17 @@ export interface Database {
           interaction_type: string;
           interaction_data?: any;
         };
+        Returns: void;
+      };
+      insert_health_check: {
+        Args: {
+          check_status: string;
+          check_message?: string;
+        };
+        Returns: string;
+      };
+      cleanup_old_error_logs: {
+        Args: Record<string, never>;
         Returns: void;
       };
     };

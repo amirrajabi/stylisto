@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { makeRedirectUri } from 'expo-auth-session';
+import { errorHandling, ErrorSeverity, ErrorCategory, AuthError } from './errorHandling';
 
 // Configure WebBrowser for OAuth
 WebBrowser.maybeCompleteAuthSession();
@@ -77,6 +78,14 @@ export class AuthService {
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
+          errorHandling.captureError(profileError, {
+            severity: ErrorSeverity.ERROR,
+            category: ErrorCategory.AUTH,
+            context: {
+              action: 'create_user_profile',
+              userId: data.user.id,
+            },
+          });
           // Don't throw here as the auth user was created successfully
         }
 
@@ -104,12 +113,44 @@ export class AuthService {
 
         if (preferencesError) {
           console.error('Error creating user preferences:', preferencesError);
+          errorHandling.captureError(preferencesError, {
+            severity: ErrorSeverity.ERROR,
+            category: ErrorCategory.AUTH,
+            context: {
+              action: 'create_user_preferences',
+              userId: data.user.id,
+            },
+          });
         }
       }
+
+      // Log successful sign up
+      errorHandling.captureMessage('User signed up successfully', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          email,
+          userId: data.user?.id,
+        },
+      });
 
       return data;
     } catch (error) {
       console.error('Sign up error:', error);
+      
+      // Log sign up error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Sign up failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'sign_up',
+            email,
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -129,11 +170,38 @@ export class AuthService {
       // Record user session
       if (data.user) {
         await this.recordUserSession(data.user.id);
+        
+        // Set user in error handling service
+        errorHandling.setUser(data.user.id, data.user.email);
       }
+
+      // Log successful sign in
+      errorHandling.captureMessage('User signed in successfully', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          email,
+          userId: data.user?.id,
+        },
+      });
 
       return data;
     } catch (error) {
       console.error('Sign in error:', error);
+      
+      // Log sign in error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Sign in failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'sign_in',
+            email,
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -160,9 +228,33 @@ export class AuthService {
 
       if (error) throw error;
 
+      // Log OAuth sign in attempt
+      errorHandling.captureMessage('Google OAuth sign in initiated', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          provider: 'google',
+          redirectUrl,
+        },
+      });
+
       return data;
     } catch (error) {
       console.error('Google sign in error:', error);
+      
+      // Log OAuth sign in error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Google sign in failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'google_sign_in',
+            provider: 'google',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -189,9 +281,33 @@ export class AuthService {
 
       if (error) throw error;
 
+      // Log OAuth sign in attempt
+      errorHandling.captureMessage('Apple OAuth sign in initiated', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          provider: 'apple',
+          redirectUrl,
+        },
+      });
+
       return data;
     } catch (error) {
       console.error('Apple sign in error:', error);
+      
+      // Log OAuth sign in error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Apple sign in failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'apple_sign_in',
+            provider: 'apple',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -209,8 +325,33 @@ export class AuthService {
 
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear user in error handling service
+      errorHandling.clearUser();
+      
+      // Log sign out
+      errorHandling.captureMessage('User signed out', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          userId: user?.id,
+        },
+      });
     } catch (error) {
       console.error('Sign out error:', error);
+      
+      // Log sign out error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Sign out failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'sign_out',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -229,8 +370,32 @@ export class AuthService {
       });
 
       if (error) throw error;
+      
+      // Log password reset request
+      errorHandling.captureMessage('Password reset requested', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          email,
+          redirectUrl,
+        },
+      });
     } catch (error) {
       console.error('Reset password error:', error);
+      
+      // Log password reset error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Password reset failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'reset_password',
+            email,
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -245,8 +410,30 @@ export class AuthService {
       });
 
       if (error) throw error;
+      
+      // Log password update
+      errorHandling.captureMessage('Password updated', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          action: 'update_password',
+        },
+      });
     } catch (error) {
       console.error('Update password error:', error);
+      
+      // Log password update error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Password update failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'update_password',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -281,8 +468,33 @@ export class AuthService {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+      
+      // Log profile update
+      errorHandling.captureMessage('Profile updated', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          action: 'update_profile',
+          userId: user.id,
+          updates: Object.keys(updates),
+        },
+      });
     } catch (error) {
       console.error('Update profile error:', error);
+      
+      // Log profile update error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Profile update failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'update_profile',
+            updates: Object.keys(updates),
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -297,6 +509,19 @@ export class AuthService {
       return session;
     } catch (error) {
       console.error('Get session error:', error);
+      
+      // Log session error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Failed to get session'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'get_session',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -311,6 +536,19 @@ export class AuthService {
       return user;
     } catch (error) {
       console.error('Get user error:', error);
+      
+      // Log get user error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Failed to get user'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'get_user',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -325,6 +563,19 @@ export class AuthService {
       return data;
     } catch (error) {
       console.error('Refresh session error:', error);
+      
+      // Log refresh session error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Failed to refresh session'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'refresh_session',
+          },
+        }
+      );
+      
       throw error;
     }
   }
@@ -347,6 +598,19 @@ export class AuthService {
         });
     } catch (error) {
       console.error('Error recording user session:', error);
+      
+      // Log session recording error
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Failed to record user session'),
+        {
+          severity: ErrorSeverity.WARNING,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'record_user_session',
+            userId,
+          },
+        }
+      );
       // Don't throw as this is not critical for auth flow
     }
   }
@@ -383,6 +647,19 @@ export class AuthService {
       }
     } catch (error) {
       console.error('Error ending user session:', error);
+      
+      // Log session ending error
+      errorHandling.captureError(
+        error instanceof Error ? error : new Error('Failed to end user session'),
+        {
+          severity: ErrorSeverity.WARNING,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'end_user_session',
+            userId,
+          },
+        }
+      );
       // Don't throw as this is not critical for auth flow
     }
   }
@@ -427,11 +704,39 @@ export class AuthService {
 
         // Record session
         await this.recordUserSession(data.user.id);
+        
+        // Set user in error handling service
+        errorHandling.setUser(data.user.id, data.user.email);
+        
+        // Log successful OAuth sign in
+        errorHandling.captureMessage('OAuth sign in successful', {
+          severity: ErrorSeverity.INFO,
+          category: ErrorCategory.AUTH,
+          context: {
+            userId: data.user.id,
+            email: data.user.email,
+            provider: data.user.app_metadata.provider,
+          },
+        });
       }
 
       return data;
     } catch (error) {
       console.error('OAuth callback error:', error);
+      
+      // Log OAuth callback error
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('OAuth callback failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'oauth_callback',
+            url,
+          },
+        }
+      );
+      
       throw error;
     }
   }

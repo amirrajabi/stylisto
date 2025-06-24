@@ -4,11 +4,20 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Sentry from '@sentry/react-native';
 import { store } from '../store/store';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { Colors } from '../constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AppErrorBoundary } from '../components/error/ErrorBoundary';
+import { NetworkStatusBar } from '../components/error/NetworkStatusBar';
+import { OfflineNotice } from '../components/error/OfflineNotice';
+import { errorHandling } from '../lib/errorHandling';
 
+// Initialize error handling service
+errorHandling.initialize();
+
+// Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -24,6 +33,11 @@ export default function RootLayout() {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
+    
+    // If there was a font loading error, report it
+    if (fontError) {
+      errorHandling.captureError(fontError);
+    }
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) {
@@ -33,63 +47,68 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <Stack 
-          screenOptions={{ 
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.background.primary }
-          }}
-        >
-          <Stack.Screen name="(auth)" options={{ headerShown: false, title: 'Authentication' }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Main App' }} />
-          <Stack.Screen 
-            name="item-detail" 
-            options={{ 
-              presentation: 'modal',
-              headerShown: true,
-              title: 'Item Details'
-            }} 
-          />
-          <Stack.Screen 
-            name="outfit-builder" 
-            options={{ 
-              presentation: 'modal',
-              headerShown: true,
-              title: 'Create Outfit'
-            }} 
-          />
-          <Stack.Screen 
-            name="item-tag-editor" 
-            options={{ 
-              presentation: 'modal',
-              headerShown: true,
-              title: 'Edit Tags'
-            }} 
-          />
-          <Stack.Screen 
-            name="outfit-detail" 
-            options={{ 
-              presentation: 'modal',
-              headerShown: true,
-              title: 'Outfit Details'
-            }} 
-          />
-          <Stack.Screen 
-            name="camera" 
-            options={{ 
-              presentation: 'fullScreenModal',
+        <AppErrorBoundary>
+          <NetworkStatusBar />
+          <OfflineNotice />
+          
+          <Stack 
+            screenOptions={{ 
               headerShown: false,
-              title: 'Camera'
-            }} 
-          />
-          <Stack.Screen 
-            name="+not-found" 
-            options={{ 
-              headerShown: false,
-              title: 'Not Found'
-            }} 
-          />
-        </Stack>
-        <StatusBar style="auto" />
+              contentStyle: { backgroundColor: Colors.background.primary }
+            }}
+          >
+            <Stack.Screen name="(auth)" options={{ headerShown: false, title: 'Authentication' }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Main App' }} />
+            <Stack.Screen 
+              name="item-detail" 
+              options={{ 
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Item Details'
+              }} 
+            />
+            <Stack.Screen 
+              name="item-tag-editor" 
+              options={{ 
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Edit Tags'
+              }} 
+            />
+            <Stack.Screen 
+              name="outfit-detail" 
+              options={{ 
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Outfit Details'
+              }} 
+            />
+            <Stack.Screen 
+              name="outfit-builder" 
+              options={{ 
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Create Outfit'
+              }} 
+            />
+            <Stack.Screen 
+              name="camera" 
+              options={{ 
+                presentation: 'fullScreenModal',
+                headerShown: false,
+                title: 'Camera'
+              }} 
+            />
+            <Stack.Screen 
+              name="+not-found" 
+              options={{ 
+                headerShown: false,
+                title: 'Not Found'
+              }} 
+            />
+          </Stack>
+          <StatusBar style="auto" />
+        </AppErrorBoundary>
       </Provider>
     </GestureHandlerRootView>
   );
