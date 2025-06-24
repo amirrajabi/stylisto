@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { Heart, MoreVertical } from 'lucide-react-native';
+import { Heart, MoveVertical as MoreVertical } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
