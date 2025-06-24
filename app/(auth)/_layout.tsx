@@ -10,10 +10,10 @@ export default function AuthLayout() {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="forgot-password" />
-      <Stack.Screen name="reset-password" />
+      <Stack.Screen name="login" options={{ title: 'Login' }} />
+      <Stack.Screen name="register" options={{ title: 'Register' }} />
+      <Stack.Screen name="forgot-password" options={{ title: 'Forgot Password' }} />
+      <Stack.Screen name="reset-password" options={{ title: 'Reset Password' }} />
     </Stack>
   );
 }
