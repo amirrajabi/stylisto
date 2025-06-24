@@ -1,15 +1,14 @@
 import { Tabs } from 'expo-router';
+import { Heart, Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Shirt, Sparkles, Heart, User } from 'lucide-react-native';
-import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing } from '../../constants/Spacing';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
+import { Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 
 export default function TabLayout() {
   const { colors, fontScale } = useAccessibility();
-  
+
   return (
     <Tabs
       screenOptions={{
@@ -45,9 +44,9 @@ export default function TabLayout() {
         options={{
           title: 'Wardrobe',
           tabBarIcon: ({ color, size, focused }) => (
-            <Shirt 
-              size={size} 
-              color={color} 
+            <Shirt
+              size={size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
               accessibilityLabel=""
             />
@@ -56,13 +55,28 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="generate"
+        options={{
+          title: 'Generate',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Wand2
+              size={size}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+              accessibilityLabel=""
+            />
+          ),
+          tabBarAccessibilityLabel: 'Generate outfits tab',
+        }}
+      />
+      <Tabs.Screen
         name="recommendations"
         options={{
           title: 'Outfits',
           tabBarIcon: ({ color, size, focused }) => (
-            <Sparkles 
-              size={size} 
-              color={color} 
+            <Sparkles
+              size={size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
               accessibilityLabel=""
             />
@@ -75,9 +89,9 @@ export default function TabLayout() {
         options={{
           title: 'Saved',
           tabBarIcon: ({ color, size, focused }) => (
-            <Heart 
-              size={size} 
-              color={color} 
+            <Heart
+              size={size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
               fill={focused ? color : 'transparent'}
               accessibilityLabel=""
@@ -91,9 +105,9 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
-            <User 
-              size={size} 
-              color={color} 
+            <User
+              size={size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
               accessibilityLabel=""
             />

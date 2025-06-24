@@ -8,38 +8,35 @@ export default function RecommendationsLayout() {
       screenOptions={{
         headerStyle: {
           backgroundColor: Colors.surface.primary,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.border.primary,
         },
         headerTitleStyle: {
           ...Typography.heading.h3,
           color: Colors.text.primary,
         },
         headerTintColor: Colors.primary[700],
-        headerBackTitleVisible: false,
         contentStyle: { backgroundColor: Colors.background.secondary },
       }}
     >
-      <Stack.Screen 
-        name="index" 
-        options={{ 
-          title: 'Outfit Recommendations',
+      <Stack.Screen
+        name="index"
+        options={{
+          title: 'Recommendations',
           headerShown: false,
-        }} 
+        }}
       />
-      <Stack.Screen 
-        name="details" 
-        options={{ 
-          title: 'Outfit Details',
+      <Stack.Screen
+        name="details"
+        options={{
+          title: 'Recommendation Details',
           headerShown: true,
-        }} 
+        }}
       />
-      <Stack.Screen 
-        name="settings" 
-        options={{ 
+      <Stack.Screen
+        name="settings"
+        options={{
           title: 'Recommendation Settings',
           headerShown: true,
-        }} 
+        }}
       />
     </Stack>
   );

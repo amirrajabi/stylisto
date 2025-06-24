@@ -7,8 +7,21 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { Sparkles, Cloud, Calendar, Tag, Shirt, Filter, RefreshCw } from 'lucide-react-native';
-import { useOutfitGenerator, OutfitGenerationOptions, GeneratedOutfit, WeatherData } from '../../lib/outfitGenerator';
+import {
+  Sparkles,
+  Cloud,
+  Calendar,
+  Tag,
+  Shirt,
+  Filter,
+  RefreshCw,
+} from 'lucide-react-native';
+import {
+  useOutfitGenerator,
+  OutfitGenerationOptions,
+  GeneratedOutfit,
+  WeatherData,
+} from '../../lib/outfitGenerator';
 import { useWardrobe } from '../../hooks/useWardrobe';
 import { OutfitPreview } from './OutfitPreview';
 import { ClothingCategory, Occasion, Season } from '../../types/wardrobe';
@@ -27,9 +40,11 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
 }) => {
   const { items, actions } = useWardrobe();
   const { generateOutfits, createOutfit } = useOutfitGenerator();
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedOutfits, setGeneratedOutfits] = useState<GeneratedOutfit[]>([]);
+  const [generatedOutfits, setGeneratedOutfits] = useState<GeneratedOutfit[]>(
+    []
+  );
   const [selectedOutfitIndex, setSelectedOutfitIndex] = useState(0);
   const [options, setOptions] = useState<OutfitGenerationOptions>({
     occasion: initialOptions.occasion || null,
@@ -46,7 +61,7 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
     maxResults: initialOptions.maxResults || 5,
     minScore: initialOptions.minScore || 0.6,
   });
-  
+
   // Generate outfits on mount if we have items
   useEffect(() => {
     if (items.length > 0) {
@@ -59,19 +74,21 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
       console.warn('Not enough items to generate outfits');
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       // Measure performance
       const startTime = performance.now();
-      
+
       // Generate outfits with current options
       const outfits = generateOutfits(items, options);
-      
+
       const endTime = performance.now();
-      console.log(`Generated ${outfits.length} outfits in ${endTime - startTime}ms`);
-      
+      console.log(
+        `Generated ${outfits.length} outfits in ${endTime - startTime}ms`
+      );
+
       setGeneratedOutfits(outfits);
       setSelectedOutfitIndex(0);
     } catch (error) {
@@ -82,55 +99,87 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
   }, [items, options, generateOutfits]);
 
   const handleSaveOutfit = useCallback(() => {
-    if (generatedOutfits.length === 0 || selectedOutfitIndex >= generatedOutfits.length) {
+    if (
+      generatedOutfits.length === 0 ||
+      selectedOutfitIndex >= generatedOutfits.length
+    ) {
       return;
     }
-    
+
     const selectedOutfit = generatedOutfits[selectedOutfitIndex];
     const outfitName = `Generated Outfit ${new Date().toLocaleDateString()}`;
-    
+
     const outfit = createOutfit(selectedOutfit.items, outfitName);
     actions.addOutfit(outfit);
-    
+
     if (onSaveOutfit) {
       onSaveOutfit(outfit.id);
     }
-  }, [generatedOutfits, selectedOutfitIndex, createOutfit, actions, onSaveOutfit]);
+  }, [
+    generatedOutfits,
+    selectedOutfitIndex,
+    createOutfit,
+    actions,
+    onSaveOutfit,
+  ]);
 
-  const handleUpdateOption = useCallback((key: keyof OutfitGenerationOptions, value: any) => {
-    setOptions(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-  }, []);
+  const handleUpdateOption = useCallback(
+    (key: keyof OutfitGenerationOptions, value: any) => {
+      setOptions(prev => ({
+        ...prev,
+        [key]: value,
+      }));
+    },
+    []
+  );
 
   const handleNextOutfit = useCallback(() => {
     if (generatedOutfits.length === 0) return;
-    
-    setSelectedOutfitIndex(prev => 
+
+    setSelectedOutfitIndex(prev =>
       prev < generatedOutfits.length - 1 ? prev + 1 : 0
     );
   }, [generatedOutfits]);
 
   const handlePreviousOutfit = useCallback(() => {
     if (generatedOutfits.length === 0) return;
-    
-    setSelectedOutfitIndex(prev => 
+
+    setSelectedOutfitIndex(prev =>
       prev > 0 ? prev - 1 : generatedOutfits.length - 1
     );
   }, [generatedOutfits]);
 
   const renderScoreBreakdown = useCallback((outfit: GeneratedOutfit) => {
     const { breakdown } = outfit.score;
-    
+
     const scoreItems = [
-      { label: 'Color Harmony', value: breakdown.colorHarmony, icon: <Tag size={16} color={Colors.text.secondary} /> },
-      { label: 'Style Match', value: breakdown.styleMatching, icon: <Shirt size={16} color={Colors.text.secondary} /> },
-      { label: 'Occasion', value: breakdown.occasionSuitability, icon: <Calendar size={16} color={Colors.text.secondary} /> },
-      { label: 'Season', value: breakdown.seasonSuitability, icon: <Calendar size={16} color={Colors.text.secondary} /> },
-      { label: 'Weather', value: breakdown.weatherSuitability, icon: <Cloud size={16} color={Colors.text.secondary} /> },
+      {
+        label: 'Color Harmony',
+        value: breakdown.colorHarmony,
+        icon: <Tag size={16} color={Colors.text.secondary} />,
+      },
+      {
+        label: 'Style Match',
+        value: breakdown.styleMatching,
+        icon: <Shirt size={16} color={Colors.text.secondary} />,
+      },
+      {
+        label: 'Occasion',
+        value: breakdown.occasionSuitability,
+        icon: <Calendar size={16} color={Colors.text.secondary} />,
+      },
+      {
+        label: 'Season',
+        value: breakdown.seasonSuitability,
+        icon: <Calendar size={16} color={Colors.text.secondary} />,
+      },
+      {
+        label: 'Weather',
+        value: breakdown.weatherSuitability,
+        icon: <Cloud size={16} color={Colors.text.secondary} />,
+      },
     ];
-    
+
     return (
       <View style={styles.scoreBreakdown}>
         {scoreItems.map((item, index) => (
@@ -140,9 +189,9 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
               <Text style={styles.scoreLabelText}>{item.label}</Text>
             </View>
             <View style={styles.scoreBarContainer}>
-              <View 
+              <View
                 style={[
-                  styles.scoreBar, 
+                  styles.scoreBar,
                   { width: `${item.value * 100}%` },
                   { backgroundColor: getScoreColor(item.value) },
                 ]}
@@ -165,29 +214,35 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
     <View style={styles.container}>
       {/* Options Bar */}
       <View style={styles.optionsBar}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.optionButton}
-          onPress={() => {/* Open occasion selector */}}
+          onPress={() => {
+            /* Open occasion selector */
+          }}
         >
           <Calendar size={20} color={Colors.text.secondary} />
           <Text style={styles.optionText}>
             {options.occasion || 'Any Occasion'}
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.optionButton}
-          onPress={() => {/* Open season selector */}}
+          onPress={() => {
+            /* Open season selector */
+          }}
         >
           <Calendar size={20} color={Colors.text.secondary} />
           <Text style={styles.optionText}>
             {options.season || 'Any Season'}
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.optionButton}
-          onPress={() => {/* Open filter modal */}}
+          onPress={() => {
+            /* Open filter modal */
+          }}
         >
           <Filter size={20} color={Colors.text.secondary} />
           <Text style={styles.optionText}>Filters</Text>
@@ -203,42 +258,45 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
           </View>
         ) : generatedOutfits.length > 0 ? (
           <>
-            <OutfitPreview 
+            <OutfitPreview
               outfit={generatedOutfits[selectedOutfitIndex].items}
               onPrevious={handlePreviousOutfit}
               onNext={handleNextOutfit}
             />
-            
+
             <View style={styles.outfitInfo}>
               <View style={styles.outfitHeader}>
                 <View style={styles.outfitScore}>
                   <Text style={styles.scoreValue}>
-                    {Math.round(generatedOutfits[selectedOutfitIndex].score.total * 100)}%
+                    {Math.round(
+                      generatedOutfits[selectedOutfitIndex].score.total * 100
+                    )}
+                    %
                   </Text>
                   <Text style={styles.scoreLabel}>Match</Text>
                 </View>
-                
+
                 <View style={styles.outfitPagination}>
                   <Text style={styles.paginationText}>
                     {selectedOutfitIndex + 1} of {generatedOutfits.length}
                   </Text>
                 </View>
               </View>
-              
+
               {/* Score Breakdown */}
               {renderScoreBreakdown(generatedOutfits[selectedOutfitIndex])}
-              
+
               {/* Action Buttons */}
               <View style={styles.actionButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.refreshButton}
                   onPress={handleGenerateOutfits}
                 >
                   <RefreshCw size={20} color={Colors.white} />
                   <Text style={styles.buttonText}>Regenerate</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.saveButton}
                   onPress={handleSaveOutfit}
                 >
@@ -252,10 +310,11 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
             <Sparkles size={48} color={Colors.text.disabled} />
             <Text style={styles.emptyTitle}>No Outfits Generated</Text>
             <Text style={styles.emptyText}>
-              Tap the button below to generate outfit suggestions based on your wardrobe.
+              Tap the button below to generate outfit suggestions based on your
+              wardrobe.
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.generateButton}
               onPress={handleGenerateOutfits}
             >

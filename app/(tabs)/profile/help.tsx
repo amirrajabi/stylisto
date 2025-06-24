@@ -1,28 +1,40 @@
+import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  BookOpen,
+  ExternalLink,
+  FileText,
+  CircleHelp as HelpCircle,
+  Mail,
+  MessageSquare,
+} from 'lucide-react-native';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-  Linking,
   Alert,
+  Linking,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, CircleHelp as HelpCircle, Mail, MessageSquare, FileText, ExternalLink, BookOpen } from 'lucide-react-native';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
 import { H1 } from '../../../components/ui';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
 
 export default function HelpScreen() {
   const handleEmailSupport = () => {
-    Linking.openURL('mailto:support@stylisto.app?subject=Help%20Request')
-      .catch(() => {
-        Alert.alert('Error', 'Could not open email client. Please email support@stylisto.app directly.');
-      });
+    Linking.openURL('mailto:support@stylisto.app?subject=Help%20Request').catch(
+      () => {
+        Alert.alert(
+          'Error',
+          'Could not open email client. Please email support@stylisto.app directly.'
+        );
+      }
+    );
   };
 
   const handleOpenFAQ = () => {
@@ -37,10 +49,9 @@ export default function HelpScreen() {
 
   const handleOpenCommunity = () => {
     // In a real app, this would open a community forum
-    Linking.openURL('https://community.stylisto.app')
-      .catch(() => {
-        Alert.alert('Error', 'Could not open the community page.');
-      });
+    Linking.openURL('https://community.stylisto.app').catch(() => {
+      Alert.alert('Error', 'Could not open the community page.');
+    });
   };
 
   return (
@@ -61,16 +72,22 @@ export default function HelpScreen() {
             <HelpCircle size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>How Can We Help?</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            Get help with using Stylisto, troubleshooting issues, or providing feedback.
+            Get help with using Stylisto, troubleshooting issues, or providing
+            feedback.
           </Text>
-          
+
           <TouchableOpacity
             style={styles.supportOption}
             onPress={handleEmailSupport}
           >
-            <View style={[styles.supportIconContainer, { backgroundColor: Colors.primary[50] }]}>
+            <View
+              style={[
+                styles.supportIconContainer,
+                { backgroundColor: Colors.primary[50] },
+              ]}
+            >
               <Mail size={24} color={Colors.primary[700]} />
             </View>
             <View style={styles.supportContent}>
@@ -81,28 +98,44 @@ export default function HelpScreen() {
             </View>
             <ExternalLink size={20} color={Colors.text.tertiary} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.supportOption}
             onPress={handleOpenFAQ}
           >
-            <View style={[styles.supportIconContainer, { backgroundColor: Colors.info[50] }]}>
+            <View
+              style={[
+                styles.supportIconContainer,
+                { backgroundColor: Colors.info[50] },
+              ]}
+            >
               <FileText size={24} color={Colors.info[700]} />
             </View>
             <View style={styles.supportContent}>
-              <Text style={styles.supportTitle}>Frequently Asked Questions</Text>
+              <Text style={styles.supportTitle}>
+                Frequently Asked Questions
+              </Text>
               <Text style={styles.supportDescription}>
                 Find answers to common questions about using Stylisto
               </Text>
             </View>
-            <ArrowLeft size={20} color={Colors.text.tertiary} style={{ transform: [{ rotate: '180deg' }] }} />
+            <ArrowLeft
+              size={20}
+              color={Colors.text.tertiary}
+              style={{ transform: [{ rotate: '180deg' }] }}
+            />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.supportOption}
             onPress={handleOpenTutorial}
           >
-            <View style={[styles.supportIconContainer, { backgroundColor: Colors.success[50] }]}>
+            <View
+              style={[
+                styles.supportIconContainer,
+                { backgroundColor: Colors.success[50] },
+              ]}
+            >
               <BookOpen size={24} color={Colors.success[700]} />
             </View>
             <View style={styles.supportContent}>
@@ -111,14 +144,23 @@ export default function HelpScreen() {
                 Learn how to use all features with our step-by-step guide
               </Text>
             </View>
-            <ArrowLeft size={20} color={Colors.text.tertiary} style={{ transform: [{ rotate: '180deg' }] }} />
+            <ArrowLeft
+              size={20}
+              color={Colors.text.tertiary}
+              style={{ transform: [{ rotate: '180deg' }] }}
+            />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.supportOption}
             onPress={handleOpenCommunity}
           >
-            <View style={[styles.supportIconContainer, { backgroundColor: Colors.secondary[50] }]}>
+            <View
+              style={[
+                styles.supportIconContainer,
+                { backgroundColor: Colors.secondary[50] },
+              ]}
+            >
               <MessageSquare size={24} color={Colors.secondary[700]} />
             </View>
             <View style={styles.supportContent}>
@@ -130,38 +172,49 @@ export default function HelpScreen() {
             <ExternalLink size={20} color={Colors.text.tertiary} />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.faqSection}>
           <Text style={styles.faqTitle}>Common Questions</Text>
-          
+
           <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>How do I add items to my wardrobe?</Text>
+            <Text style={styles.faqQuestion}>
+              How do I add items to my wardrobe?
+            </Text>
             <Text style={styles.faqAnswer}>
-              Go to the Wardrobe tab and tap the + button in the top right corner. You can take a photo or choose from your gallery.
+              Go to the Wardrobe tab and tap the + button in the top right
+              corner. You can take a photo or choose from your gallery.
             </Text>
           </View>
-          
+
           <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>How do outfit recommendations work?</Text>
+            <Text style={styles.faqQuestion}>
+              How do outfit recommendations work?
+            </Text>
             <Text style={styles.faqAnswer}>
-              Our AI analyzes your wardrobe items, considering factors like color harmony, style matching, and occasion suitability to suggest outfits that work well together.
+              Our AI analyzes your wardrobe items, considering factors like
+              color harmony, style matching, and occasion suitability to suggest
+              outfits that work well together.
             </Text>
           </View>
-          
+
           <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Can I share my outfits with friends?</Text>
+            <Text style={styles.faqQuestion}>
+              Can I share my outfits with friends?
+            </Text>
             <Text style={styles.faqAnswer}>
-              Yes! When viewing an outfit, tap the share button to send it to friends via your preferred messaging app.
+              Yes! When viewing an outfit, tap the share button to send it to
+              friends via your preferred messaging app.
             </Text>
           </View>
-          
+
           <View style={styles.faqItem}>
             <Text style={styles.faqQuestion}>How do I change my password?</Text>
             <Text style={styles.faqAnswer}>
-              Go to Profile > Personal Information > Change Password to update your password.
+              Go to Profile {'>'} Personal Information {'>'} Change Password to
+              update your password.
             </Text>
           </View>
-          
+
           <TouchableOpacity
             style={styles.viewAllFaqButton}
             onPress={handleOpenFAQ}
@@ -169,18 +222,14 @@ export default function HelpScreen() {
             <Text style={styles.viewAllFaqText}>View All FAQs</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.contactSection}>
           <Text style={styles.contactTitle}>Contact Information</Text>
-          <Text style={styles.contactText}>
-            Email: support@stylisto.app
-          </Text>
+          <Text style={styles.contactText}>Email: support@stylisto.app</Text>
           <Text style={styles.contactText}>
             Hours: Monday-Friday, 9am-5pm EST
           </Text>
-          <Text style={styles.contactText}>
-            Response Time: Within 24 hours
-          </Text>
+          <Text style={styles.contactText}>Response Time: Within 24 hours</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

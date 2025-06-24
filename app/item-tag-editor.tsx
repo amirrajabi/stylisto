@@ -1,45 +1,64 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
+  ArrowLeft,
+  Briefcase,
+  Calendar,
+  CircleHelp as HelpCircle,
+  Palette,
+  Plus,
+  Save,
+  Sparkles,
+  Tag,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Image } from 'expo-image';
-import { ArrowLeft, Save, Tag, Plus, X, Palette, Calendar, Briefcase, ThumbsUp, ThumbsDown, Sparkles, CircleHelp as HelpCircle } from 'lucide-react-native';
-import { useWardrobe } from '../hooks/useWardrobe';
-import { useClothingAnalysis } from '../hooks/useClothingAnalysis';
-import { ClothingCategory, Season, Occasion } from '../types/wardrobe';
 import { Colors } from '../constants/Colors';
+import { Shadows } from '../constants/Shadows';
+import { Layout, Spacing } from '../constants/Spacing';
 import { Typography } from '../constants/Typography';
-import { Spacing, Layout } from '../constants/Spacing';
+import { useClothingAnalysis } from '../hooks/useClothingAnalysis';
+import { useWardrobe } from '../hooks/useWardrobe';
 import { supabase } from '../lib/supabase';
+import { ClothingCategory, Occasion, Season } from '../types/wardrobe';
+
+// Import Shirt component
+import { Shirt } from 'lucide-react-native';
 
 export default function ItemTagEditorScreen() {
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
   const { items, actions } = useWardrobe();
   const { analyzeImage, loading: analysisLoading } = useClothingAnalysis();
-  
+
   const [item, setItem] = useState(items.find(i => i.id === itemId));
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [color, setColor] = useState('');
-  const [category, setCategory] = useState<ClothingCategory>(ClothingCategory.TOPS);
+  const [category, setCategory] = useState<ClothingCategory>(
+    ClothingCategory.TOPS
+  );
   const [subcategory, setSubcategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [feedbackSent, setFeedbackSent] = useState(false);
-  
+
   // Initialize state from item
   useEffect(() => {
     if (item) {
@@ -49,159 +68,312 @@ export default function ItemTagEditorScreen() {
       setColor(item.color || '');
       setCategory(item.category || ClothingCategory.TOPS);
       setSubcategory(item.subcategory || '');
-      
+
       // Generate suggested tags based on existing tags
       generateSuggestedTags(item.tags || []);
     }
   }, [item]);
-  
+
   // Generate suggested tags based on existing tags and item properties
   const generateSuggestedTags = (currentTags: string[]) => {
     // Common tags for different categories
     const categoryTags: Record<ClothingCategory, string[]> = {
-      [ClothingCategory.TOPS]: ['cotton', 'casual', 'short-sleeve', 'long-sleeve', 'button-up', 'v-neck', 'crew-neck'],
-      [ClothingCategory.BOTTOMS]: ['denim', 'slim-fit', 'relaxed', 'stretch', 'high-waisted', 'chino'],
-      [ClothingCategory.DRESSES]: ['maxi', 'midi', 'mini', 'floral', 'wrap', 'sleeveless', 'a-line'],
-      [ClothingCategory.OUTERWEAR]: ['waterproof', 'insulated', 'lightweight', 'hooded', 'zip-up', 'wool'],
-      [ClothingCategory.SHOES]: ['leather', 'canvas', 'rubber-sole', 'slip-on', 'lace-up', 'athletic'],
-      [ClothingCategory.ACCESSORIES]: ['metal', 'leather', 'adjustable', 'statement', 'minimal', 'classic'],
-      [ClothingCategory.UNDERWEAR]: ['cotton', 'seamless', 'breathable', 'comfortable', 'elastic'],
-      [ClothingCategory.ACTIVEWEAR]: ['moisture-wicking', 'stretchy', 'breathable', 'compression', 'lightweight'],
-      [ClothingCategory.SLEEPWEAR]: ['soft', 'comfortable', 'loose', 'warm', 'lightweight', 'flannel'],
-      [ClothingCategory.SWIMWEAR]: ['quick-dry', 'lined', 'adjustable', 'uv-protection', 'chlorine-resistant'],
+      [ClothingCategory.TOPS]: [
+        'cotton',
+        'casual',
+        'short-sleeve',
+        'long-sleeve',
+        'button-up',
+        'v-neck',
+        'crew-neck',
+      ],
+      [ClothingCategory.BOTTOMS]: [
+        'denim',
+        'slim-fit',
+        'relaxed',
+        'stretch',
+        'high-waisted',
+        'chino',
+      ],
+      [ClothingCategory.DRESSES]: [
+        'maxi',
+        'midi',
+        'mini',
+        'floral',
+        'wrap',
+        'sleeveless',
+        'a-line',
+      ],
+      [ClothingCategory.OUTERWEAR]: [
+        'waterproof',
+        'insulated',
+        'lightweight',
+        'hooded',
+        'zip-up',
+        'wool',
+      ],
+      [ClothingCategory.SHOES]: [
+        'leather',
+        'canvas',
+        'rubber-sole',
+        'slip-on',
+        'lace-up',
+        'athletic',
+      ],
+      [ClothingCategory.ACCESSORIES]: [
+        'metal',
+        'leather',
+        'adjustable',
+        'statement',
+        'minimal',
+        'classic',
+      ],
+      [ClothingCategory.UNDERWEAR]: [
+        'cotton',
+        'seamless',
+        'breathable',
+        'comfortable',
+        'elastic',
+      ],
+      [ClothingCategory.ACTIVEWEAR]: [
+        'moisture-wicking',
+        'stretchy',
+        'breathable',
+        'compression',
+        'lightweight',
+      ],
+      [ClothingCategory.SLEEPWEAR]: [
+        'soft',
+        'comfortable',
+        'loose',
+        'warm',
+        'lightweight',
+        'flannel',
+      ],
+      [ClothingCategory.SWIMWEAR]: [
+        'quick-dry',
+        'lined',
+        'adjustable',
+        'uv-protection',
+        'chlorine-resistant',
+      ],
     };
-    
+
     // Season-related tags
     const seasonTags: Record<Season, string[]> = {
-      [Season.SPRING]: ['lightweight', 'breathable', 'pastel', 'floral', 'rain-resistant'],
-      [Season.SUMMER]: ['lightweight', 'breathable', 'sleeveless', 'bright', 'sun-protection'],
-      [Season.FALL]: ['layering', 'mid-weight', 'warm', 'earth-tones', 'transitional'],
-      [Season.WINTER]: ['warm', 'insulated', 'heavyweight', 'thermal', 'waterproof'],
+      [Season.SPRING]: [
+        'lightweight',
+        'breathable',
+        'pastel',
+        'floral',
+        'rain-resistant',
+      ],
+      [Season.SUMMER]: [
+        'lightweight',
+        'breathable',
+        'sleeveless',
+        'bright',
+        'sun-protection',
+      ],
+      [Season.FALL]: [
+        'layering',
+        'mid-weight',
+        'warm',
+        'earth-tones',
+        'transitional',
+      ],
+      [Season.WINTER]: [
+        'warm',
+        'insulated',
+        'heavyweight',
+        'thermal',
+        'waterproof',
+      ],
     };
-    
+
     // Occasion-related tags
     const occasionTags: Record<Occasion, string[]> = {
-      [Occasion.CASUAL]: ['comfortable', 'everyday', 'relaxed', 'versatile', 'easy-care'],
-      [Occasion.WORK]: ['professional', 'business', 'office', 'polished', 'structured'],
-      [Occasion.FORMAL]: ['elegant', 'dressy', 'sophisticated', 'tailored', 'luxurious'],
-      [Occasion.PARTY]: ['statement', 'festive', 'glamorous', 'eye-catching', 'special'],
-      [Occasion.SPORT]: ['performance', 'athletic', 'moisture-wicking', 'flexible', 'durable'],
-      [Occasion.TRAVEL]: ['wrinkle-resistant', 'packable', 'versatile', 'comfortable', 'lightweight'],
-      [Occasion.DATE]: ['flattering', 'stylish', 'attractive', 'confidence-boosting', 'special'],
-      [Occasion.SPECIAL]: ['memorable', 'unique', 'statement', 'occasion-specific', 'standout'],
+      [Occasion.CASUAL]: [
+        'comfortable',
+        'everyday',
+        'relaxed',
+        'versatile',
+        'easy-care',
+      ],
+      [Occasion.WORK]: [
+        'professional',
+        'business',
+        'office',
+        'polished',
+        'structured',
+      ],
+      [Occasion.FORMAL]: [
+        'elegant',
+        'dressy',
+        'sophisticated',
+        'tailored',
+        'luxurious',
+      ],
+      [Occasion.PARTY]: [
+        'statement',
+        'festive',
+        'glamorous',
+        'eye-catching',
+        'special',
+      ],
+      [Occasion.SPORT]: [
+        'performance',
+        'athletic',
+        'moisture-wicking',
+        'flexible',
+        'durable',
+      ],
+      [Occasion.TRAVEL]: [
+        'wrinkle-resistant',
+        'packable',
+        'versatile',
+        'comfortable',
+        'lightweight',
+      ],
+      [Occasion.DATE]: [
+        'flattering',
+        'stylish',
+        'attractive',
+        'confidence-boosting',
+        'special',
+      ],
+      [Occasion.SPECIAL]: [
+        'memorable',
+        'unique',
+        'statement',
+        'occasion-specific',
+        'standout',
+      ],
     };
-    
+
     // Color-related tags
     const colorTags: Record<string, string[]> = {
-      'black': ['classic', 'versatile', 'slimming', 'elegant', 'timeless'],
-      'white': ['clean', 'fresh', 'crisp', 'bright', 'classic'],
-      'blue': ['cool', 'calming', 'versatile', 'denim', 'navy'],
-      'red': ['bold', 'statement', 'eye-catching', 'warm', 'energetic'],
-      'green': ['fresh', 'natural', 'earthy', 'calming', 'vibrant'],
-      'yellow': ['bright', 'cheerful', 'statement', 'sunny', 'attention-grabbing'],
-      'purple': ['regal', 'creative', 'unique', 'rich', 'sophisticated'],
-      'pink': ['feminine', 'soft', 'playful', 'romantic', 'youthful'],
-      'brown': ['earthy', 'neutral', 'warm', 'natural', 'versatile'],
-      'gray': ['neutral', 'versatile', 'sophisticated', 'modern', 'timeless'],
+      black: ['classic', 'versatile', 'slimming', 'elegant', 'timeless'],
+      white: ['clean', 'fresh', 'crisp', 'bright', 'classic'],
+      blue: ['cool', 'calming', 'versatile', 'denim', 'navy'],
+      red: ['bold', 'statement', 'eye-catching', 'warm', 'energetic'],
+      green: ['fresh', 'natural', 'earthy', 'calming', 'vibrant'],
+      yellow: [
+        'bright',
+        'cheerful',
+        'statement',
+        'sunny',
+        'attention-grabbing',
+      ],
+      purple: ['regal', 'creative', 'unique', 'rich', 'sophisticated'],
+      pink: ['feminine', 'soft', 'playful', 'romantic', 'youthful'],
+      brown: ['earthy', 'neutral', 'warm', 'natural', 'versatile'],
+      gray: ['neutral', 'versatile', 'sophisticated', 'modern', 'timeless'],
     };
-    
+
     // Collect potential tags
     let potentialTags: string[] = [];
-    
+
     // Add category-specific tags
     if (item?.category) {
       potentialTags = [...potentialTags, ...categoryTags[item.category]];
     }
-    
+
     // Add season-specific tags
     if (item?.season) {
       item.season.forEach(season => {
         potentialTags = [...potentialTags, ...seasonTags[season]];
       });
     }
-    
+
     // Add occasion-specific tags
     if (item?.occasion) {
       item.occasion.forEach(occasion => {
         potentialTags = [...potentialTags, ...occasionTags[occasion]];
       });
     }
-    
+
     // Add color-specific tags
     if (item?.color) {
-      const colorKey = Object.keys(colorTags).find(key => 
+      const colorKey = Object.keys(colorTags).find(key =>
         item.color.toLowerCase().includes(key)
       );
       if (colorKey) {
         potentialTags = [...potentialTags, ...colorTags[colorKey]];
       }
     }
-    
+
     // Filter out tags that are already applied
-    const filteredTags = potentialTags.filter(tag => !currentTags.includes(tag));
-    
+    const filteredTags = potentialTags.filter(
+      tag => !currentTags.includes(tag)
+    );
+
     // Remove duplicates and limit to 10 suggestions
     const uniqueTags = Array.from(new Set(filteredTags)).slice(0, 10);
-    
+
     setSuggestedTags(uniqueTags);
   };
-  
+
   // Handle adding a new tag
   const handleAddTag = useCallback(() => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
       const updatedTags = [...tags, newTag.trim()];
       setTags(updatedTags);
       setNewTag('');
-      
+
       // Update suggested tags
       generateSuggestedTags(updatedTags);
     }
   }, [newTag, tags]);
-  
+
   // Handle removing a tag
-  const handleRemoveTag = useCallback((tagToRemove: string) => {
-    const updatedTags = tags.filter(tag => tag !== tagToRemove);
-    setTags(updatedTags);
-    
-    // Update suggested tags
-    generateSuggestedTags(updatedTags);
-  }, [tags]);
-  
-  // Handle adding a suggested tag
-  const handleAddSuggestedTag = useCallback((tag: string) => {
-    if (!tags.includes(tag)) {
-      const updatedTags = [...tags, tag];
+  const handleRemoveTag = useCallback(
+    (tagToRemove: string) => {
+      const updatedTags = tags.filter(tag => tag !== tagToRemove);
       setTags(updatedTags);
-      
+
       // Update suggested tags
       generateSuggestedTags(updatedTags);
-    }
-  }, [tags]);
-  
+    },
+    [tags]
+  );
+
+  // Handle adding a suggested tag
+  const handleAddSuggestedTag = useCallback(
+    (tag: string) => {
+      if (!tags.includes(tag)) {
+        const updatedTags = [...tags, tag];
+        setTags(updatedTags);
+
+        // Update suggested tags
+        generateSuggestedTags(updatedTags);
+      }
+    },
+    [tags]
+  );
+
   // Toggle season selection
   const toggleSeason = useCallback((season: Season) => {
-    setSeasons(prev => 
-      prev.includes(season) 
-        ? prev.filter(s => s !== season) 
-        : [...prev, season]
+    setSeasons(prev =>
+      prev.includes(season) ? prev.filter(s => s !== season) : [...prev, season]
     );
   }, []);
-  
+
   // Toggle occasion selection
   const toggleOccasion = useCallback((occasion: Occasion) => {
-    setOccasions(prev => 
-      prev.includes(occasion) 
-        ? prev.filter(o => o !== occasion) 
+    setOccasions(prev =>
+      prev.includes(occasion)
+        ? prev.filter(o => o !== occasion)
         : [...prev, occasion]
     );
   }, []);
-  
+
   // Save changes
   const handleSave = useCallback(async () => {
     if (!item) return;
-    
+
     setLoading(true);
-    
+
     try {
       const updatedItem = {
         ...item,
@@ -212,9 +384,9 @@ export default function ItemTagEditorScreen() {
         category,
         subcategory,
       };
-      
+
       actions.updateItem(updatedItem);
-      
+
       Alert.alert(
         'Changes Saved',
         'Your changes have been saved successfully.',
@@ -227,14 +399,14 @@ export default function ItemTagEditorScreen() {
       setLoading(false);
     }
   }, [item, tags, seasons, occasions, color, category, subcategory, actions]);
-  
+
   // Re-analyze with AI
   const handleReanalyze = useCallback(async () => {
     if (!item) return;
-    
+
     try {
       const result = await analyzeImage(item.imageUrl);
-      
+
       // Update state with AI results
       setTags(result.tags);
       setSeasons(result.seasons);
@@ -242,10 +414,10 @@ export default function ItemTagEditorScreen() {
       setColor(result.color);
       setCategory(result.category);
       setSubcategory(result.subcategory);
-      
+
       // Update suggested tags
       generateSuggestedTags(result.tags);
-      
+
       Alert.alert(
         'AI Analysis Complete',
         'The item has been re-analyzed. You can now review and edit the results.',
@@ -253,61 +425,67 @@ export default function ItemTagEditorScreen() {
       );
     } catch (error) {
       console.error('Error analyzing image:', error);
-      Alert.alert('Analysis Error', 'Failed to analyze the image. Please try again.');
+      Alert.alert(
+        'Analysis Error',
+        'Failed to analyze the image. Please try again.'
+      );
     }
   }, [item, analyzeImage]);
-  
+
   // Submit feedback to improve AI
-  const handleSubmitFeedback = useCallback(async (isHelpful: boolean) => {
-    if (!item) return;
-    
-    try {
-      // Create feedback record in database
-      const { error } = await supabase.from('ai_feedback').insert({
-        user_id: item.user_id,
-        feedback_type: 'item_categorization',
-        context_data: {
+  const handleSubmitFeedback = useCallback(
+    async (isHelpful: boolean) => {
+      if (!item) return;
+
+      try {
+        // Create feedback record in database
+        const { error } = await supabase.from('ai_feedback').insert({
           item_id: item.id,
-          original_tags: item.tags,
-          original_category: item.category,
-          original_color: item.color,
-          original_seasons: item.season,
-          original_occasions: item.occasion,
-        },
-        ai_response: {
-          corrected_tags: tags,
-          corrected_category: category,
-          corrected_color: color,
-          corrected_seasons: seasons,
-          corrected_occasions: occasions,
-        },
-        is_helpful: isHelpful,
-        user_feedback: isHelpful 
-          ? 'AI suggestions were helpful with minor corrections'
-          : 'AI suggestions required significant corrections',
-      });
-      
-      if (error) throw error;
-      
-      setFeedbackSent(true);
-      
-      Alert.alert(
-        'Feedback Submitted',
-        'Thank you for your feedback! This helps improve our AI recommendations.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      Alert.alert('Error', 'Failed to submit feedback. Please try again.');
-    }
-  }, [item, tags, category, color, seasons, occasions]);
-  
+          feedback_type: 'item_categorization',
+          context_data: {
+            item_id: item.id,
+            original_tags: item.tags,
+            original_category: item.category,
+            original_color: item.color,
+            original_seasons: item.season,
+            original_occasions: item.occasion,
+          },
+          ai_response: {
+            corrected_tags: tags,
+            corrected_category: category,
+            corrected_color: color,
+            corrected_seasons: seasons,
+            corrected_occasions: occasions,
+          },
+          is_helpful: isHelpful,
+          user_feedback: isHelpful
+            ? 'AI suggestions were helpful with minor corrections'
+            : 'AI suggestions required significant corrections',
+        });
+
+        if (error) throw error;
+
+        setFeedbackSent(true);
+
+        Alert.alert(
+          'Feedback Submitted',
+          'Thank you for your feedback! This helps improve our AI recommendations.',
+          [{ text: 'OK' }]
+        );
+      } catch (error) {
+        console.error('Error submitting feedback:', error);
+        Alert.alert('Error', 'Failed to submit feedback. Please try again.');
+      }
+    },
+    [item, tags, category, color, seasons, occasions]
+  );
+
   if (!item) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Item not found</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -321,7 +499,7 @@ export default function ItemTagEditorScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
@@ -349,7 +527,7 @@ export default function ItemTagEditorScreen() {
             )}
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Item Preview */}
           <View style={styles.itemPreview}>
@@ -363,9 +541,9 @@ export default function ItemTagEditorScreen() {
               <Text style={styles.itemCategory}>{item.category}</Text>
             </View>
           </View>
-          
+
           {/* AI Analysis Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.analyzeButton}
             onPress={handleReanalyze}
             disabled={analysisLoading}
@@ -379,26 +557,28 @@ export default function ItemTagEditorScreen() {
               </>
             )}
           </TouchableOpacity>
-          
+
           {/* Tags Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Tag size={20} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Tags</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.helpButton}
-                onPress={() => Alert.alert(
-                  'About Tags',
-                  'Tags help categorize and find your items. Add descriptive words like "cotton", "casual", "work", etc.'
-                )}
+                onPress={() =>
+                  Alert.alert(
+                    'About Tags',
+                    'Tags help categorize and find your items. Add descriptive words like "cotton", "casual", "work", etc.'
+                  )
+                }
               >
                 <HelpCircle size={16} color={Colors.text.secondary} />
               </TouchableOpacity>
             </View>
-            
+
             {/* Current Tags */}
             <View style={styles.tagsContainer}>
-              {tags.map((tag) => (
+              {tags.map(tag => (
                 <View key={tag} style={styles.tag}>
                   <Text style={styles.tagText}>{tag}</Text>
                   <TouchableOpacity
@@ -410,7 +590,7 @@ export default function ItemTagEditorScreen() {
                 </View>
               ))}
             </View>
-            
+
             {/* Add New Tag */}
             <View style={styles.addTagContainer}>
               <TextInput
@@ -430,13 +610,13 @@ export default function ItemTagEditorScreen() {
                 <Plus size={20} color={Colors.white} />
               </TouchableOpacity>
             </View>
-            
+
             {/* Suggested Tags */}
             {suggestedTags.length > 0 && (
               <View style={styles.suggestedTagsContainer}>
                 <Text style={styles.suggestedTagsTitle}>Suggested Tags</Text>
                 <View style={styles.suggestedTagsGrid}>
-                  {suggestedTags.map((tag) => (
+                  {suggestedTags.map(tag => (
                     <TouchableOpacity
                       key={tag}
                       style={styles.suggestedTag}
@@ -450,16 +630,16 @@ export default function ItemTagEditorScreen() {
               </View>
             )}
           </View>
-          
+
           {/* Category Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Shirt size={20} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Category</Text>
             </View>
-            
+
             <View style={styles.categoriesGrid}>
-              {Object.values(ClothingCategory).map((cat) => (
+              {Object.values(ClothingCategory).map(cat => (
                 <TouchableOpacity
                   key={cat}
                   style={[
@@ -468,16 +648,18 @@ export default function ItemTagEditorScreen() {
                   ]}
                   onPress={() => setCategory(cat)}
                 >
-                  <Text style={[
-                    styles.categoryOptionText,
-                    category === cat && styles.selectedCategoryOptionText,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.categoryOptionText,
+                      category === cat && styles.selectedCategoryOptionText,
+                    ]}
+                  >
                     {cat.replace('_', ' ')}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Subcategory (optional)</Text>
               <TextInput
@@ -489,14 +671,14 @@ export default function ItemTagEditorScreen() {
               />
             </View>
           </View>
-          
+
           {/* Color Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Palette size={20} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Color</Text>
             </View>
-            
+
             <View style={styles.colorPickerContainer}>
               <View style={styles.colorInputContainer}>
                 <TextInput
@@ -506,12 +688,26 @@ export default function ItemTagEditorScreen() {
                   placeholder="e.g., Blue, #0000FF"
                   placeholderTextColor={Colors.text.tertiary}
                 />
-                <View style={[styles.colorPreview, { backgroundColor: color }]} />
+                <View
+                  style={[styles.colorPreview, { backgroundColor: color }]}
+                />
               </View>
-              
+
               <View style={styles.colorOptions}>
-                {['#000000', '#FFFFFF', '#0000FF', '#FF0000', '#00FF00', '#FFFF00', 
-                  '#FFA500', '#800080', '#FFC0CB', '#A52A2A', '#808080', '#008080'].map((colorOption) => (
+                {[
+                  '#000000',
+                  '#FFFFFF',
+                  '#0000FF',
+                  '#FF0000',
+                  '#00FF00',
+                  '#FFFF00',
+                  '#FFA500',
+                  '#800080',
+                  '#FFC0CB',
+                  '#A52A2A',
+                  '#808080',
+                  '#008080',
+                ].map(colorOption => (
                   <TouchableOpacity
                     key={colorOption}
                     style={[
@@ -525,69 +721,79 @@ export default function ItemTagEditorScreen() {
               </View>
             </View>
           </View>
-          
+
           {/* Seasons Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Calendar size={20} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Seasons</Text>
             </View>
-            
+
             <View style={styles.optionsGrid}>
-              {Object.values(Season).map((season) => (
+              {Object.values(Season).map(season => (
                 <TouchableOpacity
                   key={season}
                   style={[
                     styles.optionButton,
                     { backgroundColor: getSeasonColor(season, 0.2) },
                     seasons.includes(season) && styles.selectedOptionButton,
-                    seasons.includes(season) && { backgroundColor: getSeasonColor(season, 0.4) },
+                    seasons.includes(season) && {
+                      backgroundColor: getSeasonColor(season, 0.4),
+                    },
                   ]}
                   onPress={() => toggleSeason(season)}
                 >
-                  <Text style={[
-                    styles.optionButtonText,
-                    { color: getSeasonColor(season) },
-                    seasons.includes(season) && styles.selectedOptionButtonText,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionButtonText,
+                      { color: getSeasonColor(season) },
+                      seasons.includes(season) &&
+                        styles.selectedOptionButtonText,
+                    ]}
+                  >
                     {season}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-          
+
           {/* Occasions Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Briefcase size={20} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Occasions</Text>
             </View>
-            
+
             <View style={styles.optionsGrid}>
-              {Object.values(Occasion).map((occasion) => (
+              {Object.values(Occasion).map(occasion => (
                 <TouchableOpacity
                   key={occasion}
                   style={[
                     styles.optionButton,
                     { backgroundColor: getOccasionColor(occasion, 0.2) },
                     occasions.includes(occasion) && styles.selectedOptionButton,
-                    occasions.includes(occasion) && { backgroundColor: getOccasionColor(occasion, 0.4) },
+                    occasions.includes(occasion) && {
+                      backgroundColor: getOccasionColor(occasion, 0.4),
+                    },
                   ]}
                   onPress={() => toggleOccasion(occasion)}
                 >
-                  <Text style={[
-                    styles.optionButtonText,
-                    { color: getOccasionColor(occasion) },
-                    occasions.includes(occasion) && styles.selectedOptionButtonText,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionButtonText,
+                      { color: getOccasionColor(occasion) },
+                      occasions.includes(occasion) &&
+                        styles.selectedOptionButtonText,
+                    ]}
+                  >
                     {occasion}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-          
+
           {/* AI Feedback Section */}
           {!feedbackSent && (
             <View style={styles.feedbackContainer}>
@@ -595,31 +801,41 @@ export default function ItemTagEditorScreen() {
               <Text style={styles.feedbackDescription}>
                 Were the AI-generated tags and attributes helpful for this item?
               </Text>
-              
+
               <View style={styles.feedbackButtons}>
                 <TouchableOpacity
                   style={[styles.feedbackButton, styles.helpfulButton]}
                   onPress={() => handleSubmitFeedback(true)}
                 >
                   <ThumbsUp size={18} color={Colors.success[600]} />
-                  <Text style={[styles.feedbackButtonText, styles.helpfulButtonText]}>
+                  <Text
+                    style={[
+                      styles.feedbackButtonText,
+                      styles.helpfulButtonText,
+                    ]}
+                  >
                     Helpful
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.feedbackButton, styles.notHelpfulButton]}
                   onPress={() => handleSubmitFeedback(false)}
                 >
                   <ThumbsDown size={18} color={Colors.error[600]} />
-                  <Text style={[styles.feedbackButtonText, styles.notHelpfulButtonText]}>
+                  <Text
+                    style={[
+                      styles.feedbackButtonText,
+                      styles.notHelpfulButtonText,
+                    ]}
+                  >
                     Not Helpful
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
-          
+
           {/* Spacer for keyboard */}
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -652,9 +868,6 @@ const getOccasionColor = (occasion: Occasion, opacity: number = 1) => {
   };
   return colors[occasion] || `rgba(156, 163, 175, ${opacity})`;
 };
-
-// Import Shirt component
-import { Shirt } from 'lucide-react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -1003,5 +1216,8 @@ const styles = StyleSheet.create({
     ...Typography.button.medium,
     color: Colors.white,
     marginLeft: Spacing.xs,
+  },
+  backButton: {
+    marginRight: Spacing.md,
   },
 });

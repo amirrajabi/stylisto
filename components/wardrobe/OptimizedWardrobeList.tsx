@@ -1,28 +1,28 @@
-import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Platform,
   ActivityIndicator,
+  Dimensions,
   RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming,
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
   withSpring,
-  runOnJS,
+  withTiming,
 } from 'react-native-reanimated';
+import {
+  DataProvider,
+  LayoutProvider,
+  RecyclerListView,
+} from 'recyclerlistview';
+import { Colors } from '../../constants/Colors';
+import { Spacing } from '../../constants/Spacing';
 import { useWardrobePerformance } from '../../hooks/useWardrobePerformance';
 import { ClothingItem } from '../../types/wardrobe';
-import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
-import { WardrobeItemCard } from './WardrobeItemCard';
 import { WardrobeEmptyState } from './WardrobeEmptyState';
+import WardrobeItemCard from './WardrobeItemCard';
 import { WardrobeLoadingState } from './WardrobeLoadingState';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -76,74 +76,73 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
   emptyState,
   testID,
 }) => {
-  const { 
-    startRenderMeasurement, 
-    endRenderMeasurement, 
+  const {
+    startRenderMeasurement,
+    endRenderMeasurement,
     optimizeForLargeList,
     measureScrollPerformance,
   } = useWardrobePerformance();
 
   // Track if component is mounted
   const isMounted = useRef(true);
-  
+
   // Track scroll performance
   const scrollStartTime = useRef(0);
   const scrollEndTime = useRef(0);
   const scrollFrames = useRef(0);
-  
+
   // Animation values
   const listOpacity = useSharedValue(0);
   const listScale = useSharedValue(0.98);
-  
+
   // RecyclerListView data provider
   const [dataProvider, setDataProvider] = useState(
-    new DataProvider((r1, r2) => r1.id !== r2.id)
-      .cloneWithRows(items)
+    new DataProvider((r1, r2) => r1.id !== r2.id).cloneWithRows(items)
   );
-  
+
   // Update data provider when items change
   useEffect(() => {
     if (isMounted.current) {
       setDataProvider(
-        new DataProvider((r1, r2) => r1.id !== r2.id)
-          .cloneWithRows(items)
+        new DataProvider((r1, r2) => r1.id !== r2.id).cloneWithRows(items)
       );
     }
   }, [items]);
-  
+
   // Start performance measurement on mount
   useEffect(() => {
     startRenderMeasurement();
-    
+
     // Animate in the list
     listOpacity.value = withTiming(1, { duration: 300 });
     listScale.value = withSpring(1, { damping: 15, stiffness: 150 });
-    
+
     return () => {
       isMounted.current = false;
       endRenderMeasurement('OptimizedWardrobeList');
     };
   }, []);
-  
+
   // Calculate item dimensions based on view mode
   const getItemDimensions = useCallback(() => {
     if (viewMode === 'grid') {
       const gridSpacing = Spacing.md;
       const numColumns = SCREEN_WIDTH >= 768 ? 3 : 2;
-      const itemWidth = (SCREEN_WIDTH - (gridSpacing * (numColumns + 1))) / numColumns;
+      const itemWidth =
+        (SCREEN_WIDTH - gridSpacing * (numColumns + 1)) / numColumns;
       const itemHeight = itemWidth * 1.5;
       return { itemWidth, itemHeight, numColumns };
     } else {
-      return { 
-        itemWidth: SCREEN_WIDTH - (Spacing.md * 2), 
+      return {
+        itemWidth: SCREEN_WIDTH - Spacing.md * 2,
         itemHeight: 120,
-        numColumns: 1
+        numColumns: 1,
       };
     }
   }, [viewMode, SCREEN_WIDTH]);
-  
+
   const { itemWidth, itemHeight, numColumns } = getItemDimensions();
-  
+
   // Layout provider for RecyclerListView
   const layoutProvider = useRef(
     new LayoutProvider(
@@ -175,75 +174,88 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
       }
     )
   ).current;
-  
+
   // Update layout provider when dimensions change
   useEffect(() => {
-    layoutProvider.setLayoutForType(
-      ViewTypes.GRID_ITEM,
-      { width: itemWidth, height: itemHeight }
-    );
-    layoutProvider.setLayoutForType(
-      ViewTypes.LIST_ITEM,
-      { width: itemWidth, height: itemHeight }
-    );
+    layoutProvider.setLayoutForType(ViewTypes.GRID_ITEM, {
+      width: itemWidth,
+      height: itemHeight,
+    });
+    layoutProvider.setLayoutForType(ViewTypes.LIST_ITEM, {
+      width: itemWidth,
+      height: itemHeight,
+    });
   }, [itemWidth, itemHeight, viewMode]);
-  
+
   // Row renderer for RecyclerListView
-  const rowRenderer = useCallback((type, item: ClothingItem, index) => {
-    if (type === ViewTypes.FOOTER) {
+  const rowRenderer = useCallback(
+    (type, item: ClothingItem, index) => {
+      if (type === ViewTypes.FOOTER) {
+        return (
+          <View style={styles.footer}>
+            {isLoading && (
+              <ActivityIndicator size="small" color={Colors.primary[500]} />
+            )}
+          </View>
+        );
+      }
+
       return (
-        <View style={styles.footer}>
-          {isLoading && <ActivityIndicator size="small" color={Colors.primary[500]} />}
-        </View>
+        <MemoizedWardrobeItemCard
+          item={item}
+          viewMode={viewMode}
+          isSelected={selectedItems.includes(item.id)}
+          onPress={() => onItemPress(item)}
+          onLongPress={() => onItemLongPress?.(item)}
+          onToggleFavorite={() => onToggleFavorite(item.id)}
+          onMoreOptions={() => onMoreOptions(item)}
+          showStats
+          index={index}
+        />
       );
-    }
-    
-    return (
-      <MemoizedWardrobeItemCard
-        item={item}
-        viewMode={viewMode}
-        isSelected={selectedItems.includes(item.id)}
-        onPress={() => onItemPress(item)}
-        onLongPress={() => onItemLongPress?.(item)}
-        onToggleFavorite={() => onToggleFavorite(item.id)}
-        onMoreOptions={() => onMoreOptions(item)}
-        showStats
-        index={index}
-      />
-    );
-  }, [viewMode, selectedItems, onItemPress, onItemLongPress, onToggleFavorite, onMoreOptions, isLoading]);
-  
+    },
+    [
+      viewMode,
+      selectedItems,
+      onItemPress,
+      onItemLongPress,
+      onToggleFavorite,
+      onMoreOptions,
+      isLoading,
+    ]
+  );
+
   // Handle scroll performance measurement
   const handleScrollStart = useCallback(() => {
     scrollStartTime.current = performance.now();
     scrollFrames.current = 0;
   }, []);
-  
+
   const handleScrollEnd = useCallback(() => {
     scrollEndTime.current = performance.now();
     const scrollDuration = scrollEndTime.current - scrollStartTime.current;
-    
+
     if (scrollDuration > 0 && scrollFrames.current > 0) {
       const fps = Math.round((scrollFrames.current * 1000) / scrollDuration);
       console.log(`Scroll performance: ${fps} FPS`);
-      
+
       // Report slow scrolling
       if (fps < 30) {
         console.warn(`Slow scrolling detected: ${fps} FPS`);
       }
     }
   }, []);
-  
+
   const handleScroll = useCallback(() => {
     scrollFrames.current++;
   }, []);
-  
+
   // Animated styles
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: listOpacity.value,
     transform: [{ scale: listScale.value }],
   }));
-  
+
   // Render empty state if no items
   if (items.length === 0 && !isLoading) {
     return (
@@ -257,29 +269,28 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
       />
     );
   }
-  
+
   // Render loading state
   if (isLoading && items.length === 0) {
     return <WardrobeLoadingState viewMode={viewMode} />;
   }
-  
+
   // Get optimization props based on list size
   const optimizationProps = optimizeForLargeList(items.length);
-  
+
   return (
-    <Animated.View 
-      style={[styles.container, animatedStyle]}
-      testID={testID}
-    >
+    <Animated.View style={[styles.container, animatedStyle]} testID={testID}>
       <RecyclerListView
         dataProvider={dataProvider}
         layoutProvider={layoutProvider}
         rowRenderer={rowRenderer}
-        renderFooter={() => isLoading ? (
-          <View style={styles.footer}>
-            <ActivityIndicator size="small" color={Colors.primary[500]} />
-          </View>
-        ) : null}
+        renderFooter={() =>
+          isLoading ? (
+            <View style={styles.footer}>
+              <ActivityIndicator size="small" color={Colors.primary[500]} />
+            </View>
+          ) : null
+        }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         renderAheadOffset={1000}

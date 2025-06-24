@@ -1,24 +1,22 @@
 /**
  * Button Component
- * 
+ *
  * A comprehensive button component with multiple variants, sizes,
  * and accessibility features built into the design system.
  */
 
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
-  Platform,
-  AccessibilityRole,
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 
 export interface ButtonProps {
   // Content
@@ -82,8 +80,8 @@ export const Button: React.FC<ButtonProps> = ({
   const getTextStyle = () => {
     const baseStyle = [
       styles.text,
-      styles[`${variant}Text`],
       styles[`${size}Text`],
+      styles[`${variant}Text`], // Move variant text styles after size to ensure color precedence
       isDisabled && styles.disabledText,
       isDisabled && styles[`${variant}DisabledText`],
     ];
@@ -107,7 +105,7 @@ export const Button: React.FC<ButtonProps> = ({
     return (
       <View style={styles.contentContainer}>
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
-        
+
         <View style={styles.textContainer}>
           <Text style={[getTextStyle(), textStyle]}>{title}</Text>
           {subtitle && (
@@ -163,7 +161,7 @@ const styles = StyleSheet.create({
   largeButton: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.lg,
-    minHeight: Layout.touchTarget.large,
+    minHeight: 56,
   },
 
   // Width variants
@@ -182,7 +180,7 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     backgroundColor: Colors.transparent,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.border.primary,
   },
   ghostButton: {
@@ -217,32 +215,48 @@ const styles = StyleSheet.create({
   // Text styles
   text: {
     textAlign: 'center',
+    fontWeight: '600',
+    color: Colors.white,
   },
   smallText: {
     ...Typography.button.small,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 18, // Fix lineHeight issue
   },
   mediumText: {
     ...Typography.button.medium,
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 20, // Fix lineHeight issue
   },
   largeText: {
     ...Typography.button.large,
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 22, // Fix lineHeight issue from Typography.button.large
   },
 
   // Text color variants
   primaryText: {
     color: Colors.white,
+    fontWeight: '600',
   },
   secondaryText: {
     color: Colors.white,
+    fontWeight: '600',
   },
   outlineText: {
     color: Colors.primary[700],
+    fontWeight: '600',
   },
   ghostText: {
     color: Colors.primary[700],
+    fontWeight: '600',
   },
   destructiveText: {
     color: Colors.white,
+    fontWeight: '600',
   },
 
   // Disabled text colors

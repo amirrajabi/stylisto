@@ -1,24 +1,22 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
 import { router } from 'expo-router';
-import { Sparkles, Settings, Cloud, Calendar, Shirt, Heart } from 'lucide-react-native';
-import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
-import { OutfitGenerator } from '../../../components/outfits/OutfitGenerator';
+import { Cloud, Heart, Settings, Sparkles } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { OutfitPreview } from '../../../components/outfits/OutfitPreview';
-import { Occasion, Season } from '../../../types/wardrobe';
+import { BodyMedium, Button, Card, H1, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
-import { Button, Card, H1, H3, BodyMedium } from '../../../components/ui';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
+import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
+import { Occasion } from '../../../types/wardrobe';
 
 // Mock weather data for demonstration
 const MOCK_WEATHER = {
@@ -32,7 +30,6 @@ const MOCK_WEATHER = {
 export default function GenerateScreen() {
   const {
     loading,
-    error,
     outfits,
     selectedOutfitIndex,
     generateRecommendations,
@@ -43,7 +40,9 @@ export default function GenerateScreen() {
     getOccasionBasedRecommendation,
   } = useOutfitRecommendation();
 
-  const [activeTab, setActiveTab] = useState<'quick' | 'weather' | 'occasion'>('quick');
+  const [activeTab, setActiveTab] = useState<'quick' | 'weather' | 'occasion'>(
+    'quick'
+  );
 
   const handleGenerateOutfit = useCallback(async () => {
     await generateRecommendations();
@@ -54,17 +53,20 @@ export default function GenerateScreen() {
     await getWeatherBasedRecommendation(MOCK_WEATHER);
   }, [getWeatherBasedRecommendation]);
 
-  const handleOccasionOutfit = useCallback(async (occasion: Occasion) => {
-    setActiveTab('occasion');
-    await getOccasionBasedRecommendation(occasion);
-  }, [getOccasionBasedRecommendation]);
+  const handleOccasionOutfit = useCallback(
+    async (occasion: Occasion) => {
+      setActiveTab('occasion');
+      await getOccasionBasedRecommendation(occasion);
+    },
+    [getOccasionBasedRecommendation]
+  );
 
   const handleSaveOutfit = useCallback(() => {
     const outfitId = saveCurrentOutfit();
     if (outfitId) {
       router.push({
         pathname: '/saved',
-        params: { highlight: outfitId }
+        params: { highlight: outfitId },
       });
     }
   }, [saveCurrentOutfit]);
@@ -99,7 +101,7 @@ export default function GenerateScreen() {
               Generate an outfit based on your current preferences and weather
             </BodyMedium>
             <Button
-              title={loading ? "Generating..." : "Generate Outfit"}
+              title={loading ? 'Generating...' : 'Generate Outfit'}
               onPress={handleGenerateOutfit}
               loading={loading && activeTab === 'quick'}
               leftIcon={<Sparkles size={20} color={Colors.white} />}
@@ -114,7 +116,7 @@ export default function GenerateScreen() {
             <View style={styles.outfitCardHeader}>
               <H3>Your Outfit</H3>
               <View style={styles.outfitActions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.outfitAction}
                   onPress={handleSaveOutfit}
                 >
@@ -122,18 +124,19 @@ export default function GenerateScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-            
+
             <View style={styles.outfitPreviewContainer}>
-              <OutfitPreview 
+              <OutfitPreview
                 outfit={outfits[selectedOutfitIndex].items}
                 onPrevious={previousOutfit}
                 onNext={nextOutfit}
               />
             </View>
-            
+
             <View style={styles.outfitCardFooter}>
               <Text style={styles.outfitScore}>
-                Match Score: {Math.round(outfits[selectedOutfitIndex].score.total * 100)}%
+                Match Score:{' '}
+                {Math.round(outfits[selectedOutfitIndex].score.total * 100)}%
               </Text>
               <Button
                 title="Customize"
@@ -148,8 +151,11 @@ export default function GenerateScreen() {
         {/* Options */}
         <View style={styles.optionsContainer}>
           <H3 style={styles.sectionTitle}>Customize Generation</H3>
-          
-          <TouchableOpacity style={styles.optionCard} onPress={handlePreferences}>
+
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={handlePreferences}
+          >
             <View style={styles.optionIcon}>
               <Settings size={24} color={Colors.secondary[400]} />
             </View>
@@ -164,7 +170,10 @@ export default function GenerateScreen() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.optionCard} onPress={handleWeatherSettings}>
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={handleWeatherSettings}
+          >
             <View style={styles.optionIcon}>
               <Cloud size={24} color={Colors.info[500]} />
             </View>
@@ -183,46 +192,48 @@ export default function GenerateScreen() {
         {/* Occasion-based Generation */}
         <View style={styles.occasionContainer}>
           <H3 style={styles.sectionTitle}>Occasion-based Outfits</H3>
-          
-          <ScrollView 
-            horizontal 
+
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.occasionScroll}
             contentContainerStyle={styles.occasionScrollContent}
           >
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.occasionCard}
               onPress={() => handleOccasionOutfit(Occasion.CASUAL)}
             >
               <Text style={styles.occasionTitle}>Casual</Text>
               <Text style={styles.occasionDescription}>Everyday comfort</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.occasionCard}
               onPress={() => handleOccasionOutfit(Occasion.WORK)}
             >
               <Text style={styles.occasionTitle}>Work</Text>
-              <Text style={styles.occasionDescription}>Professional attire</Text>
+              <Text style={styles.occasionDescription}>
+                Professional attire
+              </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.occasionCard}
               onPress={() => handleOccasionOutfit(Occasion.FORMAL)}
             >
               <Text style={styles.occasionTitle}>Formal</Text>
               <Text style={styles.occasionDescription}>Special events</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.occasionCard}
               onPress={() => handleOccasionOutfit(Occasion.DATE)}
             >
               <Text style={styles.occasionTitle}>Date</Text>
               <Text style={styles.occasionDescription}>Romantic occasions</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.occasionCard}
               onPress={() => handleOccasionOutfit(Occasion.SPORT)}
             >
@@ -235,8 +246,8 @@ export default function GenerateScreen() {
         {/* Weather-based Generation */}
         <View style={styles.weatherContainer}>
           <H3 style={styles.sectionTitle}>Weather-based Outfit</H3>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.weatherCard}
             onPress={handleWeatherOutfit}
           >
@@ -256,6 +267,7 @@ export default function GenerateScreen() {
               size="small"
               loading={loading && activeTab === 'weather'}
               style={styles.weatherButton}
+              onPress={handleWeatherOutfit}
             />
           </TouchableOpacity>
         </View>

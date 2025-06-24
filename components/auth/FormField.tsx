@@ -1,16 +1,16 @@
+import { CircleAlert as AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
+  Animated,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Animated,
+  View,
 } from 'react-native';
-import { Eye, EyeOff, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 
 interface FormFieldProps {
   label: string;
@@ -21,7 +21,7 @@ interface FormFieldProps {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoComplete?: string;
+  autoComplete?: 'email' | 'password' | 'name' | 'tel' | 'off' | undefined;
   returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
   onSubmitEditing?: () => void;
   disabled?: boolean;
@@ -76,7 +76,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   const labelColor = focusAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [
-      error ? Colors.error[600] : Colors.text.secondary,
+      error ? Colors.error[600] : Colors.text.primary,
       error ? Colors.error[600] : Colors.primary[700],
     ],
   });
@@ -86,24 +86,20 @@ export const FormField: React.FC<FormFieldProps> = ({
       <Animated.Text style={[styles.label, { color: labelColor }]}>
         {label}
       </Animated.Text>
-      
+
       <Animated.View style={[styles.inputContainer, { borderColor }]}>
-        {leftIcon && (
-          <View style={styles.leftIconContainer}>
-            {leftIcon}
-          </View>
-        )}
-        
+        {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
+
         <TextInput
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeftIcon,
-            secureTextEntry && styles.inputWithRightIcon,
+            leftIcon ? styles.inputWithLeftIcon : undefined,
+            secureTextEntry ? styles.inputWithRightIcon : undefined,
           ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.text.tertiary}
+          placeholderTextColor={Colors.neutral[500]}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -115,7 +111,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           editable={!disabled}
           selectTextOnFocus={!disabled}
         />
-        
+
         {secureTextEntry && (
           <TouchableOpacity
             style={styles.eyeButton}
@@ -130,7 +126,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           </TouchableOpacity>
         )}
       </Animated.View>
-      
+
       {error && (
         <View style={styles.errorContainer}>
           <AlertCircle size={16} color={Colors.error[500]} />
@@ -149,6 +145,8 @@ const styles = StyleSheet.create({
     ...Typography.body.small,
     fontWeight: '600',
     marginBottom: Spacing.sm,
+    fontSize: 16,
+    lineHeight: 20,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -157,6 +155,14 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.surface.primary,
     minHeight: Layout.touchTarget.comfortable,
+    shadowColor: Colors.neutral[400],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   leftIconContainer: {
     paddingLeft: Spacing.md,
@@ -168,6 +174,8 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
+    fontSize: 16,
+    lineHeight: 22,
   },
   inputWithLeftIcon: {
     paddingLeft: 0,
@@ -189,5 +197,7 @@ const styles = StyleSheet.create({
     ...Typography.caption.medium,
     color: Colors.error[600],
     flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

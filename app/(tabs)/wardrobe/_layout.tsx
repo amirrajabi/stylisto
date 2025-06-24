@@ -8,39 +8,35 @@ export default function WardrobeLayout() {
       screenOptions={{
         headerStyle: {
           backgroundColor: Colors.surface.primary,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.border.primary,
         },
         headerTitleStyle: {
           ...Typography.heading.h3,
           color: Colors.text.primary,
         },
         headerTintColor: Colors.primary[700],
-        headerBackTitleVisible: false,
         contentStyle: { backgroundColor: Colors.background.secondary },
       }}
     >
-      <Stack.Screen 
-        name="index" 
-        options={{ 
+      <Stack.Screen
+        name="index"
+        options={{
           title: 'My Wardrobe',
           headerShown: false,
-        }} 
+        }}
       />
-      <Stack.Screen 
-        name="categories" 
-        options={{ 
+      <Stack.Screen
+        name="add-item"
+        options={{
+          title: 'Add Item',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen
+        name="categories"
+        options={{
           title: 'Categories',
           headerShown: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="add-item" 
-        options={{ 
-          title: 'Add Item',
-          presentation: 'modal',
-          headerShown: true,
-        }} 
+        }}
       />
     </Stack>
   );

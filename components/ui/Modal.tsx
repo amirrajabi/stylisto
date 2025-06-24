@@ -1,27 +1,27 @@
 /**
  * Modal Component
- * 
+ *
  * A comprehensive modal component with backdrop, animations,
  * and accessibility features for the design system.
  */
 
+import { X } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import {
+  Dimensions,
+  Platform,
   Modal as RNModal,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
   SafeAreaView,
   StatusBar,
-  Platform,
-  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { X } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -82,10 +82,7 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  const getModalStyle = () => [
-    styles.modal,
-    styles[`${position}Modal`],
-  ];
+  const getModalStyle = () => [styles.modal, styles[`${position}Modal`]];
 
   const getContentStyle = () => [
     styles.content,
@@ -107,7 +104,7 @@ export const Modal: React.FC<ModalProps> = ({
             </View>
           )}
         </View>
-        
+
         {showCloseButton && (
           <TouchableOpacity
             style={styles.closeButton}
@@ -146,9 +143,7 @@ export const Modal: React.FC<ModalProps> = ({
             >
               <View style={getContentStyle()}>
                 {renderHeader()}
-                <View style={styles.body}>
-                  {children}
-                </View>
+                <View style={styles.body}>{children}</View>
               </View>
             </TouchableOpacity>
           </View>
@@ -235,8 +230,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    paddingBottom: title || subtitle ? Spacing.md : 0,
-    borderBottomWidth: title || subtitle ? 1 : 0,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
   },
   headerContent: {
@@ -248,7 +243,7 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.heading.h3,
     color: Colors.text.primary,
-    marginBottom: subtitle ? Spacing.xs : 0,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     ...Typography.body.medium,

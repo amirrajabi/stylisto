@@ -1,22 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-} from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, FileSliders as Sliders, Sparkles, Palette, Layers, Shirt } from 'lucide-react-native';
-import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StylePreference } from '../../lib/outfitGenerator';
+import Slider from '@react-native-community/slider';
+import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  Layers,
+  Palette,
+  Shirt,
+  FileSliders as Sliders,
+  Sparkles,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BodyMedium, Button, H1 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
+import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { H1, BodyMedium, Button } from '../../../components/ui';
+import { StylePreference } from '../../../components/outfits/OutfitGenerator';
+import { Shadows } from '../../../constants/Shadows';
 
 const STYLE_PREFERENCE_KEY = '@style_preferences';
 
@@ -27,43 +35,57 @@ export default function PreferencesScreen() {
     layering: 0.5,
     colorfulness: 0.5,
   });
-  
+
   const [autoWeather, setAutoWeather] = useState(true);
   const [saveHistory, setSaveHistory] = useState(true);
   const [useColorTheory, setUseColorTheory] = useState(true);
-  
+
   // Load preferences on mount
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const savedPreferences = await AsyncStorage.getItem(STYLE_PREFERENCE_KEY);
+        const savedPreferences =
+          await AsyncStorage.getItem(STYLE_PREFERENCE_KEY);
         if (savedPreferences) {
           setStylePreference(JSON.parse(savedPreferences));
         }
-        
+
         const autoWeatherSetting = await AsyncStorage.getItem('@auto_weather');
         setAutoWeather(autoWeatherSetting !== 'false');
-        
+
         const saveHistorySetting = await AsyncStorage.getItem('@save_history');
         setSaveHistory(saveHistorySetting !== 'false');
-        
-        const useColorTheorySetting = await AsyncStorage.getItem('@use_color_theory');
+
+        const useColorTheorySetting =
+          await AsyncStorage.getItem('@use_color_theory');
         setUseColorTheory(useColorTheorySetting !== 'false');
       } catch (error) {
         console.error('Failed to load preferences:', error);
       }
     };
-    
+
     loadPreferences();
   }, []);
 
   const handleSavePreferences = async () => {
     try {
-      await AsyncStorage.setItem(STYLE_PREFERENCE_KEY, JSON.stringify(stylePreference));
-      await AsyncStorage.setItem('@auto_weather', autoWeather ? 'true' : 'false');
-      await AsyncStorage.setItem('@save_history', saveHistory ? 'true' : 'false');
-      await AsyncStorage.setItem('@use_color_theory', useColorTheory ? 'true' : 'false');
-      
+      await AsyncStorage.setItem(
+        STYLE_PREFERENCE_KEY,
+        JSON.stringify(stylePreference)
+      );
+      await AsyncStorage.setItem(
+        '@auto_weather',
+        autoWeather ? 'true' : 'false'
+      );
+      await AsyncStorage.setItem(
+        '@save_history',
+        saveHistory ? 'true' : 'false'
+      );
+      await AsyncStorage.setItem(
+        '@use_color_theory',
+        useColorTheory ? 'true' : 'false'
+      );
+
       router.back();
     } catch (error) {
       console.error('Failed to save preferences:', error);
@@ -71,7 +93,7 @@ export default function PreferencesScreen() {
   };
 
   const handleSliderChange = (key: keyof StylePreference, value: number) => {
-    setStylePreference(prev => ({
+    setStylePreference((prev: StylePreference) => ({
       ...prev,
       [key]: value,
     }));
@@ -84,7 +106,7 @@ export default function PreferencesScreen() {
       layering: ['Minimal', 'Maximal'],
       colorfulness: ['Monochrome', 'Colorful'],
     };
-    
+
     const [min, max] = labels[key];
     return value < 0.33 ? min : value > 0.66 ? max : `Balanced`;
   };
@@ -108,11 +130,12 @@ export default function PreferencesScreen() {
             <Sliders size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Style Preferences</Text>
           </View>
-          
+
           <BodyMedium color="secondary" style={styles.sectionDescription}>
-            Adjust these sliders to customize the style of your generated outfits.
+            Adjust these sliders to customize the style of your generated
+            outfits.
           </BodyMedium>
-          
+
           {/* Formality Slider */}
           <View style={styles.sliderContainer}>
             <View style={styles.sliderHeader}>
@@ -127,7 +150,7 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.formality}
-              onValueChange={(value) => handleSliderChange('formality', value)}
+              onValueChange={value => handleSliderChange('formality', value)}
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -137,7 +160,7 @@ export default function PreferencesScreen() {
               <Text style={styles.sliderMaxLabel}>Formal</Text>
             </View>
           </View>
-          
+
           {/* Boldness Slider */}
           <View style={styles.sliderContainer}>
             <View style={styles.sliderHeader}>
@@ -152,7 +175,7 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.boldness}
-              onValueChange={(value) => handleSliderChange('boldness', value)}
+              onValueChange={value => handleSliderChange('boldness', value)}
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -162,7 +185,7 @@ export default function PreferencesScreen() {
               <Text style={styles.sliderMaxLabel}>Bold</Text>
             </View>
           </View>
-          
+
           {/* Layering Slider */}
           <View style={styles.sliderContainer}>
             <View style={styles.sliderHeader}>
@@ -177,7 +200,7 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.layering}
-              onValueChange={(value) => handleSliderChange('layering', value)}
+              onValueChange={value => handleSliderChange('layering', value)}
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -187,7 +210,7 @@ export default function PreferencesScreen() {
               <Text style={styles.sliderMaxLabel}>Maximal</Text>
             </View>
           </View>
-          
+
           {/* Colorfulness Slider */}
           <View style={styles.sliderContainer}>
             <View style={styles.sliderHeader}>
@@ -202,7 +225,7 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.colorfulness}
-              onValueChange={(value) => handleSliderChange('colorfulness', value)}
+              onValueChange={value => handleSliderChange('colorfulness', value)}
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -220,11 +243,11 @@ export default function PreferencesScreen() {
             <Sparkles size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Algorithm Settings</Text>
           </View>
-          
+
           <BodyMedium color="secondary" style={styles.sectionDescription}>
             Configure how the outfit generation algorithm works.
           </BodyMedium>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Use Weather Data</Text>
@@ -235,11 +258,14 @@ export default function PreferencesScreen() {
             <Switch
               value={autoWeather}
               onValueChange={setAutoWeather}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Save Generation History</Text>
@@ -250,11 +276,14 @@ export default function PreferencesScreen() {
             <Switch
               value={saveHistory}
               onValueChange={setSaveHistory}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Use Color Theory</Text>
@@ -265,7 +294,10 @@ export default function PreferencesScreen() {
             <Switch
               value={useColorTheory}
               onValueChange={setUseColorTheory}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
@@ -277,40 +309,58 @@ export default function PreferencesScreen() {
             <Shirt size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Style Guide</Text>
           </View>
-          
+
           <View style={styles.styleGuide}>
             <View style={styles.styleGuideItem}>
-              <View style={[styles.styleGuideIcon, { backgroundColor: Colors.primary[50] }]}>
+              <View
+                style={[
+                  styles.styleGuideIcon,
+                  { backgroundColor: Colors.primary[50] },
+                ]}
+              >
                 <Palette size={20} color={Colors.primary[700]} />
               </View>
               <View style={styles.styleGuideContent}>
                 <Text style={styles.styleGuideTitle}>Color Harmony</Text>
                 <Text style={styles.styleGuideDescription}>
-                  The algorithm uses color theory to create visually pleasing outfits with complementary or analogous colors.
+                  The algorithm uses color theory to create visually pleasing
+                  outfits with complementary or analogous colors.
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.styleGuideItem}>
-              <View style={[styles.styleGuideIcon, { backgroundColor: Colors.secondary[50] }]}>
+              <View
+                style={[
+                  styles.styleGuideIcon,
+                  { backgroundColor: Colors.secondary[50] },
+                ]}
+              >
                 <Shirt size={20} color={Colors.secondary[700]} />
               </View>
               <View style={styles.styleGuideContent}>
                 <Text style={styles.styleGuideTitle}>Style Matching</Text>
                 <Text style={styles.styleGuideDescription}>
-                  Items are matched based on style consistency, ensuring formal pieces aren't paired with casual ones.
+                  Items are matched based on style consistency, ensuring formal
+                  pieces aren&apos;t paired with casual ones.
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.styleGuideItem}>
-              <View style={[styles.styleGuideIcon, { backgroundColor: Colors.success[50] }]}>
+              <View
+                style={[
+                  styles.styleGuideIcon,
+                  { backgroundColor: Colors.success[50] },
+                ]}
+              >
                 <Layers size={20} color={Colors.success[700]} />
               </View>
               <View style={styles.styleGuideContent}>
                 <Text style={styles.styleGuideTitle}>Layering Logic</Text>
                 <Text style={styles.styleGuideDescription}>
-                  The algorithm considers appropriate layering based on season and weather conditions.
+                  The algorithm considers appropriate layering based on season
+                  and weather conditions.
                 </Text>
               </View>
             </View>

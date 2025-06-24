@@ -1,28 +1,28 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { Heart } from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
-  TouchableOpacity,
+  SafeAreaView,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
+import { OccasionSelector } from '../../../components/outfits/OccasionSelector';
+import { OutfitRecommendationCarousel } from '../../../components/outfits/OutfitRecommendationCarousel';
+import { SavedOutfitsList } from '../../../components/outfits/SavedOutfitsList';
+import { WeatherOutfitBanner } from '../../../components/outfits/WeatherOutfitBanner';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { useSavedOutfits } from '../../../hooks/useSavedOutfits';
-import { OutfitRecommendationCarousel } from '../../../components/outfits/OutfitRecommendationCarousel';
-import { OccasionSelector } from '../../../components/outfits/OccasionSelector';
-import { WeatherOutfitBanner } from '../../../components/outfits/WeatherOutfitBanner';
-import { SavedOutfitsList } from '../../../components/outfits/SavedOutfitsList';
 import { Occasion } from '../../../types/wardrobe';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
-import { Heart } from 'lucide-react-native';
 
 // Mock weather data - in a real app, this would come from a weather API
 const MOCK_WEATHER = {
@@ -32,10 +32,12 @@ const MOCK_WEATHER = {
 };
 
 export default function RecommendationsScreen() {
-  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | null>(null);
+  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | null>(
+    null
+  );
   const [useWeatherData, setUseWeatherData] = useState(false);
   const [showSavedOutfits, setShowSavedOutfits] = useState(false);
-  
+
   const {
     outfits,
     loading,
@@ -54,24 +56,27 @@ export default function RecommendationsScreen() {
   }, []);
 
   // Handle occasion selection
-  const handleOccasionSelect = useCallback(async (occasion: Occasion | null) => {
-    setSelectedOccasion(occasion);
-    setUseWeatherData(false);
-    setShowSavedOutfits(false);
-    
-    if (occasion) {
-      await getOccasionBasedRecommendation(occasion);
-    } else {
-      await generateRecommendations();
-    }
-  }, [getOccasionBasedRecommendation, generateRecommendations]);
+  const handleOccasionSelect = useCallback(
+    async (occasion: Occasion | null) => {
+      setSelectedOccasion(occasion);
+      setUseWeatherData(false);
+      setShowSavedOutfits(false);
+
+      if (occasion) {
+        await getOccasionBasedRecommendation(occasion);
+      } else {
+        await generateRecommendations();
+      }
+    },
+    [getOccasionBasedRecommendation, generateRecommendations]
+  );
 
   // Handle weather-based recommendations
   const handleWeatherRecommendation = useCallback(async () => {
     setUseWeatherData(true);
     setSelectedOccasion(null);
     setShowSavedOutfits(false);
-    
+
     await getWeatherBasedRecommendation({
       temperature: MOCK_WEATHER.temperature,
       conditions: 'clear', // Map to the expected format
@@ -82,35 +87,40 @@ export default function RecommendationsScreen() {
   }, [getWeatherBasedRecommendation]);
 
   // Handle saving outfit
-  const handleSaveOutfit = useCallback((index: number) => {
-    if (index >= outfits.length) return;
-    
-    const outfitToSave = outfits[index];
-    const outfitName = `${selectedOccasion || 'Custom'} Outfit ${new Date().toLocaleDateString()}`;
-    
-    try {
-      const outfitId = saveCurrentOutfit(outfitName);
-      
-      if (outfitId) {
-        Alert.alert(
-          'Outfit Saved',
-          'The outfit has been saved to your collection.',
-          [{ 
-            text: 'View Saved Outfits', 
-            onPress: () => {
-              router.push({
-                pathname: '/saved',
-                params: { highlight: outfitId }
-              });
-            }
-          },
-          { text: 'OK' }]
-        );
+  const handleSaveOutfit = useCallback(
+    (index: number) => {
+      if (index >= outfits.length) return;
+
+      const outfitToSave = outfits[index];
+      const outfitName = `${selectedOccasion || 'Custom'} Outfit ${new Date().toLocaleDateString()}`;
+
+      try {
+        const outfitId = saveCurrentOutfit(outfitName);
+
+        if (outfitId) {
+          Alert.alert(
+            'Outfit Saved',
+            'The outfit has been saved to your collection.',
+            [
+              {
+                text: 'View Saved Outfits',
+                onPress: () => {
+                  router.push({
+                    pathname: '/saved',
+                    params: { highlight: outfitId },
+                  });
+                },
+              },
+              { text: 'OK' },
+            ]
+          );
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save outfit. Please try again.');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save outfit. Please try again.');
-    }
-  }, [outfits, selectedOccasion, saveCurrentOutfit]);
+    },
+    [outfits, selectedOccasion, saveCurrentOutfit]
+  );
 
   // Toggle between recommendations and saved outfits
   const toggleSavedOutfits = useCallback(() => {
@@ -120,34 +130,34 @@ export default function RecommendationsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Outfit Recommendations</Text>
         <Text style={styles.subtitle}>
           AI-powered outfits tailored to your style
         </Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.savedToggleButton}
           onPress={toggleSavedOutfits}
         >
-          <Heart 
-            size={16} 
-            color={showSavedOutfits ? Colors.white : Colors.primary[700]} 
+          <Heart
+            size={16}
+            color={showSavedOutfits ? Colors.white : Colors.primary[700]}
             fill={showSavedOutfits ? Colors.white : 'transparent'}
           />
-          <Text 
+          <Text
             style={[
               styles.savedToggleText,
-              showSavedOutfits && styles.savedToggleTextActive
+              showSavedOutfits && styles.savedToggleTextActive,
             ]}
           >
             {showSavedOutfits ? 'View Recommendations' : 'View Saved Outfits'}
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {!showSavedOutfits && (
         <>
           {/* Weather Banner */}
@@ -157,7 +167,7 @@ export default function RecommendationsScreen() {
             location={MOCK_WEATHER.location}
             onPress={handleWeatherRecommendation}
           />
-          
+
           {/* Occasion Selector */}
           <OccasionSelector
             selectedOccasion={selectedOccasion}
@@ -165,7 +175,7 @@ export default function RecommendationsScreen() {
           />
         </>
       )}
-      
+
       {/* Content Area */}
       <View style={styles.content}>
         {showSavedOutfits ? (
@@ -177,7 +187,9 @@ export default function RecommendationsScreen() {
           // Loading state
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary[700]} />
-            <Text style={styles.loadingText}>Generating outfit recommendations...</Text>
+            <Text style={styles.loadingText}>
+              Generating outfit recommendations...
+            </Text>
           </View>
         ) : error ? (
           // Error state
@@ -198,22 +210,27 @@ export default function RecommendationsScreen() {
                 generateRecommendations();
               }
             }}
-            weatherData={useWeatherData ? {
-              temperature: MOCK_WEATHER.temperature,
-              condition: MOCK_WEATHER.condition,
-            } : undefined}
+            weatherData={
+              useWeatherData
+                ? {
+                    temperature: MOCK_WEATHER.temperature,
+                    condition: MOCK_WEATHER.condition,
+                  }
+                : undefined
+            }
             occasion={selectedOccasion || undefined}
           />
         ) : (
           // Empty state
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              No outfit recommendations available. Try selecting an occasion or refreshing.
+              No outfit recommendations available. Try selecting an occasion or
+              refreshing.
             </Text>
           </View>
         )}
       </View>
-      
+
       {/* Saved Outfits Preview (when showing recommendations) */}
       {!showSavedOutfits && savedOutfits.length > 0 && (
         <View style={styles.savedOutfitsPreview}>
@@ -223,11 +240,8 @@ export default function RecommendationsScreen() {
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
-          
-          <SavedOutfitsList 
-            showHeader={false} 
-            maxItems={3}
-          />
+
+          <SavedOutfitsList showHeader={false} maxItems={3} />
         </View>
       )}
     </SafeAreaView>
