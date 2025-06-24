@@ -48,7 +48,7 @@ export interface ButtonProps {
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  title,
+  title = '',
   subtitle,
   leftIcon,
   rightIcon,

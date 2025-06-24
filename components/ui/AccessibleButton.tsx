@@ -26,7 +26,7 @@ interface AccessibleButtonProps extends TouchableOpacityProps {
 }
 
 export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
-  title,
+  title = '',
   variant = 'primary',
   size = 'medium',
   leftIcon,
