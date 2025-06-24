@@ -8,7 +8,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Lock, CheckCircle } from 'lucide-react-native';
+import { Lock, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { FormField } from '../../components/auth/FormField';
 import { LoadingOverlay } from '../../components/auth/LoadingOverlay';
