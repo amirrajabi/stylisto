@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, HardDrive, Trash2, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, HardDrive, Trash2, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { StorageStats } from '../../../components/storage/StorageStats';
 import { useAuth } from '../../../hooks/useAuth';
 import { Colors } from '../../../constants/Colors';

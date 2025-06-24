@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Trash2, Edit2, Download, Eye, X } from 'lucide-react-native';
+import { Trash2, CreditCard as Edit2, Download, Eye, X } from 'lucide-react-native';
 import { useStorage } from '../../hooks/useStorage';
 import { useAuth } from '../../hooks/useAuth';
 import { Colors } from '../../constants/Colors';

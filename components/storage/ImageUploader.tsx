@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Camera, Image as ImageIcon, X, Upload, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, X, Upload, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useStorage, UploadProgress } from '../../hooks/useStorage';
 import { useAuth } from '../../hooks/useAuth';
 import { Colors } from '../../constants/Colors';
