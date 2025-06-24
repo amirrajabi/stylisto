@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { CircleAlert as AlertCircle, RefreshCw, Home } from 'lucide-react-native';
 import * as Sentry from '@sentry/react-native';
