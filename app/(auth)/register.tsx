@@ -23,7 +23,7 @@ import { Typography } from '../../constants/Typography';
 import { Spacing } from '../../constants/Spacing';
 
 export default function RegisterScreen() {
-  const { signUp, loading } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, loading } = useAuth();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const {
@@ -61,26 +61,35 @@ export default function RegisterScreen() {
         setError('email', { message: 'An account with this email already exists' });
       } else if (error.message.includes('Password should be')) {
         setError('password', { message: error.message });
+      } else if (error.message.includes('Invalid email')) {
+        setError('email', { message: 'Please enter a valid email address' });
       } else {
         Alert.alert('Sign Up Error', error.message || 'An unexpected error occurred');
       }
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'apple') => {
-    setSocialLoading(provider);
+  const handleGoogleLogin = async () => {
+    setSocialLoading('google');
     
     try {
-      // Implement social login based on platform
-      if (Platform.OS === 'web') {
-        // Web implementation would use supabase.auth.signInWithOAuth
-        Alert.alert('Social Login', `${provider} signup would be implemented here`);
-      } else {
-        // Mobile implementation would use native OAuth
-        Alert.alert('Social Login', `${provider} signup would be implemented here`);
-      }
+      await signInWithGoogle();
+      router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Social Login Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Google Sign Up Error', error.message || 'An unexpected error occurred');
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setSocialLoading('apple');
+    
+    try {
+      await signInWithApple();
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert('Apple Sign Up Error', error.message || 'An unexpected error occurred');
     } finally {
       setSocialLoading(null);
     }
@@ -187,7 +196,7 @@ export default function RegisterScreen() {
           title="Create Account"
           onPress={handleSubmit(onSubmit)}
           loading={isSubmitting}
-          disabled={loading}
+          disabled={loading || !!socialLoading}
           style={styles.signUpButton}
         />
       </View>
@@ -201,19 +210,17 @@ export default function RegisterScreen() {
       <View style={styles.socialButtons}>
         <SocialLoginButton
           provider="google"
-          onPress={() => handleSocialLogin('google')}
+          onPress={handleGoogleLogin}
           loading={socialLoading === 'google'}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || !!socialLoading}
         />
         
-        {Platform.OS === 'ios' && (
-          <SocialLoginButton
-            provider="apple"
-            onPress={() => handleSocialLogin('apple')}
-            loading={socialLoading === 'apple'}
-            disabled={loading || isSubmitting}
-          />
-        )}
+        <SocialLoginButton
+          provider="apple"
+          onPress={handleAppleLogin}
+          loading={socialLoading === 'apple'}
+          disabled={loading || isSubmitting || !!socialLoading}
+        />
       </View>
 
       <View style={styles.footer}>

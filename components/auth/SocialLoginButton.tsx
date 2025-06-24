@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   View,
+  Platform,
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
@@ -48,15 +49,31 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
       );
     }
 
-    // For production, you would use actual Google/Apple icons
+    // Google Icon SVG
+    if (isGoogle) {
+      return (
+        <View style={styles.googleIconContainer}>
+          <View style={styles.googleIcon}>
+            <Text style={styles.googleIconText}>G</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Apple Icon
     return (
-      <View style={[styles.iconPlaceholder, isGoogle ? styles.googleIcon : styles.appleIcon]}>
-        <Text style={styles.iconText}>
-          {isGoogle ? 'G' : ''}
-        </Text>
+      <View style={styles.appleIconContainer}>
+        <View style={styles.appleIcon}>
+          <Text style={styles.appleIconText}></Text>
+        </View>
       </View>
     );
   };
+
+  // Don't show Apple button on non-iOS platforms
+  if (provider === 'apple' && Platform.OS !== 'ios') {
+    return null;
+  }
 
   return (
     <TouchableOpacity
@@ -64,6 +81,9 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`Continue with ${isGoogle ? 'Google' : 'Apple'}`}
+      accessibilityState={{ disabled: disabled || loading }}
     >
       {renderIcon()}
       <Text style={textStyle}>
@@ -112,21 +132,38 @@ const styles = StyleSheet.create({
   disabledText: {
     opacity: 0.6,
   },
-  iconPlaceholder: {
+  googleIconContainer: {
+    width: 20,
+    height: 20,
+  },
+  googleIcon: {
     width: 20,
     height: 20,
     borderRadius: Layout.borderRadius.sm,
+    backgroundColor: Colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
-  googleIcon: {
-    backgroundColor: Colors.primary[100],
-  },
-  appleIcon: {
-    backgroundColor: Colors.white,
-  },
-  iconText: {
+  googleIconText: {
     ...Typography.caption.small,
     fontWeight: '700',
+    color: Colors.primary[700],
+  },
+  appleIconContainer: {
+    width: 20,
+    height: 20,
+  },
+  appleIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: Layout.borderRadius.sm,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appleIconText: {
+    ...Typography.caption.small,
+    fontWeight: '700',
+    color: Colors.black,
   },
 });

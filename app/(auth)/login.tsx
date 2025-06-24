@@ -23,7 +23,7 @@ import { Typography } from '../../constants/Typography';
 import { Spacing } from '../../constants/Spacing';
 
 export default function LoginScreen() {
-  const { signIn, loading } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple, loading } = useAuth();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const {
@@ -54,26 +54,39 @@ export default function LoginScreen() {
           'Please check your email and click the verification link before signing in.',
           [{ text: 'OK' }]
         );
+      } else if (error.message.includes('Too many requests')) {
+        Alert.alert(
+          'Too Many Attempts',
+          'Too many login attempts. Please wait a moment before trying again.',
+          [{ text: 'OK' }]
+        );
       } else {
         Alert.alert('Sign In Error', error.message || 'An unexpected error occurred');
       }
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'apple') => {
-    setSocialLoading(provider);
+  const handleGoogleLogin = async () => {
+    setSocialLoading('google');
     
     try {
-      // Implement social login based on platform
-      if (Platform.OS === 'web') {
-        // Web implementation would use supabase.auth.signInWithOAuth
-        Alert.alert('Social Login', `${provider} login would be implemented here`);
-      } else {
-        // Mobile implementation would use native OAuth
-        Alert.alert('Social Login', `${provider} login would be implemented here`);
-      }
+      await signInWithGoogle();
+      router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Social Login Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Google Sign In Error', error.message || 'An unexpected error occurred');
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setSocialLoading('apple');
+    
+    try {
+      await signInWithApple();
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert('Apple Sign In Error', error.message || 'An unexpected error occurred');
     } finally {
       setSocialLoading(null);
     }
@@ -140,7 +153,7 @@ export default function LoginScreen() {
           title="Sign In"
           onPress={handleSubmit(onSubmit)}
           loading={isSubmitting}
-          disabled={loading}
+          disabled={loading || !!socialLoading}
           style={styles.signInButton}
         />
       </View>
@@ -154,19 +167,17 @@ export default function LoginScreen() {
       <View style={styles.socialButtons}>
         <SocialLoginButton
           provider="google"
-          onPress={() => handleSocialLogin('google')}
+          onPress={handleGoogleLogin}
           loading={socialLoading === 'google'}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || !!socialLoading}
         />
         
-        {Platform.OS === 'ios' && (
-          <SocialLoginButton
-            provider="apple"
-            onPress={() => handleSocialLogin('apple')}
-            loading={socialLoading === 'apple'}
-            disabled={loading || isSubmitting}
-          />
-        )}
+        <SocialLoginButton
+          provider="apple"
+          onPress={handleAppleLogin}
+          loading={socialLoading === 'apple'}
+          disabled={loading || isSubmitting || !!socialLoading}
+        />
       </View>
 
       <View style={styles.footer}>
