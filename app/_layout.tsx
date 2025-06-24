@@ -39,8 +39,8 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: Colors.background.primary }
           }}
         >
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false, title: 'Authentication' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Main App' }} />
           <Stack.Screen 
             name="item-detail" 
             options={{ 
@@ -58,10 +58,27 @@ export default function RootLayout() {
             }} 
           />
           <Stack.Screen 
+            name="item-tag-editor" 
+            options={{ 
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Edit Tags'
+            }} 
+          />
+          <Stack.Screen 
+            name="outfit-detail" 
+            options={{ 
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Outfit Details'
+            }} 
+          />
+          <Stack.Screen 
             name="camera" 
             options={{ 
               presentation: 'fullScreenModal',
-              headerShown: false
+              headerShown: false,
+              title: 'Camera'
             }} 
           />
           <Stack.Screen 
