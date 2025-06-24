@@ -62,7 +62,13 @@ export default function RootLayout() {
             headerShown: false
           }} 
         />
-        <Stack.Screen name="+not-found" />
+        <Stack.Screen 
+          name="+not-found" 
+          options={{ 
+            headerShown: false,
+            title: 'Not Found'
+          }} 
+        />
       </Stack>
       <StatusBar style="auto" />
     </Provider>
