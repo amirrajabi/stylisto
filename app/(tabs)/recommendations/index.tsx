@@ -6,17 +6,23 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
+import { useSavedOutfits } from '../../../hooks/useSavedOutfits';
 import { OutfitRecommendationCarousel } from '../../../components/outfits/OutfitRecommendationCarousel';
 import { OccasionSelector } from '../../../components/outfits/OccasionSelector';
 import { WeatherOutfitBanner } from '../../../components/outfits/WeatherOutfitBanner';
+import { SavedOutfitsList } from '../../../components/outfits/SavedOutfitsList';
 import { Occasion } from '../../../types/wardrobe';
 import { Colors } from '../../../constants/Colors';
 import { Typography } from '../../../constants/Typography';
 import { Spacing } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
+import { Heart } from 'lucide-react-native';
 
 // Mock weather data - in a real app, this would come from a weather API
 const MOCK_WEATHER = {
@@ -28,6 +34,7 @@ const MOCK_WEATHER = {
 export default function RecommendationsScreen() {
   const [selectedOccasion, setSelectedOccasion] = useState<Occasion | null>(null);
   const [useWeatherData, setUseWeatherData] = useState(false);
+  const [showSavedOutfits, setShowSavedOutfits] = useState(false);
   
   const {
     outfits,
@@ -39,6 +46,8 @@ export default function RecommendationsScreen() {
     getOccasionBasedRecommendation,
   } = useOutfitRecommendation();
 
+  const { outfits: savedOutfits } = useSavedOutfits();
+
   // Generate initial recommendations on mount
   useEffect(() => {
     generateRecommendations();
@@ -48,6 +57,7 @@ export default function RecommendationsScreen() {
   const handleOccasionSelect = useCallback(async (occasion: Occasion | null) => {
     setSelectedOccasion(occasion);
     setUseWeatherData(false);
+    setShowSavedOutfits(false);
     
     if (occasion) {
       await getOccasionBasedRecommendation(occasion);
@@ -60,6 +70,7 @@ export default function RecommendationsScreen() {
   const handleWeatherRecommendation = useCallback(async () => {
     setUseWeatherData(true);
     setSelectedOccasion(null);
+    setShowSavedOutfits(false);
     
     await getWeatherBasedRecommendation({
       temperature: MOCK_WEATHER.temperature,
@@ -72,33 +83,39 @@ export default function RecommendationsScreen() {
 
   // Handle saving outfit
   const handleSaveOutfit = useCallback((index: number) => {
-    const outfitId = saveCurrentOutfit();
+    if (index >= outfits.length) return;
     
-    if (outfitId) {
-      Alert.alert(
-        'Outfit Saved',
-        'The outfit has been saved to your collection.',
-        [{ text: 'OK' }]
-      );
+    const outfitToSave = outfits[index];
+    const outfitName = `${selectedOccasion || 'Custom'} Outfit ${new Date().toLocaleDateString()}`;
+    
+    try {
+      const outfitId = saveCurrentOutfit(outfitName);
+      
+      if (outfitId) {
+        Alert.alert(
+          'Outfit Saved',
+          'The outfit has been saved to your collection.',
+          [{ 
+            text: 'View Saved Outfits', 
+            onPress: () => {
+              router.push({
+                pathname: '/saved',
+                params: { highlight: outfitId }
+              });
+            }
+          },
+          { text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save outfit. Please try again.');
     }
-  }, [saveCurrentOutfit]);
+  }, [outfits, selectedOccasion, saveCurrentOutfit]);
 
-  // Handle refreshing outfit
-  const handleRefreshOutfit = useCallback((index: number) => {
-    if (useWeatherData) {
-      handleWeatherRecommendation();
-    } else if (selectedOccasion) {
-      getOccasionBasedRecommendation(selectedOccasion);
-    } else {
-      generateRecommendations();
-    }
-  }, [
-    useWeatherData, 
-    selectedOccasion, 
-    handleWeatherRecommendation, 
-    getOccasionBasedRecommendation, 
-    generateRecommendations
-  ]);
+  // Toggle between recommendations and saved outfits
+  const toggleSavedOutfits = useCallback(() => {
+    setShowSavedOutfits(prev => !prev);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,38 +127,77 @@ export default function RecommendationsScreen() {
         <Text style={styles.subtitle}>
           AI-powered outfits tailored to your style
         </Text>
+        
+        <TouchableOpacity 
+          style={styles.savedToggleButton}
+          onPress={toggleSavedOutfits}
+        >
+          <Heart 
+            size={16} 
+            color={showSavedOutfits ? Colors.white : Colors.primary[700]} 
+            fill={showSavedOutfits ? Colors.white : 'transparent'}
+          />
+          <Text 
+            style={[
+              styles.savedToggleText,
+              showSavedOutfits && styles.savedToggleTextActive
+            ]}
+          >
+            {showSavedOutfits ? 'View Recommendations' : 'View Saved Outfits'}
+          </Text>
+        </TouchableOpacity>
       </View>
       
-      {/* Weather Banner */}
-      <WeatherOutfitBanner
-        temperature={MOCK_WEATHER.temperature}
-        condition={MOCK_WEATHER.condition}
-        location={MOCK_WEATHER.location}
-        onPress={handleWeatherRecommendation}
-      />
-      
-      {/* Occasion Selector */}
-      <OccasionSelector
-        selectedOccasion={selectedOccasion}
-        onSelectOccasion={handleOccasionSelect}
-      />
+      {!showSavedOutfits && (
+        <>
+          {/* Weather Banner */}
+          <WeatherOutfitBanner
+            temperature={MOCK_WEATHER.temperature}
+            condition={MOCK_WEATHER.condition}
+            location={MOCK_WEATHER.location}
+            onPress={handleWeatherRecommendation}
+          />
+          
+          {/* Occasion Selector */}
+          <OccasionSelector
+            selectedOccasion={selectedOccasion}
+            onSelectOccasion={handleOccasionSelect}
+          />
+        </>
+      )}
       
       {/* Content Area */}
       <View style={styles.content}>
-        {loading ? (
+        {showSavedOutfits ? (
+          // Show saved outfits
+          <ScrollView style={styles.savedOutfitsContainer}>
+            <SavedOutfitsList showHeader={false} />
+          </ScrollView>
+        ) : loading ? (
+          // Loading state
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary[700]} />
             <Text style={styles.loadingText}>Generating outfit recommendations...</Text>
           </View>
         ) : error ? (
+          // Error state
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : outfits.length > 0 ? (
+          // Outfit recommendations
           <OutfitRecommendationCarousel
             outfits={outfits}
             onSaveOutfit={handleSaveOutfit}
-            onRefreshOutfit={handleRefreshOutfit}
+            onRefreshOutfit={() => {
+              if (useWeatherData) {
+                handleWeatherRecommendation();
+              } else if (selectedOccasion) {
+                getOccasionBasedRecommendation(selectedOccasion);
+              } else {
+                generateRecommendations();
+              }
+            }}
             weatherData={useWeatherData ? {
               temperature: MOCK_WEATHER.temperature,
               condition: MOCK_WEATHER.condition,
@@ -149,6 +205,7 @@ export default function RecommendationsScreen() {
             occasion={selectedOccasion || undefined}
           />
         ) : (
+          // Empty state
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               No outfit recommendations available. Try selecting an occasion or refreshing.
@@ -156,6 +213,23 @@ export default function RecommendationsScreen() {
           </View>
         )}
       </View>
+      
+      {/* Saved Outfits Preview (when showing recommendations) */}
+      {!showSavedOutfits && savedOutfits.length > 0 && (
+        <View style={styles.savedOutfitsPreview}>
+          <View style={styles.savedOutfitsHeader}>
+            <Text style={styles.savedOutfitsTitle}>Your Saved Outfits</Text>
+            <TouchableOpacity onPress={() => router.push('/saved')}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <SavedOutfitsList 
+            showHeader={false} 
+            maxItems={3}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -179,6 +253,25 @@ const styles = StyleSheet.create({
   subtitle: {
     ...Typography.body.medium,
     color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+  },
+  savedToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.surface.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.full,
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  savedToggleTextActive: {
+    color: Colors.white,
+  },
+  savedToggleText: {
+    ...Typography.caption.medium,
+    color: Colors.primary[700],
   },
   content: {
     flex: 1,
@@ -216,5 +309,31 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     color: Colors.text.secondary,
     textAlign: 'center',
+  },
+  savedOutfitsContainer: {
+    flex: 1,
+  },
+  savedOutfitsPreview: {
+    backgroundColor: Colors.surface.primary,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+  },
+  savedOutfitsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  savedOutfitsTitle: {
+    ...Typography.heading.h4,
+    color: Colors.text.primary,
+  },
+  viewAllText: {
+    ...Typography.body.small,
+    color: Colors.primary[700],
+    fontWeight: '600',
   },
 });
