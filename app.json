@@ -8,7 +8,6 @@
     "scheme": "stylisto",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "appRoot": "./src/app",
     "ios": {
       "supportsTablet": true
     },
