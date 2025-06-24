@@ -8,7 +8,7 @@ import Animated, {
   withSequence,
   withDelay
 } from 'react-native-reanimated';
-import { Heart, MoreVertical, Users, Calendar, Clock } from 'lucide-react-native';
+import { Heart, MoveVertical as MoreVertical, Users, Calendar, Clock } from 'lucide-react-native';
 import { Outfit } from '../../types/wardrobe';
 import { formatDate, getOccasionColor } from '../../utils/wardrobeUtils';
 import { Colors } from '../../constants/Colors';

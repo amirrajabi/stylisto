@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Heart, Share2, ArrowLeft, Tag, Calendar, ThermometerSun, Trash2, Edit2, Clock } from 'lucide-react-native';
+import { Heart, Share2, ArrowLeft, Tag, Calendar, ThermometerSun, Trash2, CreditCard as Edit2, Clock } from 'lucide-react-native';
 import { useSavedOutfits } from '../hooks/useSavedOutfits';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
