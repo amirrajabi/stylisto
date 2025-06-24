@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
-import { Heart, Edit, Trash2, Share, Tag } from 'lucide-react-native';
+import { Heart, CreditCard as Edit, Trash2, Share, Tag } from 'lucide-react-native';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';

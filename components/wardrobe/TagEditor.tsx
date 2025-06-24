@@ -7,7 +7,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import { Tag, Plus, X, HelpCircle } from 'lucide-react-native';
+import { Tag, Plus, X, CircleHelp as HelpCircle } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Spacing, Layout } from '../../constants/Spacing';

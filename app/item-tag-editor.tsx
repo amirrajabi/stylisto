@@ -14,20 +14,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
-import { 
-  ArrowLeft, 
-  Save, 
-  Tag, 
-  Plus, 
-  X, 
-  Palette, 
-  Calendar, 
-  Briefcase,
-  ThumbsUp,
-  ThumbsDown,
-  Sparkles,
-  HelpCircle,
-} from 'lucide-react-native';
+import { ArrowLeft, Save, Tag, Plus, X, Palette, Calendar, Briefcase, ThumbsUp, ThumbsDown, Sparkles, CircleHelp as HelpCircle } from 'lucide-react-native';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { useClothingAnalysis } from '../hooks/useClothingAnalysis';
 import { ClothingCategory, Season, Occasion } from '../types/wardrobe';
