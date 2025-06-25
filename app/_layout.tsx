@@ -147,7 +147,11 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
-            <StatusBar hidden={true} />
+            <StatusBar
+              style="auto"
+              backgroundColor="transparent"
+              translucent={true}
+            />
           </AppErrorBoundary>
         </AccessibilityProvider>
       </Provider>

@@ -134,7 +134,11 @@ export default function RecommendationsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar hidden={true} />
+      <StatusBar
+        style="auto"
+        backgroundColor="transparent"
+        translucent={true}
+      />
 
       {/* Header */}
       <View style={styles.header}>

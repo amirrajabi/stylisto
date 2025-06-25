@@ -14,7 +14,7 @@ export default {
       supportsTablet: true,
       bundleIdentifier: 'com.stylisto.app',
       infoPlist: {
-        UIViewControllerBasedStatusBarAppearance: true,
+        UIViewControllerBasedStatusBarAppearance: false,
       },
     },
     android: {

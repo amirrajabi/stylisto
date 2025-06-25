@@ -1,36 +1,51 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  TextInput,
-  Platform,
-  Dimensions,
-} from 'react-native';
 import { router } from 'expo-router';
-import { Grid2x2 as Grid, List, Import as SortAsc, Camera, Plus, Filter, Search, X } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
+import {
+  Camera,
+  Filter,
+  Grid2x2 as Grid,
+  List,
+  Plus,
+  Search,
+  Import as SortAsc,
+  X,
+} from 'lucide-react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  Dimensions,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
   withSpring,
-  runOnJS,
 } from 'react-native-reanimated';
-import { useWardrobe } from '../../../hooks/useWardrobe';
-import { useWardrobePerformance } from '../../../hooks/useWardrobePerformance';
+import { H1 } from '../../../components/ui';
 import OptimizedWardrobeList from '../../../components/wardrobe/OptimizedWardrobeList';
 import { WardrobeFilters } from '../../../components/wardrobe/WardrobeFilters';
-import { ClothingItem, SortOptions } from '../../../types/wardrobe';
 import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
-import { H1 } from '../../../components/ui';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
+import { useWardrobe } from '../../../hooks/useWardrobe';
+import { useWardrobePerformance } from '../../../hooks/useWardrobePerformance';
+import { ClothingItem } from '../../../types/wardrobe';
 
 const { width: screenWidth } = Dimensions.get('window');
 const ITEMS_PER_PAGE = 20;
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function WardrobeScreen() {
   const {
@@ -41,10 +56,10 @@ export default function WardrobeScreen() {
     searchQuery,
     actions,
   } = useWardrobe();
-  
-  const { 
-    startRenderMeasurement, 
-    endRenderMeasurement, 
+
+  const {
+    startRenderMeasurement,
+    endRenderMeasurement,
     scheduleAfterInteractions,
     optimizeForLargeList,
   } = useWardrobePerformance();
@@ -106,48 +121,57 @@ export default function WardrobeScreen() {
   }, [filters]);
 
   // Handlers
-  const handleItemPress = useCallback((item: ClothingItem) => {
-    if (selectedItems.length > 0) {
-      // Multi-select mode
-      if (selectedItems.includes(item.id)) {
-        actions.deselectItem(item.id);
+  const handleItemPress = useCallback(
+    (item: ClothingItem) => {
+      if (selectedItems.length > 0) {
+        // Multi-select mode
+        if (selectedItems.includes(item.id)) {
+          actions.deselectItem(item.id);
+        } else {
+          actions.selectItem(item.id);
+        }
       } else {
+        // Navigate to item detail
+        scheduleAfterInteractions(() => {
+          router.push({
+            pathname: '/item-detail',
+            params: { itemId: item.id },
+          });
+        });
+      }
+    },
+    [selectedItems, actions, scheduleAfterInteractions]
+  );
+
+  const handleItemLongPress = useCallback(
+    (item: ClothingItem) => {
+      if (!selectedItems.includes(item.id)) {
         actions.selectItem(item.id);
       }
-    } else {
-      // Navigate to item detail
+    },
+    [selectedItems, actions]
+  );
+
+  const handleMoreOptions = useCallback(
+    (item: ClothingItem) => {
+      // Show options menu
       scheduleAfterInteractions(() => {
-        router.push({
-          pathname: '/item-detail',
-          params: { itemId: item.id }
-        });
+        if (Platform.OS === 'ios') {
+          // Use ActionSheetIOS
+        } else {
+          // Use Alert for Android
+        }
       });
-    }
-  }, [selectedItems, actions, scheduleAfterInteractions]);
-
-  const handleItemLongPress = useCallback((item: ClothingItem) => {
-    if (!selectedItems.includes(item.id)) {
-      actions.selectItem(item.id);
-    }
-  }, [selectedItems, actions]);
-
-  const handleMoreOptions = useCallback((item: ClothingItem) => {
-    // Show options menu
-    scheduleAfterInteractions(() => {
-      if (Platform.OS === 'ios') {
-        // Use ActionSheetIOS
-      } else {
-        // Use Alert for Android
-      }
-    });
-  }, [scheduleAfterInteractions]);
+    },
+    [scheduleAfterInteractions]
+  );
 
   const handleSort = useCallback(() => {
     // Animate button press
     fabScale.value = withSpring(0.95, {}, () => {
       fabScale.value = withSpring(1);
     });
-    
+
     // Show sort options
     scheduleAfterInteractions(() => {
       // Sort options implementation
@@ -159,7 +183,7 @@ export default function WardrobeScreen() {
     fabScale.value = withSpring(0.95, {}, () => {
       fabScale.value = withSpring(1);
     });
-    
+
     scheduleAfterInteractions(() => {
       router.push('/wardrobe/add-item');
     });
@@ -168,7 +192,7 @@ export default function WardrobeScreen() {
   const handleViewModeToggle = useCallback(() => {
     const newMode = viewMode === 'grid' ? 'list' : 'grid';
     setViewMode(newMode);
-    
+
     // Animate header
     headerScale.value = withSpring(0.95, {}, () => {
       headerScale.value = withSpring(1);
@@ -177,7 +201,7 @@ export default function WardrobeScreen() {
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    
+
     // Simulate refresh delay
     setTimeout(() => {
       setIsRefreshing(false);
@@ -188,7 +212,7 @@ export default function WardrobeScreen() {
   const handleLoadMore = useCallback(() => {
     if (hasMoreItems && !isLoadingMore) {
       setIsLoadingMore(true);
-      
+
       // Load more items with a slight delay to prevent UI jank
       setTimeout(() => {
         setCurrentPage(prev => prev + 1);
@@ -197,18 +221,21 @@ export default function WardrobeScreen() {
     }
   }, [hasMoreItems, isLoadingMore]);
 
-  const handleSearchChange = useCallback((text: string) => {
-    setLocalSearchQuery(text);
-    
-    // Debounce search to prevent excessive re-renders
-    if (searchDebounceTimeout.current) {
-      clearTimeout(searchDebounceTimeout.current);
-    }
-    
-    searchDebounceTimeout.current = setTimeout(() => {
-      actions.setSearchQuery(text);
-    }, 300);
-  }, [actions]);
+  const handleSearchChange = useCallback(
+    (text: string) => {
+      setLocalSearchQuery(text);
+
+      // Debounce search to prevent excessive re-renders
+      if (searchDebounceTimeout.current) {
+        clearTimeout(searchDebounceTimeout.current);
+      }
+
+      searchDebounceTimeout.current = setTimeout(() => {
+        actions.setSearchQuery(text);
+      }, 300);
+    },
+    [actions]
+  );
 
   const handleClearSearch = useCallback(() => {
     setLocalSearchQuery('');
@@ -250,7 +277,7 @@ export default function WardrobeScreen() {
                 </TouchableOpacity>
               ) : null}
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={handleClearSearch}
             >
@@ -272,15 +299,15 @@ export default function WardrobeScreen() {
                   <Grid size={24} color={Colors.text.secondary} />
                 )}
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.headerButton} 
+
+              <TouchableOpacity
+                style={styles.headerButton}
                 onPress={handleSort}
                 accessibilityLabel="Sort items"
               >
                 <SortAsc size={24} color={Colors.text.secondary} />
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.headerButton}
                 onPress={() => setShowSearch(true)}
@@ -288,7 +315,7 @@ export default function WardrobeScreen() {
               >
                 <Search size={24} color={Colors.text.secondary} />
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.cameraButton}
                 onPress={() => router.push('/camera')}
@@ -306,14 +333,16 @@ export default function WardrobeScreen() {
         <TouchableOpacity
           style={[
             styles.filterButton,
-            activeFiltersCount > 0 && styles.activeFilterButton
+            activeFiltersCount > 0 && styles.activeFilterButton,
           ]}
           onPress={() => setShowFilterModal(true)}
           accessibilityLabel={`Filter items${activeFiltersCount > 0 ? `, ${activeFiltersCount} filters active` : ''}`}
         >
-          <Filter 
-            size={20} 
-            color={activeFiltersCount > 0 ? Colors.white : Colors.text.secondary} 
+          <Filter
+            size={20}
+            color={
+              activeFiltersCount > 0 ? Colors.white : Colors.text.secondary
+            }
           />
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
@@ -327,7 +356,8 @@ export default function WardrobeScreen() {
       {selectedItems.length > 0 && (
         <View style={styles.selectionBar}>
           <Text style={styles.selectionText}>
-            {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
+            {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''}{' '}
+            selected
           </Text>
           <TouchableOpacity
             style={styles.clearSelectionButton}
@@ -353,14 +383,20 @@ export default function WardrobeScreen() {
         onMoreOptions={handleMoreOptions}
         selectedItems={selectedItems}
         emptyState={
-          paginatedItems.length === 0 ? {
-            type: searchQuery ? 'no-results' : (activeFiltersCount > 0 ? 'filtered' : 'empty'),
-            searchQuery,
-            activeFiltersCount,
-            onAddItem: handleAddItem,
-            onClearSearch: () => actions.setSearchQuery(''),
-            onClearFilters: actions.clearFilters,
-          } : undefined
+          paginatedItems.length === 0
+            ? {
+                type: searchQuery
+                  ? 'no-results'
+                  : activeFiltersCount > 0
+                    ? 'filtered'
+                    : 'empty',
+                searchQuery,
+                activeFiltersCount,
+                onAddItem: handleAddItem,
+                onClearSearch: () => actions.setSearchQuery(''),
+                onClearFilters: actions.clearFilters,
+              }
+            : undefined
         }
         testID="wardrobe-list"
       />

@@ -143,7 +143,11 @@ export default function CameraScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar hidden={true} />
+      <StatusBar
+        style="light"
+        backgroundColor="transparent"
+        translucent={true}
+      />
 
       {currentMode === 'camera' ? (
         <CameraInterface
