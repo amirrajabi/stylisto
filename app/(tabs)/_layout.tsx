@@ -1,5 +1,12 @@
 import { Tabs } from 'expo-router';
-import { Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
+import {
+  BarChart3,
+  Heart,
+  Shirt,
+  Sparkles,
+  User,
+  Wand2,
+} from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
@@ -85,6 +92,37 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Saved',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Heart
+              size={size}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+              fill={focused ? color : 'none'}
+              accessibilityLabel=""
+            />
+          ),
+          tabBarAccessibilityLabel: 'Saved outfits tab',
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: 'Analytics',
+          tabBarIcon: ({ color, size, focused }) => (
+            <BarChart3
+              size={size}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+              accessibilityLabel=""
+            />
+          ),
+          tabBarAccessibilityLabel: 'Analytics tab',
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -97,30 +135,6 @@ export default function TabLayout() {
             />
           ),
           tabBarAccessibilityLabel: 'Profile tab',
-        }}
-      />
-      <Tabs.Screen
-        name="wardrobe"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="recommendations"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          href: null,
         }}
       />
     </Tabs>

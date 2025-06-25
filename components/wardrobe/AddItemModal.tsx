@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  TextInput,
-  Alert,
-} from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { X, Camera, Image as ImageIcon, Plus } from 'lucide-react-native';
-import { ClothingItem, ClothingCategory, Season, Occasion } from '../../types/wardrobe';
+import { Camera, Image as ImageIcon, Plus, X } from 'lucide-react-native';
+import React, { useRef, useState } from 'react';
+import {
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  ClothingCategory,
+  ClothingItem,
+  Occasion,
+  Season,
+} from '../../types/wardrobe';
 import { generateId } from '../../utils/wardrobeUtils';
 
 interface AddItemModalProps {
@@ -31,9 +36,22 @@ const SAMPLE_IMAGES = [
 ];
 
 const COLORS = [
-  '#000000', '#ffffff', '#808080', '#ff0000', '#00ff00', '#0000ff',
-  '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#800080', '#ffc0cb',
-  '#a52a2a', '#000080', '#008000', '#800000',
+  '#000000',
+  '#ffffff',
+  '#808080',
+  '#ff0000',
+  '#00ff00',
+  '#0000ff',
+  '#ffff00',
+  '#ff00ff',
+  '#00ffff',
+  '#ffa500',
+  '#800080',
+  '#ffc0cb',
+  '#a52a2a',
+  '#000080',
+  '#008000',
+  '#800000',
 ];
 
 export const AddItemModal: React.FC<AddItemModalProps> = ({
@@ -42,9 +60,10 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
   onAddItem,
   editItem,
 }) => {
+  const scrollViewRef = useRef<ScrollView>(null);
   const [formData, setFormData] = useState<Partial<ClothingItem>>({
     name: editItem?.name || '',
-    category: editItem?.category || ClothingCategory.TOPS,
+    category: editItem?.category || ('tops' as ClothingCategory),
     subcategory: editItem?.subcategory || '',
     color: editItem?.color || '#000000',
     brand: editItem?.brand || '',
@@ -58,6 +77,19 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
   });
 
   const [newTag, setNewTag] = useState('');
+
+  // Smooth scroll to input section
+  const scrollToInput = (sectionIndex: number) => {
+    setTimeout(() => {
+      if (scrollViewRef.current) {
+        const scrollPosition = sectionIndex * 180; // Adjusted section height
+        scrollViewRef.current.scrollTo({
+          y: Math.max(0, scrollPosition - 50), // Add some padding and prevent negative scroll
+          animated: true,
+        });
+      }
+    }, 150);
+  };
 
   const handleSave = () => {
     if (!formData.name?.trim()) {
@@ -109,6 +141,19 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     }
   };
 
+  const takePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setFormData({ ...formData, imageUrl: result.assets[0].uri });
+    }
+  };
+
   const addTag = () => {
     if (newTag.trim() && !formData.tags?.includes(newTag.trim())) {
       setFormData({
@@ -135,7 +180,11 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -149,36 +198,67 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets={true}
+        >
           {/* Image Selection */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Photo</Text>
             <View style={styles.imageContainer}>
               {formData.imageUrl ? (
-                <Image source={{ uri: formData.imageUrl }} style={styles.selectedImage} />
+                <Image
+                  source={{ uri: formData.imageUrl }}
+                  style={styles.selectedImage}
+                />
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <ImageIcon size={40} color="#9ca3af" />
                 </View>
               )}
-              <TouchableOpacity style={styles.changeImageButton} onPress={pickImage}>
-                <Camera size={20} color="#3b82f6" />
-                <Text style={styles.changeImageText}>Change Photo</Text>
-              </TouchableOpacity>
+              <View style={styles.imageButtons}>
+                <TouchableOpacity
+                  style={styles.imageButton}
+                  onPress={pickImage}
+                >
+                  <ImageIcon size={20} color="#3b82f6" />
+                  <Text style={styles.imageButtonText}>Change Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.imageButton}
+                  onPress={takePhoto}
+                >
+                  <Camera size={20} color="#3b82f6" />
+                  <Text style={styles.imageButtonText}>Take Photo</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            
+
             <Text style={styles.subsectionTitle}>Or choose from samples:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sampleImages}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.sampleImages}
+            >
               {SAMPLE_IMAGES.map((imageUrl, index) => (
                 <TouchableOpacity
                   key={index}
                   onPress={() => setFormData({ ...formData, imageUrl })}
                   style={[
                     styles.sampleImage,
-                    formData.imageUrl === imageUrl && styles.selectedSampleImage,
+                    formData.imageUrl === imageUrl &&
+                      styles.selectedSampleImage,
                   ]}
                 >
-                  <Image source={{ uri: imageUrl }} style={styles.sampleImageContent} />
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.sampleImageContent}
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -187,7 +267,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           {/* Basic Info */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Basic Information</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Name *</Text>
               <TextInput
@@ -196,6 +276,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 onChangeText={name => setFormData({ ...formData, name })}
                 placeholder="e.g., Blue Cotton T-Shirt"
                 placeholderTextColor="#9ca3af"
+                returnKeyType="next"
+                onFocus={() => scrollToInput(1)}
               />
             </View>
 
@@ -203,19 +285,36 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
               <Text style={styles.label}>Category *</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipContainer}>
-                  {Object.values(ClothingCategory).map(category => (
+                  {[
+                    'tops',
+                    'bottoms',
+                    'dresses',
+                    'outerwear',
+                    'shoes',
+                    'accessories',
+                    'underwear',
+                    'activewear',
+                    'sleepwear',
+                    'swimwear',
+                  ].map(category => (
                     <TouchableOpacity
                       key={category}
                       style={[
                         styles.chip,
                         formData.category === category && styles.selectedChip,
                       ]}
-                      onPress={() => setFormData({ ...formData, category })}
+                      onPress={() =>
+                        setFormData({
+                          ...formData,
+                          category: category as ClothingCategory,
+                        })
+                      }
                     >
                       <Text
                         style={[
                           styles.chipText,
-                          formData.category === category && styles.selectedChipText,
+                          formData.category === category &&
+                            styles.selectedChipText,
                         ]}
                       >
                         {category.replace('_', ' ')}
@@ -235,6 +334,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                   onChangeText={brand => setFormData({ ...formData, brand })}
                   placeholder="e.g., Nike"
                   placeholderTextColor="#9ca3af"
+                  returnKeyType="next"
+                  onFocus={() => scrollToInput(2)}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
@@ -245,6 +346,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                   onChangeText={size => setFormData({ ...formData, size })}
                   placeholder="e.g., M"
                   placeholderTextColor="#9ca3af"
+                  returnKeyType="next"
+                  onFocus={() => scrollToInput(2)}
                 />
               </View>
             </View>
@@ -273,10 +376,17 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
               <TextInput
                 style={styles.input}
                 value={formData.price?.toString() || ''}
-                onChangeText={price => setFormData({ ...formData, price: price ? parseFloat(price) : undefined })}
+                onChangeText={price =>
+                  setFormData({
+                    ...formData,
+                    price: price ? parseFloat(price) : undefined,
+                  })
+                }
                 placeholder="e.g., 29.99"
                 placeholderTextColor="#9ca3af"
                 keyboardType="numeric"
+                returnKeyType="next"
+                onFocus={() => scrollToInput(2)}
               />
             </View>
           </View>
@@ -285,30 +395,33 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Seasons</Text>
             <View style={styles.chipContainer}>
-              {Object.values(Season).map(season => (
-                <TouchableOpacity
-                  key={season}
-                  style={[
-                    styles.chip,
-                    formData.season?.includes(season) && styles.selectedChip,
-                  ]}
-                  onPress={() =>
-                    setFormData({
-                      ...formData,
-                      season: toggleArrayItem(formData.season || [], season),
-                    })
-                  }
-                >
-                  <Text
+              {(['spring', 'summer', 'fall', 'winter'] as Season[]).map(
+                season => (
+                  <TouchableOpacity
+                    key={season}
                     style={[
-                      styles.chipText,
-                      formData.season?.includes(season) && styles.selectedChipText,
+                      styles.chip,
+                      formData.season?.includes(season) && styles.selectedChip,
                     ]}
+                    onPress={() =>
+                      setFormData({
+                        ...formData,
+                        season: toggleArrayItem(formData.season || [], season),
+                      })
+                    }
                   >
-                    {season}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        formData.season?.includes(season) &&
+                          styles.selectedChipText,
+                      ]}
+                    >
+                      {season}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
             </View>
           </View>
 
@@ -316,24 +429,40 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Occasions</Text>
             <View style={styles.chipContainer}>
-              {Object.values(Occasion).map(occasion => (
+              {(
+                [
+                  'casual',
+                  'work',
+                  'formal',
+                  'party',
+                  'sport',
+                  'travel',
+                  'date',
+                  'special',
+                ] as Occasion[]
+              ).map(occasion => (
                 <TouchableOpacity
                   key={occasion}
                   style={[
                     styles.chip,
-                    formData.occasion?.includes(occasion) && styles.selectedChip,
+                    formData.occasion?.includes(occasion) &&
+                      styles.selectedChip,
                   ]}
                   onPress={() =>
                     setFormData({
                       ...formData,
-                      occasion: toggleArrayItem(formData.occasion || [], occasion),
+                      occasion: toggleArrayItem(
+                        formData.occasion || [],
+                        occasion
+                      ),
                     })
                   }
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      formData.occasion?.includes(occasion) && styles.selectedChipText,
+                      formData.occasion?.includes(occasion) &&
+                        styles.selectedChipText,
                     ]}
                   >
                     {occasion}
@@ -354,6 +483,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 placeholder="Add a tag"
                 placeholderTextColor="#9ca3af"
                 onSubmitEditing={addTag}
+                returnKeyType="done"
+                onFocus={() => scrollToInput(5)}
               />
               <TouchableOpacity style={styles.addTagButton} onPress={addTag}>
                 <Plus size={20} color="#3b82f6" />
@@ -385,6 +516,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
               multiline
               numberOfLines={4}
               textAlignVertical="top"
+              returnKeyType="done"
+              onFocus={() => scrollToInput(6)}
             />
           </View>
         </ScrollView>
@@ -423,9 +556,14 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '600',
   },
+
   content: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+    flexGrow: 1,
   },
   section: {
     marginVertical: 16,
@@ -462,7 +600,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  changeImageButton: {
+  imageButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  imageButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -472,7 +615,7 @@ const styles = StyleSheet.create({
     borderColor: '#3b82f6',
     gap: 8,
   },
-  changeImageText: {
+  imageButtonText: {
     fontSize: 14,
     color: '#3b82f6',
     fontWeight: '500',

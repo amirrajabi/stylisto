@@ -1,15 +1,15 @@
+import { BarChart3, Heart, Shirt, TrendingUp } from 'lucide-react-native';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
   SafeAreaView,
   ScrollView,
-  Dimensions,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { BarChart3, TrendingUp, Heart, Shirt } from 'lucide-react-native';
 import { useWardrobe } from '../../hooks/useWardrobe';
-import { ClothingCategory, Season, Occasion } from '../../types/wardrobe';
+import { Season } from '../../types/wardrobe';
 import { formatCurrency, getWardrobeInsights } from '../../utils/wardrobeUtils';
 
 const { width } = Dimensions.get('window');
@@ -17,7 +17,10 @@ const { width } = Dimensions.get('window');
 export default function AnalyticsScreen() {
   const { items, outfits, stats } = useWardrobe();
 
-  const wardrobeValue = items.reduce((total, item) => total + (item.price || 0), 0);
+  const wardrobeValue = items.reduce(
+    (total, item) => total + (item.price || 0),
+    0
+  );
   const insights = getWardrobeInsights(items);
 
   const StatCard: React.FC<{
@@ -39,7 +42,7 @@ export default function AnalyticsScreen() {
 
   const CategoryChart: React.FC = () => {
     const maxCount = Math.max(...Object.values(stats.itemsByCategory));
-    
+
     return (
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Items by Category</Text>
@@ -162,9 +165,7 @@ export default function AnalyticsScreen() {
                     {item.brand} • {item.category}
                   </Text>
                 </View>
-                <Text style={styles.listItemValue}>
-                  {item.timesWorn} times
-                </Text>
+                <Text style={styles.listItemValue}>{item.timesWorn} times</Text>
               </View>
             ))}
           </View>
@@ -182,9 +183,7 @@ export default function AnalyticsScreen() {
                     {item.brand} • {item.category}
                   </Text>
                 </View>
-                <Text style={styles.listItemValue}>
-                  {item.timesWorn} times
-                </Text>
+                <Text style={styles.listItemValue}>{item.timesWorn} times</Text>
               </View>
             ))}
           </View>
