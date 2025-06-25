@@ -6,10 +6,14 @@ import {
   Download,
   Eye,
   EyeOff,
+  Heart,
   PieChart,
+  Shirt,
+  TrendingUp,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
+  Dimensions,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -26,13 +30,28 @@ import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
 import { useAnalytics } from '../../../hooks/useAnalytics';
+import { useWardrobe } from '../../../hooks/useWardrobe';
 import { ConsentStatus } from '../../../lib/analytics';
+import { Season } from '../../../types/wardrobe';
+import {
+  formatCurrency,
+  getWardrobeInsights,
+} from '../../../utils/wardrobeUtils';
 
-export default function AnalyticsSettingsScreen() {
+const { width } = Dimensions.get('window');
+
+export default function AnalyticsScreen() {
   const { getConsentStatus, setConsentStatus, trackScreenView } =
     useAnalytics();
   const [consentEnabled, setConsentEnabled] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const { items, outfits, stats } = useWardrobe();
+
+  const wardrobeValue = items.reduce(
+    (total, item) => total + (item.price || 0),
+    0
+  );
+  const insights = getWardrobeInsights(items);
 
   // Track screen view
   useEffect(() => {
@@ -60,6 +79,94 @@ export default function AnalyticsSettingsScreen() {
       'Your data export has been requested. You will receive an email with your data shortly.'
     );
   };
+
+  const StatCard: React.FC<{
+    title: string;
+    value: string | number;
+    icon: React.ReactNode;
+    color: string;
+  }> = ({ title, value, icon, color }) => (
+    <View style={[styles.statCard, { borderLeftColor: color }]}>
+      <View style={styles.statHeader}>
+        <View style={[styles.statIcon, { backgroundColor: color + '20' }]}>
+          {icon}
+        </View>
+        <Text style={styles.statTitle}>{title}</Text>
+      </View>
+      <Text style={styles.statValue}>{value}</Text>
+    </View>
+  );
+
+  const CategoryChart: React.FC = () => {
+    const maxCount = Math.max(...Object.values(stats.itemsByCategory));
+
+    return (
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>Items by Category</Text>
+        <View style={styles.chart}>
+          {Object.entries(stats.itemsByCategory).map(([category, count]) => (
+            <View key={category} style={styles.chartRow}>
+              <Text style={styles.chartLabel}>
+                {category.replace('_', ' ')}
+              </Text>
+              <View style={styles.chartBarContainer}>
+                <View
+                  style={[
+                    styles.chartBar,
+                    {
+                      width: maxCount > 0 ? (count / maxCount) * 200 : 0,
+                      backgroundColor: '#3b82f6',
+                    },
+                  ]}
+                />
+                <Text style={styles.chartValue}>{count}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const SeasonChart: React.FC = () => {
+    const seasonColors = {
+      spring: '#4ade80',
+      summer: '#fbbf24',
+      fall: '#f97316',
+      winter: '#60a5fa',
+    };
+
+    return (
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>Items by Season</Text>
+        <View style={styles.seasonGrid}>
+          {Object.entries(stats.itemsBySeason).map(([season, count]) => (
+            <View key={season} style={styles.seasonCard}>
+              <View
+                style={[
+                  styles.seasonIndicator,
+                  { backgroundColor: seasonColors[season as Season] },
+                ]}
+              />
+              <Text style={styles.seasonName}>{season}</Text>
+              <Text style={styles.seasonCount}>{count}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const InsightsSection: React.FC = () => (
+    <View style={styles.insightsContainer}>
+      <Text style={styles.sectionTitle}>Wardrobe Insights</Text>
+      {insights.map((insight, index) => (
+        <View key={index} style={styles.insightCard}>
+          <Text style={styles.insightText}>{insight}</Text>
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -221,6 +328,79 @@ export default function AnalyticsSettingsScreen() {
             <Text style={styles.privacyButtonText}>View Privacy Policy</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Overview Stats */}
+        <View style={styles.statsGrid}>
+          <StatCard
+            title="Total Items"
+            value={stats.totalItems}
+            icon={<Shirt size={20} color="#3b82f6" />}
+            color="#3b82f6"
+          />
+          <StatCard
+            title="Total Outfits"
+            value={stats.totalOutfits}
+            icon={<BarChart size={20} color="#10b981" />}
+            color="#10b981"
+          />
+          <StatCard
+            title="Favorites"
+            value={stats.favoriteItems}
+            icon={<Heart size={20} color="#ef4444" />}
+            color="#ef4444"
+          />
+          <StatCard
+            title="Wardrobe Value"
+            value={formatCurrency(wardrobeValue)}
+            icon={<TrendingUp size={20} color="#f59e0b" />}
+            color="#f59e0b"
+          />
+        </View>
+
+        {/* Category Distribution */}
+        <CategoryChart />
+
+        {/* Season Distribution */}
+        <SeasonChart />
+
+        {/* Most Worn Items */}
+        {stats.mostWornItems.length > 0 && (
+          <View style={styles.listContainer}>
+            <Text style={styles.sectionTitle}>Most Worn Items</Text>
+            {stats.mostWornItems.slice(0, 5).map((item, index) => (
+              <View key={item.id} style={styles.listItem}>
+                <View style={styles.listItemInfo}>
+                  <Text style={styles.listItemName}>{item.name}</Text>
+                  <Text style={styles.listItemDetail}>
+                    {item.brand} • {item.category}
+                  </Text>
+                </View>
+                <Text style={styles.listItemValue}>{item.timesWorn} times</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Least Worn Items */}
+        {stats.leastWornItems.length > 0 && (
+          <View style={styles.listContainer}>
+            <Text style={styles.sectionTitle}>Least Worn Items</Text>
+            {stats.leastWornItems.slice(0, 5).map((item, index) => (
+              <View key={item.id} style={styles.listItem}>
+                <View style={styles.listItemInfo}>
+                  <Text style={styles.listItemName}>{item.name}</Text>
+                  <Text style={styles.listItemDetail}>
+                    {item.brand} • {item.category}
+                  </Text>
+                </View>
+                <Text style={styles.listItemValue}>{item.timesWorn} times</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Insights */}
+        <InsightsSection />
       </ScrollView>
 
       <PrivacyModal
@@ -401,5 +581,198 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     color: Colors.primary[700],
     fontWeight: '500',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: 150,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  statTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+    fontFamily: 'Inter-Medium',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
+    fontFamily: 'Inter-Bold',
+  },
+  chartContainer: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    fontFamily: 'Inter-SemiBold',
+    marginBottom: 12,
+  },
+  chart: {
+    gap: 12,
+  },
+  chartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chartLabel: {
+    fontSize: 14,
+    color: '#374151',
+    fontFamily: 'Inter-Medium',
+    flex: 1,
+    textTransform: 'capitalize',
+  },
+  chartBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 2,
+  },
+  chartBar: {
+    height: 20,
+    backgroundColor: '#3b82f6',
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  chartValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    fontFamily: 'Inter-SemiBold',
+    minWidth: 30,
+  },
+  seasonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  seasonCard: {
+    flex: 1,
+    minWidth: 100,
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  seasonIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  seasonName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    fontFamily: 'Inter-Medium',
+    textTransform: 'capitalize',
+    marginBottom: 4,
+  },
+  seasonCount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
+    fontFamily: 'Inter-Bold',
+  },
+  listContainer: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  listItemInfo: {
+    flex: 1,
+  },
+  listItemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+    fontFamily: 'Inter-Medium',
+    marginBottom: 2,
+  },
+  listItemDetail: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontFamily: 'Inter-Regular',
+  },
+  listItemValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+    fontFamily: 'Inter-SemiBold',
+  },
+  insightsContainer: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  insightCard: {
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3b82f6',
+  },
+  insightText: {
+    fontSize: 14,
+    color: '#374151',
+    fontFamily: 'Inter-Regular',
+    lineHeight: 20,
   },
 });

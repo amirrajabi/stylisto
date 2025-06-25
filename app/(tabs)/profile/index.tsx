@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import {
   BarChart,
+  BarChart3,
   Bell,
   Camera,
   ChevronRight,
@@ -607,6 +608,12 @@ export default function ProfileScreen() {
             title="Analytics & Privacy"
             subtitle="Manage data collection settings"
             onPress={() => router.push('/profile/analytics')}
+          />
+          <MenuItem
+            icon={<BarChart3 size={20} color={colors.text.secondary} />}
+            title="Wardrobe Analytics"
+            subtitle="Usage stats and style insights"
+            onPress={() => router.push('/(tabs)/analytics')}
           />
           <MenuItem
             icon={<Download size={20} color={colors.text.secondary} />}

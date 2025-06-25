@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Heart, Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
+import { Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
@@ -40,7 +40,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="wardrobe"
+        name="index"
         options={{
           title: 'Wardrobe',
           tabBarIcon: ({ color, size, focused }) => (
@@ -70,7 +70,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="recommendations"
+        name="outfits"
         options={{
           title: 'Outfits',
           tabBarIcon: ({ color, size, focused }) => (
@@ -81,23 +81,7 @@ export default function TabLayout() {
               accessibilityLabel=""
             />
           ),
-          tabBarAccessibilityLabel: 'Outfit recommendations tab',
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: 'Saved',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Heart
-              size={size}
-              color={color}
-              strokeWidth={focused ? 2.5 : 2}
-              fill={focused ? color : 'transparent'}
-              accessibilityLabel=""
-            />
-          ),
-          tabBarAccessibilityLabel: 'Saved outfits tab',
+          tabBarAccessibilityLabel: 'Outfits tab',
         }}
       />
       <Tabs.Screen
@@ -113,6 +97,30 @@ export default function TabLayout() {
             />
           ),
           tabBarAccessibilityLabel: 'Profile tab',
+        }}
+      />
+      <Tabs.Screen
+        name="wardrobe"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="recommendations"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
