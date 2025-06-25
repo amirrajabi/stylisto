@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import React from 'react';
 import {
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -32,40 +33,48 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         translucent
       />
 
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      <ImageBackground
+        source={require('../../assets/images/internal/stylisto-hero.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: insets.top + 20 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces={true}
+        <View style={styles.overlay} />
+
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <View style={styles.topSection}>
-            {showLogo && (
-              <View style={styles.logoContainer}>
-                <View style={styles.logoCircle}>
-                  <Image
-                    source={require('../../assets/images/splash-icon.png')}
-                    style={styles.logoImage}
-                    contentFit="contain"
-                  />
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingTop: insets.top + 20 },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={true}
+          >
+            <View style={styles.topSection}>
+              {showLogo && (
+                <View style={styles.logoContainer}>
+                  <View style={styles.logoCircle}>
+                    <Image
+                      source={require('../../assets/images/splash-icon.png')}
+                      style={styles.logoImage}
+                      contentFit="contain"
+                    />
+                  </View>
                 </View>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
 
-          <View style={styles.contentCard}>{children}</View>
+            <View style={styles.contentCard}>{children}</View>
 
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ImageBackground>
     </View>
   );
 };
@@ -75,8 +84,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.primary[600],
   },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 1,
+  },
   keyboardView: {
     flex: 1,
+    zIndex: 2,
   },
   scrollView: {
     flex: 1,
