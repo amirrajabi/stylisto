@@ -149,6 +149,7 @@ export default function ResetPasswordScreen() {
 
           <Button
             title="Back to Sign In"
+            variant="outline"
             onPress={handleBackToLogin}
             style={styles.backToLoginButton}
           />

@@ -58,6 +58,21 @@ export default function LoginScreen() {
     }
   };
 
+  const handleForgotPassword = () => {
+    const currentEmail = form.getValues('email');
+
+    if (currentEmail && currentEmail.trim() !== '') {
+      // Pre-fill the forgot password screen with current email
+      router.push({
+        pathname: '/(auth)/forgot-password',
+        params: { email: currentEmail },
+      });
+    } else {
+      // Navigate to forgot password screen without email
+      router.push('/(auth)/forgot-password');
+    }
+  };
+
   return (
     <AuthLayout>
       <LoadingOverlay visible={loading} message="Signing in..." />
@@ -107,14 +122,6 @@ export default function LoginScreen() {
               />
             )}
           />
-
-          <View style={styles.forgotPassword}>
-            <Button
-              title="Forgot Password?"
-              onPress={() => router.push('/(auth)/forgot-password')}
-              style={styles.forgotPasswordButton}
-            />
-          </View>
         </View>
 
         <View style={styles.buttonContainer}>
@@ -125,6 +132,20 @@ export default function LoginScreen() {
             style={styles.signInButton}
           />
         </View>
+      </View>
+
+      <View style={styles.forgotPasswordContainer}>
+        <BodyMedium color="secondary" style={styles.forgotPasswordText}>
+          Can&apos;t access your account?
+        </BodyMedium>
+        <Button
+          title="Reset Password"
+          variant="ghost"
+          size="small"
+          onPress={handleForgotPassword}
+          style={styles.forgotPasswordButton}
+          textStyle={styles.forgotPasswordLinkText}
+        />
       </View>
 
       <AuthFooter currentPage="login" />
@@ -153,10 +174,25 @@ const styles = StyleSheet.create({
   forgotPassword: {
     alignItems: 'flex-end',
   },
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  forgotPasswordText: {
+    textAlign: 'center',
+    fontSize: 14,
+  },
   forgotPasswordButton: {
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
     paddingVertical: Spacing.xs,
+  },
+  forgotPasswordLinkText: {
+    color: Colors.primary[600],
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   buttonContainer: {
     gap: Spacing.md,

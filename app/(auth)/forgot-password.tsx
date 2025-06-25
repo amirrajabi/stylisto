@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Mail } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
@@ -13,12 +13,23 @@ import { BodyMedium, BodySmall, Button, H1 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
+import {
+  checkResendAllowed,
+  logSecurityEvent,
+  normalizeAuthError,
+  validateEmailSecurity,
+} from '../../utils/authSecurityUtils';
 
+// Enhanced validation schema with stronger email requirements
 const forgotPasswordSchema = z.object({
   email: z
     .string()
     .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
+    .email('Please enter a valid email address')
+    .refine(email => {
+      const validation = validateEmailSecurity(email);
+      return validation.isValid;
+    }, 'Please use a permanent email address'),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -26,34 +37,92 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export default function ForgotPasswordScreen() {
   const { resetPassword, loading } = useAuth();
   const [emailSent, setEmailSent] = useState(false);
+  const [resendCount, setResendCount] = useState(0);
+  const [lastResendTime, setLastResendTime] = useState(0);
+
+  // Get email parameter if passed from login screen
+  const params = useLocalSearchParams<{ email?: string }>();
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      email: '',
+      email: params.email || '',
     },
   });
 
+  // Set email from params when component mounts
+  useEffect(() => {
+    if (params.email) {
+      form.setValue('email', params.email);
+    }
+  }, [params.email, form]);
+
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
+      // Check resend rate limiting
+      const resendCheck = checkResendAllowed(lastResendTime, resendCount);
+      if (!resendCheck.allowed) {
+        Alert.alert('Request Blocked', resendCheck.message!, [{ text: 'OK' }]);
+
+        // Log rate limit hit
+        await logSecurityEvent('rate_limit_hit', {
+          type: 'resend',
+          remainingTime: resendCheck.remainingTime,
+          resendCount,
+        });
+        return;
+      }
+
+      // Additional email validation
+      const emailValidation = validateEmailSecurity(data.email);
+      if (!emailValidation.isValid) {
+        Alert.alert('Invalid Email', emailValidation.message!, [
+          { text: 'OK' },
+        ]);
+
+        // Log suspicious email attempt
+        await logSecurityEvent('suspicious_email', {
+          emailDomain: data.email.split('@')[1],
+          reason: emailValidation.message,
+          screen: 'forgot_password',
+        });
+        return;
+      }
+
+      const now = Date.now();
+
       await resetPassword(data.email);
       setEmailSent(true);
+      setResendCount(prev => prev + 1);
+      setLastResendTime(now);
+
+      // Log successful reset request
+      await logSecurityEvent('forgot_password_attempt', {
+        emailDomain: data.email.split('@')[1],
+        resendCount: resendCount + 1,
+        screen: 'forgot_password',
+      });
+
       Alert.alert(
         'Password Reset Email Sent',
-        'Please check your email for instructions to reset your password.',
+        "Please check your email for instructions to reset your password. If you don't see it, check your spam folder.",
         [{ text: 'OK' }]
       );
     } catch (error: any) {
-      if (error.message.includes('User not found')) {
-        form.setError('email', {
-          message: 'No account found with this email address',
-        });
-      } else {
-        Alert.alert(
-          'Error',
-          error.message || 'Failed to send password reset email'
-        );
-      }
+      const normalizedMessage = normalizeAuthError(error);
+
+      // Always show success message for security (don't reveal if user exists)
+      Alert.alert('Reset Link Sent', normalizedMessage, [{ text: 'OK' }]);
+
+      // Log the error for monitoring
+      await logSecurityEvent('forgot_password_attempt', {
+        emailDomain: data.email.split('@')[1],
+        error: error.message,
+        normalized: true,
+        screen: 'forgot_password',
+      });
+
+      setEmailSent(true);
     }
   };
 
@@ -102,6 +171,13 @@ export default function ForgotPasswordScreen() {
                 />
               )}
             />
+
+            <View style={styles.securityNotice}>
+              <BodySmall color="secondary" style={styles.securityText}>
+                For security, we limit password reset requests. Please use a
+                permanent email address.
+              </BodySmall>
+            </View>
           </View>
 
           <View style={styles.buttonContainer}>
@@ -114,6 +190,7 @@ export default function ForgotPasswordScreen() {
 
             <Button
               title="Back to Sign In"
+              variant="outline"
               onPress={handleBackToLogin}
               style={styles.backToLoginButton}
             />
@@ -127,21 +204,31 @@ export default function ForgotPasswordScreen() {
               reset link shortly.
             </BodyMedium>
             <BodySmall color="secondary" style={styles.helperText}>
-              Didn&apos;t receive the email? Check your spam folder or try
-              again.
+              Didn&apos;t receive the email? Check your spam folder or try again
+              in a few moments.
             </BodySmall>
+
+            {resendCount > 0 && (
+              <BodySmall color="secondary" style={styles.resendCount}>
+                Reset emails sent: {resendCount}/5
+              </BodySmall>
+            )}
           </View>
 
           <View style={styles.buttonContainer}>
             <Button
               title="Resend Email"
               onPress={form.handleSubmit(onSubmit)}
-              disabled={loading}
-              style={styles.resendButton}
+              disabled={loading || resendCount >= 5}
+              style={[
+                styles.resendButton,
+                resendCount >= 5 && styles.disabledButton,
+              ]}
             />
 
             <Button
               title="Back to Sign In"
+              variant="outline"
               onPress={handleBackToLogin}
               style={styles.backToLoginButton}
             />
@@ -182,6 +269,17 @@ const styles = StyleSheet.create({
   mainContent: {
     gap: Spacing.md,
   },
+  securityNotice: {
+    backgroundColor: Colors.background.secondary,
+    padding: Spacing.md,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary[600],
+  },
+  securityText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
   buttonContainer: {
     gap: Spacing.md,
     marginTop: Spacing.xl,
@@ -199,20 +297,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   successContent: {
-    alignItems: 'center',
     gap: Spacing.md,
   },
   successText: {
     textAlign: 'center',
-    fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   helperText: {
     textAlign: 'center',
-    fontSize: 13,
-    opacity: 0.8,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  resendCount: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.text.secondary,
+    marginTop: Spacing.xs,
   },
   resendButton: {
     backgroundColor: Colors.primary[600],
+  },
+  disabledButton: {
+    backgroundColor: Colors.background.secondary,
+    opacity: 0.6,
   },
 });

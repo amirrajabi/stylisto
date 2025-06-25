@@ -47,9 +47,16 @@ Before executing any task, you **MUST** adhere to these operational protocols:
   - **Terminal Usage**:
       - Terminal use is restricted. Do not run servers, tests, or deployments.
       - Permitted commands: `npm install`, `npx expo start`, `npx expo run:ios`, `npx expo run:android`, `supabase gen types`, and other commands explicitly requested by the user.
-  - **Testing**:
-      - Your primary role is to write files, components, and their corresponding tests (`.test.ts`, `.spec.ts`).
-      - Do not execute the test suite yourself. The CI/CD pipeline is responsible for running all tests.
+  - **Testing - CURRENT PHASE RESTRICTION**:
+      - **NO TESTS TO BE WRITTEN**: During the current development phase, do NOT write any tests whatsoever. This includes unit tests, integration tests, component tests, or any other form of testing.
+      - **Focus on Core Development**: Concentrate exclusively on building main components and core functionality.
+      - **Existing Tests**: Leave existing test files untouched, but do not create new test files or modify existing ones.
+      - **Future Phase**: Testing will be addressed in a later development phase when core functionality is complete.
+  - **Documentation - CURRENT PHASE RESTRICTION**:
+      - **NO DOCUMENTATION TO BE WRITTEN**: During the current development phase, do NOT write any documentation whatsoever. This includes README files, technical documentation, API documentation, component documentation, or any other form of documentation.
+      - **Focus on Core Development**: Concentrate exclusively on building main components and core functionality.
+      - **Existing Documentation**: Leave existing documentation files untouched, but do not create new documentation files or modify existing ones.
+      - **Future Phase**: Documentation will be addressed in a later development phase when core functionality is complete.
   - **Comments**: Do not write comments in the code (`//`, `/* */`). Use descriptive naming and logical structure instead.
 
 ## 3\. Project Stack & Setup
@@ -141,14 +148,18 @@ Our UI is built and documented in Storybook, which serves as our single source o
   - **Environment Secrets**: Never hardcode secrets. Use the `.env` file.
   - **Authentication & Authorization**: All user management, authentication, and authorization must be handled by Supabase Auth.
 
-## 10\. Testing Strategy
+## 10\. Testing Strategy - CURRENTLY DISABLED
 
-A comprehensive test suite is crucial for maintaining application quality. The CI pipeline will run all tests on every push.
+**IMPORTANT**: Testing is currently disabled during this development phase. Focus is exclusively on core component development.
 
-  - **Unit Tests (Jest)**: For pure functions, utilities, and complex business logic in the `lib` and `services` directories.
-  - **Integration Tests (React Native Testing Library)**: For components, hooks, and user flows. Test component behavior, not implementation details.
-  - **End-to-End (E2E) Tests (Maestro)**: For critical user paths like authentication, checkout, and core feature interactions. These will be written on-demand for key flows.
-  - **Performance Testing**: Performance monitoring using tools like Flipper and the built-in Expo profilers.
+  - **Current Phase**: NO tests should be written during this phase. This includes:
+      - Unit Tests (Jest)
+      - Integration Tests (React Native Testing Library) 
+      - Component Tests
+      - End-to-End (E2E) Tests
+      - Performance Tests
+  - **Existing Tests**: Leave all existing test files in the project untouched, but do not modify or expand them.
+  - **Future Implementation**: A comprehensive test suite will be implemented in a later phase when core functionality is complete.
 
 ## 11\. Localization & Formatting (Australia)
 
@@ -176,3 +187,18 @@ Since this project is being developed for the Australian market, all currency an
       - **Format**: `<type>(<scope>): <subject>`
       - **Example**: `feat(auth): add password reset functionality`
       - **Common types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
+
+## 13\. Documentation Policy - CURRENTLY DISABLED
+
+**IMPORTANT**: Documentation creation is currently disabled during this development phase. Focus is exclusively on core component development.
+
+  - **Current Phase**: NO documentation should be written during this phase. This includes:
+      - README files (*.md)
+      - Technical documentation
+      - API documentation
+      - Component documentation
+      - Setup guides
+      - Architecture documents
+  - **Existing Documentation**: Leave all existing documentation files in the project untouched, but do not modify or expand them.
+  - **Future Implementation**: Documentation will be written in a later phase when core functionality is complete.
+  - **Exception**: Only create documentation files if explicitly requested by the user.
