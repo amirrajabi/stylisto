@@ -1,21 +1,29 @@
-import React, { useState, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  TextInput,
-  FlatList,
-  Alert,
+  Filter,
+  Grid,
+  List,
+  Plus,
+  Search,
+  ShoppingBag,
+  SortAsc,
+} from 'lucide-react-native';
+import React, { useMemo, useState } from 'react';
+import {
   ActionSheetIOS,
+  Alert,
+  FlatList,
   Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Search, Filter, Plus, Grid, List, SortAsc } from 'lucide-react-native';
-import { useWardrobe } from '../../hooks/useWardrobe';
+import { AddItemModal } from '../../components/wardrobe/AddItemModal';
 import { ClothingItemCard } from '../../components/wardrobe/ClothingItemCard';
 import { FilterModal } from '../../components/wardrobe/FilterModal';
-import { AddItemModal } from '../../components/wardrobe/AddItemModal';
+import { useWardrobe } from '../../hooks/useWardrobe';
 import { ClothingItem, SortOptions } from '../../types/wardrobe';
 
 export default function WardrobeScreen() {
@@ -75,7 +83,7 @@ export default function WardrobeScreen() {
           destructiveButtonIndex,
           cancelButtonIndex,
         },
-        (buttonIndex) => {
+        buttonIndex => {
           if (buttonIndex === 0) {
             setEditingItem(item);
             setShowAddModal(true);
@@ -100,10 +108,13 @@ export default function WardrobeScreen() {
         'Item Options',
         `What would you like to do with "${item.name}"?`,
         [
-          { text: 'Edit', onPress: () => {
-            setEditingItem(item);
-            setShowAddModal(true);
-          }},
+          {
+            text: 'Edit',
+            onPress: () => {
+              setEditingItem(item);
+              setShowAddModal(true);
+            },
+          },
           {
             text: 'Delete',
             style: 'destructive',
@@ -129,7 +140,7 @@ export default function WardrobeScreen() {
   };
 
   const handleSort = () => {
-    const sortFields: Array<{ label: string; value: SortOptions['field'] }> = [
+    const sortFields: { label: string; value: SortOptions['field'] }[] = [
       { label: 'Name', value: 'name' },
       { label: 'Category', value: 'category' },
       { label: 'Brand', value: 'brand' },
@@ -151,7 +162,7 @@ export default function WardrobeScreen() {
           options,
           cancelButtonIndex: options.length - 1,
         },
-        (buttonIndex) => {
+        buttonIndex => {
           if (buttonIndex < sortFields.length * 2) {
             const fieldIndex = buttonIndex % sortFields.length;
             const direction = buttonIndex < sortFields.length ? 'asc' : 'desc';
@@ -234,10 +245,16 @@ export default function WardrobeScreen() {
           />
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, activeFiltersCount > 0 && styles.activeFilterButton]}
+          style={[
+            styles.filterButton,
+            activeFiltersCount > 0 && styles.activeFilterButton,
+          ]}
           onPress={() => setShowFilterModal(true)}
         >
-          <Filter size={20} color={activeFiltersCount > 0 ? '#ffffff' : '#6b7280'} />
+          <Filter
+            size={20}
+            color={activeFiltersCount > 0 ? '#ffffff' : '#6b7280'}
+          />
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -250,7 +267,8 @@ export default function WardrobeScreen() {
       {selectedItems.length > 0 && (
         <View style={styles.selectionBar}>
           <Text style={styles.selectionText}>
-            {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
+            {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''}{' '}
+            selected
           </Text>
           <TouchableOpacity
             style={styles.clearSelectionButton}
@@ -272,7 +290,7 @@ export default function WardrobeScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Shirt size={64} color="#d1d5db" />
+            <ShoppingBag size={64} color="#d1d5db" />
             <Text style={styles.emptyTitle}>No items found</Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery || activeFiltersCount > 0

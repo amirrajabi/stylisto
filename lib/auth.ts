@@ -145,7 +145,33 @@ export class AuthService {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error cases
+        if (
+          error.message.includes('Invalid login credentials') ||
+          error.message.includes('invalid_credentials')
+        ) {
+          throw new AuthError(
+            'Invalid email or password. Please check your credentials and try again.'
+          );
+        } else if (
+          error.message.includes('Email not confirmed') ||
+          error.message.includes('email_not_confirmed')
+        ) {
+          throw new AuthError(
+            'Please check your email and click the confirmation link before signing in.'
+          );
+        } else if (
+          error.message.includes('rate limit') ||
+          error.message.includes('too many requests')
+        ) {
+          throw new AuthError(
+            'Too many login attempts. Please wait a moment and try again.'
+          );
+        } else {
+          throw error;
+        }
+      }
 
       // Log successful sign in
       errorHandling.captureMessage('User signed in successfully', {

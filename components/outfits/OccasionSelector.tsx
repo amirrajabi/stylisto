@@ -1,21 +1,30 @@
+import {
+  Briefcase,
+  Calendar,
+  Coffee,
+  Dumbbell,
+  Heart,
+  Plane,
+  ShoppingBag,
+  Sparkles,
+} from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Briefcase, Calendar, Coffee, Dumbbell, Heart, Plane, Shirt, Sparkles } from 'lucide-react-native';
-import { Occasion } from '../../types/wardrobe';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
+import { Occasion } from '../../types/wardrobe';
 
 interface OccasionSelectorProps {
   selectedOccasion: Occasion | null;
@@ -29,65 +38,69 @@ interface OccasionOption {
   color: string;
 }
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 export const OccasionSelector: React.FC<OccasionSelectorProps> = ({
   selectedOccasion,
   onSelectOccasion,
 }) => {
-  const [scaleValues] = useState(() => 
-    Object.values(Occasion).reduce((acc, occasion) => {
-      acc[occasion] = useSharedValue(1);
-      return acc;
-    }, {} as Record<Occasion, Animated.SharedValue<number>>)
+  const [scaleValues] = useState(() =>
+    Object.values(Occasion).reduce(
+      (acc, occasion) => {
+        acc[occasion] = useSharedValue(1);
+        return acc;
+      },
+      {} as Record<Occasion, Animated.SharedValue<number>>
+    )
   );
 
   const occasionOptions: OccasionOption[] = [
-    { 
-      value: Occasion.CASUAL, 
-      label: 'Casual', 
+    {
+      value: Occasion.CASUAL,
+      label: 'Casual',
       icon: <Coffee size={20} color={Colors.white} />,
       color: Colors.neutral[500],
     },
-    { 
-      value: Occasion.WORK, 
-      label: 'Work', 
+    {
+      value: Occasion.WORK,
+      label: 'Work',
       icon: <Briefcase size={20} color={Colors.white} />,
       color: Colors.primary[700],
     },
-    { 
-      value: Occasion.FORMAL, 
-      label: 'Formal', 
-      icon: <Shirt size={20} color={Colors.white} />,
+    {
+      value: Occasion.FORMAL,
+      label: 'Formal',
+      icon: <ShoppingBag size={20} color={Colors.white} />,
       color: Colors.black,
     },
-    { 
-      value: Occasion.PARTY, 
-      label: 'Party', 
+    {
+      value: Occasion.PARTY,
+      label: 'Party',
       icon: <Sparkles size={20} color={Colors.white} />,
       color: Colors.secondary[500],
     },
-    { 
-      value: Occasion.SPORT, 
-      label: 'Sport', 
+    {
+      value: Occasion.SPORT,
+      label: 'Sport',
       icon: <Dumbbell size={20} color={Colors.white} />,
       color: Colors.success[500],
     },
-    { 
-      value: Occasion.TRAVEL, 
-      label: 'Travel', 
+    {
+      value: Occasion.TRAVEL,
+      label: 'Travel',
       icon: <Plane size={20} color={Colors.white} />,
       color: Colors.info[500],
     },
-    { 
-      value: Occasion.DATE, 
-      label: 'Date', 
+    {
+      value: Occasion.DATE,
+      label: 'Date',
       icon: <Heart size={20} color={Colors.white} />,
       color: Colors.error[500],
     },
-    { 
-      value: Occasion.SPECIAL, 
-      label: 'Special', 
+    {
+      value: Occasion.SPECIAL,
+      label: 'Special',
       icon: <Calendar size={20} color={Colors.white} />,
       color: Colors.warning[500],
     },
@@ -98,7 +111,7 @@ export const OccasionSelector: React.FC<OccasionSelectorProps> = ({
     scaleValues[occasion].value = withSpring(0.9, {}, () => {
       scaleValues[occasion].value = withSpring(1);
     });
-    
+
     // Toggle selection
     onSelectOccasion(selectedOccasion === occasion ? null : occasion);
   };
@@ -106,21 +119,21 @@ export const OccasionSelector: React.FC<OccasionSelectorProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Select Occasion</Text>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {occasionOptions.map((option) => {
+        {occasionOptions.map(option => {
           const isSelected = selectedOccasion === option.value;
-          
+
           const animatedStyle = useAnimatedStyle(() => {
             return {
               transform: [{ scale: scaleValues[option.value].value }],
             };
           });
-          
+
           return (
             <AnimatedTouchableOpacity
               key={option.value}
@@ -133,9 +146,7 @@ export const OccasionSelector: React.FC<OccasionSelectorProps> = ({
               onPress={() => handleOccasionPress(option.value)}
               activeOpacity={0.8}
             >
-              <View style={styles.occasionIcon}>
-                {option.icon}
-              </View>
+              <View style={styles.occasionIcon}>{option.icon}</View>
               <Text style={styles.occasionLabel}>{option.label}</Text>
             </AnimatedTouchableOpacity>
           );

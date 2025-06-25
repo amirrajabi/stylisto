@@ -84,11 +84,11 @@ export default function RegisterScreen() {
       });
 
       Alert.alert(
-        'Registration Successful',
-        'Please check your email to verify your account before signing in.',
+        'Account Created Successfully!',
+        "Please check your email for a verification link. You must verify your email before you can sign in.\n\nIf you don't see the email, check your spam folder.",
         [
           {
-            text: 'OK',
+            text: 'Go to Login',
             onPress: () => router.push('/(auth)/login'),
           },
         ]
