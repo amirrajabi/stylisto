@@ -25,6 +25,24 @@ export default function ProfileLayout() {
         }}
       />
       <Stack.Screen
+        name="analytics"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="wardrobe-analytics"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="saved"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="personal-info"
         options={{
           headerShown: false,
@@ -68,12 +86,6 @@ export default function ProfileLayout() {
       />
       <Stack.Screen
         name="storage"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="analytics"
         options={{
           headerShown: false,
         }}

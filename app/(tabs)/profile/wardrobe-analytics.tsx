@@ -1,21 +1,43 @@
-import { BarChart3, Heart, Shirt, TrendingUp } from 'lucide-react-native';
-import React from 'react';
+import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  BarChart3,
+  Heart,
+  Shirt,
+  TrendingUp,
+} from 'lucide-react-native';
+import React, { useEffect } from 'react';
 import {
   Dimensions,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import { useWardrobe } from '../../hooks/useWardrobe';
-import { Season } from '../../types/wardrobe';
-import { formatCurrency, getWardrobeInsights } from '../../utils/wardrobeUtils';
+import { H1 } from '../../../components/ui';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
+import { useAnalytics } from '../../../hooks/useAnalytics';
+import { useWardrobe } from '../../../hooks/useWardrobe';
+import { Season } from '../../../types/wardrobe';
+import {
+  formatCurrency,
+  getWardrobeInsights,
+} from '../../../utils/wardrobeUtils';
 
 const { width } = Dimensions.get('window');
 
-export default function AnalyticsScreen() {
+export default function WardrobeAnalyticsScreen() {
   const { items, outfits, stats } = useWardrobe();
+  const { trackScreenView } = useAnalytics();
+
+  useEffect(() => {
+    trackScreenView('WardrobeAnalytics');
+  }, [trackScreenView]);
 
   const wardrobeValue = items.reduce(
     (total, item) => total + (item.price || 0),
@@ -113,13 +135,17 @@ export default function AnalyticsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Analytics</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color={Colors.text.primary} />
+        </TouchableOpacity>
+        <H1>Wardrobe Analytics</H1>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Overview Stats */}
         <View style={styles.statsGrid}>
           <StatCard
             title="Total Items"
@@ -147,13 +173,10 @@ export default function AnalyticsScreen() {
           />
         </View>
 
-        {/* Category Distribution */}
         <CategoryChart />
 
-        {/* Season Distribution */}
         <SeasonChart />
 
-        {/* Most Worn Items */}
         {stats.mostWornItems.length > 0 && (
           <View style={styles.listContainer}>
             <Text style={styles.sectionTitle}>Most Worn Items</Text>
@@ -171,7 +194,6 @@ export default function AnalyticsScreen() {
           </View>
         )}
 
-        {/* Least Worn Items */}
         {stats.leastWornItems.length > 0 && (
           <View style={styles.listContainer}>
             <Text style={styles.sectionTitle}>Least Worn Items</Text>
@@ -189,7 +211,6 @@ export default function AnalyticsScreen() {
           </View>
         )}
 
-        {/* Insights */}
         <InsightsSection />
       </ScrollView>
     </SafeAreaView>
@@ -199,88 +220,77 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.background.primary,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border.primary,
+    ...Shadows.sm,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1f2937',
-    fontFamily: 'Inter-Bold',
+  backButton: {
+    marginRight: Spacing.md,
+    padding: Spacing.xs,
   },
   content: {
     flex: 1,
+    padding: Spacing.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xl,
   },
   statCard: {
-    flex: 1,
-    minWidth: (width - 44) / 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.md,
+    width: (width - 48) / 2,
+    marginBottom: Spacing.md,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    ...Shadows.sm,
   },
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   statIcon: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
+    borderRadius: Layout.borderRadius.md,
     alignItems: 'center',
-    marginRight: 8,
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
   },
   statTitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontFamily: 'Inter-Regular',
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    flex: 1,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-    fontFamily: 'Inter-Bold',
+    ...Typography.heading.h2,
+    color: Colors.text.primary,
   },
   chartContainer: {
-    backgroundColor: '#ffffff',
-    margin: 16,
-    marginTop: 0,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   chartTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.heading.h3,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
   },
   chart: {
-    gap: 12,
+    gap: Spacing.sm,
   },
   chartRow: {
     flexDirection: 'row',
@@ -288,132 +298,107 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   chartLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    textTransform: 'capitalize',
+    ...Typography.body.medium,
+    color: Colors.text.primary,
     width: 80,
-    fontFamily: 'Inter-Regular',
+    textTransform: 'capitalize',
   },
   chartBarContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 12,
+    marginLeft: Spacing.sm,
   },
   chartBar: {
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    height: 24,
+    borderRadius: Layout.borderRadius.sm,
+    marginRight: Spacing.sm,
   },
   chartValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    minWidth: 20,
   },
   seasonGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
   },
   seasonCard: {
-    flex: 1,
-    minWidth: (width - 76) / 2,
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
+    width: (width - 80) / 2,
+    marginBottom: Spacing.md,
   },
   seasonIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginBottom: 8,
+    width: 16,
+    height: 16,
+    borderRadius: Layout.borderRadius.sm,
+    marginBottom: Spacing.sm,
   },
   seasonName: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.body.medium,
+    color: Colors.text.primary,
     textTransform: 'capitalize',
-    marginBottom: 4,
-    fontFamily: 'Inter-Regular',
+    marginBottom: Spacing.xs,
   },
   seasonCount: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.heading.h3,
+    color: Colors.text.primary,
   },
   listContainer: {
-    backgroundColor: '#ffffff',
-    margin: 16,
-    marginTop: 0,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.heading.h3,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
   },
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: Colors.border.primary,
   },
   listItemInfo: {
     flex: 1,
   },
   listItemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937',
-    marginBottom: 2,
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
   },
   listItemDetail: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontFamily: 'Inter-Regular',
+    ...Typography.body.small,
+    color: Colors.text.secondary,
   },
   listItemValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#3b82f6',
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.body.medium,
+    color: Colors.text.primary,
   },
   insightsContainer: {
-    backgroundColor: '#ffffff',
-    margin: 16,
-    marginTop: 0,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   insightCard: {
-    backgroundColor: '#eff6ff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: Colors.primary[500],
   },
   insightText: {
-    fontSize: 14,
-    color: '#1e40af',
-    fontFamily: 'Inter-Regular',
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    lineHeight: 20,
   },
 });

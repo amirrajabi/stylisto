@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowLeft,
   BarChart,
+  BarChart3,
   Download,
   Eye,
   EyeOff,
@@ -40,7 +41,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-export default function AnalyticsScreen() {
+export default function ProfileAnalyticsScreen() {
   const { getConsentStatus, setConsentStatus, trackScreenView } =
     useAnalytics();
   const [consentEnabled, setConsentEnabled] = useState(false);
@@ -340,7 +341,7 @@ export default function AnalyticsScreen() {
           <StatCard
             title="Total Outfits"
             value={stats.totalOutfits}
-            icon={<BarChart size={20} color="#10b981" />}
+            icon={<BarChart3 size={20} color="#10b981" />}
             color="#10b981"
           />
           <StatCard

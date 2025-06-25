@@ -3,17 +3,18 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import {
   BarChart,
-  BarChart3,
   Bell,
   Camera,
   ChevronRight,
   Download,
+  Heart,
   CircleHelp as HelpCircle,
   LogOut,
   Moon,
   Settings,
   Shield,
   Trash2,
+  TrendingUp,
   User,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -584,6 +585,21 @@ export default function ProfileScreen() {
         </View>
 
         {/* Menu Sections */}
+        <MenuSection title="My Data">
+          <MenuItem
+            icon={<TrendingUp size={20} color={colors.text.secondary} />}
+            title="Wardrobe Analytics"
+            subtitle="View your wardrobe insights and statistics"
+            onPress={() => router.push('/profile/wardrobe-analytics')}
+          />
+          <MenuItem
+            icon={<Heart size={20} color={colors.text.secondary} />}
+            title="Saved Outfits"
+            subtitle="Browse and manage your saved outfits"
+            onPress={() => router.push('/profile/saved')}
+          />
+        </MenuSection>
+
         <MenuSection title="Account">
           <MenuItem
             icon={<User size={20} color={colors.text.secondary} />}
@@ -614,12 +630,6 @@ export default function ProfileScreen() {
             title="Analytics & Privacy"
             subtitle="Manage data collection settings"
             onPress={() => router.push('/profile/analytics')}
-          />
-          <MenuItem
-            icon={<BarChart3 size={20} color={colors.text.secondary} />}
-            title="Wardrobe Analytics"
-            subtitle="Usage stats and style insights"
-            onPress={() => router.push('/(tabs)/analytics')}
           />
           <MenuItem
             icon={<Download size={20} color={colors.text.secondary} />}
