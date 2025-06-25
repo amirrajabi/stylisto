@@ -253,25 +253,35 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
 
           // If this is a retry and it's a Supabase storage URL, try different approaches
           if (retryCount > 0 && isSupabaseStorageUrl(source.uri)) {
-            console.log('🔄 Retry attempt:', retryCount);
+            if (__DEV__) {
+              console.log(`Retry attempt: ${retryCount}`);
+            }
 
             if (retryCount === 1) {
               // First retry: try signed URL
-              console.log('🔑 Trying signed URL approach...');
+              if (__DEV__) {
+                console.log('Trying signed URL approach...');
+              }
               const signedUrl = await trySignedUrl(source.uri);
               if (signedUrl) {
                 urlToTry = signedUrl;
-                console.log('✅ Using signed URL:', signedUrl);
+                if (__DEV__) {
+                  console.log('Using signed URL');
+                }
               }
             } else if (retryCount === 2) {
               // Second retry: try URL variations
-              console.log('🔧 Trying URL repair approaches...');
+              if (__DEV__) {
+                console.log('Trying URL repair approaches...');
+              }
               const variations = tryRepairUrl(source.uri);
 
               // Try the first alternative (usually the cleanest)
               if (variations.length > 1) {
                 urlToTry = variations[1];
-                console.log('🔄 Trying URL variation:', urlToTry);
+                if (__DEV__) {
+                  console.log('Trying URL variation');
+                }
               }
             }
           }
@@ -293,7 +303,12 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
         }
       } catch (err) {
         if (isMounted) {
-          console.error('💥 Error loading image:', err);
+          if (__DEV__) {
+            console.warn(
+              'Error loading image:',
+              err instanceof Error ? err.message : 'Unknown error'
+            );
+          }
 
           // If it's a Supabase storage URL and we haven't exhausted retries, try again
           if (
@@ -302,9 +317,9 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
             source.uri &&
             isSupabaseStorageUrl(source.uri)
           ) {
-            console.log(
-              `🔄 Retrying image load (attempt ${retryCount + 1}/2)...`
-            );
+            if (__DEV__) {
+              console.log(`Retrying image load (${retryCount + 1}/2)`);
+            }
             setRetryCount(prev => prev + 1);
             return; // This will trigger the effect to run again
           }

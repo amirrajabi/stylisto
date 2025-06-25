@@ -76,7 +76,12 @@ class ImageCacheManager {
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize image cache:', error);
+      if (__DEV__) {
+        console.warn(
+          'Failed to initialize image cache:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
       errorHandling.captureError(
         error instanceof Error
           ? error
@@ -100,7 +105,12 @@ class ImageCacheManager {
         });
       }
     } catch (error) {
-      console.error('Failed to load cache metadata:', error);
+      if (__DEV__) {
+        console.warn(
+          'Failed to load cache metadata:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
     }
   }
 
@@ -184,7 +194,12 @@ class ImageCacheManager {
 
       return localUri;
     } catch (error) {
-      console.error(`Failed to download and cache image: ${url}`, error);
+      if (__DEV__) {
+        console.warn(
+          'Image cache download failed:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
       // Return original URL as fallback
       return url;
     }
