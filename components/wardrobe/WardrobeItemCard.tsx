@@ -108,22 +108,23 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
       >
         <View style={styles.listImageContainer}>
           <OptimizedImage
-            source={{ uri: item.imageUrl }}
+            source={{ uri: item.imageUrl || '' }}
             style={[styles.listImage, { width: 88, height: 88 }]}
             contentFit="cover"
             transition={200}
             priority={index < 10 ? 'high' : 'normal'}
             placeholder={{
-              uri: 'https://via.placeholder.com/88x88/e5e5e5/999999?text=Loading',
+              uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHZpZXdCb3g9IjAgMCA4OCA4OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiBmaWxsPSIjZjNmNGY2Ii8+CjxwYXRoIGQ9Ik00NCAyMkw2NiA0NEg1N1Y1N0g1M1Y2MUg0Nkw0NiA2Nkg0Mkw0MiA2MUgzNVY1N0gzMVY0NEgyMkw0NCAyMloiIGZpbGw9IiM5Y2EzYWYiLz4KPHR5eHQgeD0iNDQiIHk9Ijc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOWNhM2FmIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iOCI+Q2xvdGhpbmc8L3RleHQ+Cjwvc3ZnPgo=',
             }}
             onLoad={() => {
               if (__DEV__) {
-                console.log('List image loaded successfully');
+                console.log('List image loaded successfully for:', item.name);
               }
             }}
             onError={error => {
               if (__DEV__) {
                 console.warn('List image failed to load:', {
+                  itemName: item.name,
                   url: item.imageUrl?.substring(0, 50) + '...',
                   error:
                     error instanceof Error ? error.message : 'Unknown error',
@@ -248,7 +249,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
     >
       <View style={styles.gridImageContainer}>
         <OptimizedImage
-          source={{ uri: item.imageUrl }}
+          source={{ uri: item.imageUrl || '' }}
           style={[
             styles.gridImage,
             { width: cardWidth, height: cardWidth * 1.25 },
@@ -257,16 +258,17 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
           transition={200}
           priority={index < 10 ? 'high' : 'normal'}
           placeholder={{
-            uri: 'https://via.placeholder.com/200x200/e5e5e5/999999?text=Loading',
+            uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjNmNGY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMzBWMTMwSDEyMFYxNDBIMTA1VjE1MEg5NVYxNDBIODBWMTMwSDcwVjEwMEg1MEwxMDAgNTBaIiBmaWxsPSIjOWNhM2FmIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOWNhM2FmIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiPkNsb3RoaW5nPC90ZXh0Pgo8L3N2Zz4K',
           }}
           onLoad={() => {
             if (__DEV__) {
-              console.log('Grid image loaded successfully');
+              console.log('Grid image loaded successfully for:', item.name);
             }
           }}
           onError={error => {
             if (__DEV__) {
               console.warn('Grid image failed to load:', {
+                itemName: item.name,
                 url: item.imageUrl?.substring(0, 50) + '...',
                 error: error instanceof Error ? error.message : 'Unknown error',
               });
@@ -387,7 +389,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Layout.borderRadius.lg,
     borderTopRightRadius: Layout.borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: Colors.neutral[100], // Fallback background
+    backgroundColor: Colors.neutral[50], // Light background for better placeholder visibility
   },
   gridImage: {
     width: '100%',
@@ -495,7 +497,7 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.md,
     overflow: 'hidden',
     marginRight: Spacing.md,
-    backgroundColor: Colors.neutral[100], // Fallback background
+    backgroundColor: Colors.neutral[50], // Light background for better placeholder visibility
   },
   listImage: {
     width: '100%',

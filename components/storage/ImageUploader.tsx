@@ -1,19 +1,24 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-} from 'react-native';
 import { Image } from 'expo-image';
-import { Camera, Image as ImageIcon, X, Upload, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
-import { useStorage, UploadProgress } from '../../hooks/useStorage';
-import { useAuth } from '../../hooks/useAuth';
+import { useRouter } from 'expo-router';
+import {
+  CircleAlert as AlertCircle,
+  Camera,
+  Image as ImageIcon,
+  X,
+} from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
+import { useAuth } from '../../hooks/useAuth';
+import { useStorage } from '../../hooks/useStorage';
 
 interface ImageUploaderProps {
   onImageUploaded: (imageUrl: string) => void;
@@ -31,13 +36,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   itemId,
   existingImageUrl,
   maxSize = 10, // 10MB default
-  aspectRatio = 3/4, // 3:4 default for clothing
+  aspectRatio = 3 / 4, // 3:4 default for clothing
   style,
 }) => {
+  const router = useRouter();
   const { user } = useAuth();
   const { uploading, uploadProgress, uploadImage, getImageUrl } = useStorage();
-  
-  const [imageUrl, setImageUrl] = useState<string | null>(existingImageUrl || null);
+
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    existingImageUrl || null
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleCameraPress = useCallback(() => {
@@ -52,7 +60,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       params: {
         mode: 'camera',
         maxPhotos: '1',
-        returnTo: '/wardrobe/add-item',
+        returnTo: '/(tabs)',
         itemType,
         itemId,
       },
@@ -71,38 +79,43 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       params: {
         mode: 'gallery',
         maxPhotos: '1',
-        returnTo: '/wardrobe/add-item',
+        returnTo: '/(tabs)',
         itemType,
         itemId,
       },
     });
   }, [user, itemType, itemId]);
 
-  const handleUpload = useCallback(async (imageUri: string) => {
-    if (!user) {
-      setError('You must be logged in to upload images');
-      return;
-    }
-
-    setError(null);
-
-    try {
-      const result = await uploadImage(imageUri, user.id, itemType, itemId);
-      
-      if (result.error) {
-        setError(`Upload failed: ${result.error.message}`);
+  const handleUpload = useCallback(
+    async (imageUri: string) => {
+      if (!user) {
+        setError('You must be logged in to upload images');
         return;
       }
 
-      if (result.data) {
-        const publicUrl = getImageUrl(result.data.path, 'medium');
-        setImageUrl(publicUrl);
-        onImageUploaded(publicUrl);
+      setError(null);
+
+      try {
+        const result = await uploadImage(imageUri, user.id, itemType, itemId);
+
+        if (result.error) {
+          setError(`Upload failed: ${result.error.message}`);
+          return;
+        }
+
+        if (result.data) {
+          const publicUrl = getImageUrl(result.data.path, 'medium');
+          setImageUrl(publicUrl);
+          onImageUploaded(publicUrl);
+        }
+      } catch (error) {
+        setError(
+          `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
-    } catch (error) {
-      setError(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [user, itemType, itemId, uploadImage, getImageUrl, onImageUploaded]);
+    },
+    [user, itemType, itemId, uploadImage, getImageUrl, onImageUploaded]
+  );
 
   const handleRemoveImage = useCallback(() => {
     setImageUrl(null);
@@ -115,20 +128,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: imageUrl }}
-            style={[
-              styles.image,
-              { aspectRatio },
-            ]}
+            style={[styles.image, { aspectRatio }]}
             contentFit="cover"
           />
-          
+
           <TouchableOpacity
             style={styles.removeButton}
             onPress={handleRemoveImage}
           >
             <X size={20} color="#FFFFFF" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.changeButton}
             onPress={handleCameraPress}
@@ -156,7 +166,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                   <Camera size={24} color={Colors.primary[700]} />
                   <Text style={styles.buttonText}>Camera</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.uploadButton}
                   onPress={handleGalleryPress}
@@ -165,13 +175,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                   <Text style={styles.buttonText}>Gallery</Text>
                 </TouchableOpacity>
               </View>
-              
-              <Text style={styles.helperText}>
-                Max file size: {maxSize}MB
-              </Text>
+
+              <Text style={styles.helperText}>Max file size: {maxSize}MB</Text>
             </>
           )}
-          
+
           {error && (
             <View style={styles.errorContainer}>
               <AlertCircle size={16} color={Colors.error[500]} />
@@ -227,7 +235,7 @@ const styles = StyleSheet.create({
   },
   uploaderContainer: {
     width: '100%',
-    aspectRatio: 3/4,
+    aspectRatio: 3 / 4,
     borderWidth: 2,
     borderColor: Colors.border.primary,
     borderStyle: 'dashed',

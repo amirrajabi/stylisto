@@ -370,6 +370,12 @@ class ImageCacheManager {
   ): string {
     if (!originalUrl) return originalUrl;
 
+    // For Supabase storage URLs, don't apply transformations that could cause 400 errors
+    if (originalUrl.includes('supabase.co/storage')) {
+      // Return the original URL for Supabase storage - avoid render/image endpoint issues
+      return originalUrl;
+    }
+
     // For Pexels images, we can use their resize API
     if (originalUrl.includes('pexels.com')) {
       try {
@@ -394,7 +400,87 @@ class ImageCacheManager {
       }
     }
 
+    // For other URLs, return as-is to avoid breaking them
     return originalUrl;
+  }
+
+  // Try to repair common URL issues
+  private tryRepairUrl(originalUrl: string): string[] {
+    const variations: string[] = [originalUrl];
+
+    if (this.isSupabaseStorageUrl(originalUrl)) {
+      try {
+        const urlObj = new URL(originalUrl);
+
+        // Fix render/image URLs by converting them to simple storage URLs
+        if (originalUrl.includes('/render/image/')) {
+          // Convert from: /storage/v1/render/image/public/bucket/path
+          // To: /storage/v1/object/public/bucket/path
+          const simpleUrl = originalUrl.replace('/render/image/', '/object/');
+          variations.push(simpleUrl);
+
+          if (__DEV__) {
+            console.log(
+              'Added simple storage URL variation:',
+              simpleUrl.substring(0, 100) + '...'
+            );
+          }
+        }
+
+        // Remove transform parameters that might be causing issues
+        const cleanParams = new URLSearchParams();
+        urlObj.searchParams.forEach((value, key) => {
+          // Keep essential parameters, remove transform ones that might fail
+          if (
+            ![
+              'width',
+              'height',
+              'resize',
+              'format',
+              'quality',
+              'auto',
+              'cs',
+              'w',
+              'h',
+              'dpr',
+            ].includes(key)
+          ) {
+            cleanParams.append(key, value);
+          }
+        });
+
+        urlObj.search = cleanParams.toString();
+        const cleanUrl = urlObj.toString();
+        if (cleanUrl !== originalUrl) {
+          variations.push(cleanUrl);
+        }
+
+        // Try without any query parameters
+        urlObj.search = '';
+        const baseUrl = urlObj.toString();
+        if (baseUrl !== originalUrl && baseUrl !== cleanUrl) {
+          variations.push(baseUrl);
+        }
+
+        if (__DEV__) {
+          console.log('Trying URL variations:', variations.length);
+        }
+      } catch (error) {
+        // If URL repair fails, return original URL
+        variations.push(originalUrl);
+      }
+    }
+
+    return variations;
+  }
+
+  // Check if URL is a Supabase storage URL
+  private isSupabaseStorageUrl(url: string): boolean {
+    return (
+      url.includes('supabase.co/storage') ||
+      url.includes('/storage/v1/object/public/') ||
+      url.includes('/storage/v1/render/image/')
+    );
   }
 }
 

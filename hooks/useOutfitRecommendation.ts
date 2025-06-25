@@ -163,7 +163,7 @@ export const useOutfitRecommendation = (
     if (items.length >= 2) {
       generateRecommendations();
     }
-  }, [generateRecommendations, items.length]);
+  }, [items.length]);
 
   return {
     ...state,

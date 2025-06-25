@@ -218,6 +218,19 @@ class StorageService {
   }
 
   /**
+   * Get simple image URL without transformations to avoid render/image endpoint issues
+   */
+  getSimpleImageUrl(path: string, bucket: string = 'wardrobe-images'): string {
+    try {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error getting simple image URL:', error);
+      return '';
+    }
+  }
+
+  /**
    * Get optimized image URL for different use cases
    */
   getOptimizedImageUrl(
@@ -225,32 +238,9 @@ class StorageService {
     type: 'thumbnail' | 'medium' | 'large' | 'original' = 'medium',
     bucket: string = 'wardrobe-images'
   ): string {
-    const transformOptions: Record<string, TransformOptions> = {
-      thumbnail: {
-        width: 200,
-        height: 200,
-        resize: 'cover',
-        format: 'webp',
-        quality: 80,
-      },
-      medium: {
-        width: 800,
-        height: 1000,
-        resize: 'contain',
-        format: 'webp',
-        quality: 85,
-      },
-      large: {
-        width: 1200,
-        height: 1600,
-        resize: 'contain',
-        format: 'webp',
-        quality: 90,
-      },
-      original: {} as TransformOptions,
-    };
-
-    return this.getImageUrl(path, bucket, transformOptions[type]);
+    // Use simple URLs without transformations to avoid render/image endpoint 400 errors
+    // Client-side optimization will handle resizing as needed
+    return this.getSimpleImageUrl(path, bucket);
   }
 
   /**

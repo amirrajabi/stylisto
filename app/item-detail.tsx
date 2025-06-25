@@ -39,7 +39,7 @@ export default function ItemDetailScreen() {
     if (!item) return;
 
     router.push({
-      pathname: '/wardrobe/add-item',
+      pathname: '/(tabs)',
       params: { editItemId: item.id },
     });
   };

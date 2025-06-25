@@ -39,6 +39,25 @@ class WardrobeService {
     return WardrobeService.instance;
   }
 
+  /**
+   * Fix problematic render/image URLs to simple storage URLs
+   */
+  private fixImageUrl(imageUrl: string): string {
+    if (!imageUrl) return imageUrl;
+
+    // Convert render/image URLs to simple object URLs to avoid 400 errors
+    if (imageUrl.includes('/render/image/')) {
+      const fixedUrl = imageUrl.replace('/render/image/', '/object/');
+      console.log('Fixed problematic URL:', {
+        original: imageUrl.substring(0, 100) + '...',
+        fixed: fixedUrl.substring(0, 100) + '...',
+      });
+      return fixedUrl;
+    }
+
+    return imageUrl;
+  }
+
   async createClothingItem(
     itemData: CreateClothingItemData
   ): Promise<{ data: ClothingItem | null; error: string | null }> {
@@ -160,7 +179,7 @@ class WardrobeService {
         size: data.size || '',
         season: data.seasons || [],
         occasion: data.occasions || [],
-        imageUrl: data.image_url,
+        imageUrl: this.fixImageUrl(data.image_url),
         tags: data.tags || [],
         isFavorite: data.is_favorite,
         lastWorn: data.last_worn
@@ -259,7 +278,7 @@ class WardrobeService {
         size: data.size || '',
         season: data.seasons || [],
         occasion: data.occasions || [],
-        imageUrl: data.image_url,
+        imageUrl: this.fixImageUrl(data.image_url),
         tags: data.tags || [],
         isFavorite: data.is_favorite,
         lastWorn: data.last_worn
@@ -315,7 +334,7 @@ class WardrobeService {
         size: item.size || '',
         season: item.seasons || [],
         occasion: item.occasions || [],
-        imageUrl: item.image_url,
+        imageUrl: this.fixImageUrl(item.image_url),
         tags: item.tags || [],
         isFavorite: item.is_favorite,
         lastWorn: item.last_worn
@@ -413,6 +432,130 @@ class WardrobeService {
     } catch (error) {
       console.error('Error toggling favorite:', error);
       return { error: (error as Error).message };
+    }
+  }
+
+  async createSampleItems(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      // Check if user already has items
+      const { data: existingItems } = await supabase
+        .from('clothing_items')
+        .select('id')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .limit(1);
+
+      if (existingItems && existingItems.length > 0) {
+        return { success: true }; // User already has items
+      }
+
+      // Create sample items
+      const sampleItems = [
+        {
+          id: uuidv4(),
+          user_id: user.id,
+          name: 'Navy Blue T-Shirt',
+          category: 'tops',
+          color: '#1e40af',
+          brand: 'Uniqlo',
+          size: 'M',
+          seasons: ['spring', 'summer'],
+          occasions: ['casual', 'daily'],
+          image_url:
+            'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+          tags: ['cotton', 'comfortable'],
+          is_favorite: false,
+          times_worn: 0,
+          last_worn: null,
+          notes: 'Perfect for everyday wear',
+          price: 25,
+          purchase_date: new Date().toISOString(),
+        },
+        {
+          id: uuidv4(),
+          user_id: user.id,
+          name: 'Black Denim Jeans',
+          category: 'bottoms',
+          color: '#1f2937',
+          brand: "Levi's",
+          size: '32',
+          seasons: ['spring', 'autumn', 'winter'],
+          occasions: ['casual', 'daily'],
+          image_url:
+            'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop',
+          tags: ['denim', 'versatile'],
+          is_favorite: true,
+          times_worn: 5,
+          last_worn: new Date(
+            Date.now() - 7 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          notes: 'Goes with everything',
+          price: 89,
+          purchase_date: new Date(
+            Date.now() - 30 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+        },
+        {
+          id: uuidv4(),
+          user_id: user.id,
+          name: 'White Sneakers',
+          category: 'shoes',
+          color: '#ffffff',
+          brand: 'Adidas',
+          size: '10',
+          seasons: ['spring', 'summer', 'autumn'],
+          occasions: ['casual', 'sports'],
+          image_url:
+            'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
+          tags: ['sneakers', 'comfortable'],
+          is_favorite: false,
+          times_worn: 3,
+          last_worn: new Date(
+            Date.now() - 3 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          notes: 'Clean and comfortable',
+          price: 120,
+          purchase_date: new Date(
+            Date.now() - 15 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+        },
+      ];
+
+      // Ensure user profile exists
+      await supabase.from('users').upsert(
+        {
+          id: user.id,
+          email: user.email || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'id',
+          ignoreDuplicates: false,
+        }
+      );
+
+      // Insert sample items
+      const { error } = await supabase
+        .from('clothing_items')
+        .insert(sampleItems);
+
+      if (error) {
+        console.error('Error creating sample items:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error creating sample items:', error);
+      return { success: false, error: (error as Error).message };
     }
   }
 }

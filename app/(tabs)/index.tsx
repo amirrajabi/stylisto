@@ -4,6 +4,7 @@ import {
   Grid,
   List,
   Plus,
+  RefreshCcw,
   Search,
   ShoppingBag,
   SortAsc,
@@ -25,7 +26,7 @@ import { AddItemModal } from '../../components/wardrobe/AddItemModal';
 import { ClothingItemCard } from '../../components/wardrobe/ClothingItemCard';
 import { FilterModal } from '../../components/wardrobe/FilterModal';
 import { useWardrobe } from '../../hooks/useWardrobe';
-import { ClothingItem, SortOptions } from '../../types/wardrobe';
+import { ClothingItem } from '../../types/wardrobe';
 
 export default function WardrobeScreen() {
   const {
@@ -156,21 +157,80 @@ export default function WardrobeScreen() {
   };
 
   const handleSort = () => {
-    const sortFields: { label: string; value: SortOptions['field'] }[] = [
-      { label: 'Name', value: 'name' },
-      { label: 'Category', value: 'category' },
-      { label: 'Brand', value: 'brand' },
-      { label: 'Date Added', value: 'createdAt' },
-      { label: 'Times Worn', value: 'timesWorn' },
-      { label: 'Last Worn', value: 'lastWorn' },
-      { label: 'Price', value: 'price' },
+    const sortMenuOptions = [
+      {
+        label: 'Name (A-Z)',
+        field: 'name' as const,
+        direction: 'asc' as const,
+      },
+      {
+        label: 'Name (Z-A)',
+        field: 'name' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Category (A-Z)',
+        field: 'category' as const,
+        direction: 'asc' as const,
+      },
+      {
+        label: 'Category (Z-A)',
+        field: 'category' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Brand (A-Z)',
+        field: 'brand' as const,
+        direction: 'asc' as const,
+      },
+      {
+        label: 'Brand (Z-A)',
+        field: 'brand' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Date Added (Newest)',
+        field: 'createdAt' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Date Added (Oldest)',
+        field: 'createdAt' as const,
+        direction: 'asc' as const,
+      },
+      {
+        label: 'Most Worn',
+        field: 'timesWorn' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Least Worn',
+        field: 'timesWorn' as const,
+        direction: 'asc' as const,
+      },
+      {
+        label: 'Recently Worn',
+        field: 'lastWorn' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Rarely Worn',
+        field: 'lastWorn' as const,
+        direction: 'asc' as const,
+      },
+      {
+        label: 'Price (High to Low)',
+        field: 'price' as const,
+        direction: 'desc' as const,
+      },
+      {
+        label: 'Price (Low to High)',
+        field: 'price' as const,
+        direction: 'asc' as const,
+      },
     ];
 
-    const options = [
-      ...sortFields.map(field => `${field.label} (A-Z)`),
-      ...sortFields.map(field => `${field.label} (Z-A)`),
-      'Cancel',
-    ];
+    const options = [...sortMenuOptions.map(option => option.label), 'Cancel'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -179,12 +239,11 @@ export default function WardrobeScreen() {
           cancelButtonIndex: options.length - 1,
         },
         buttonIndex => {
-          if (buttonIndex < sortFields.length * 2) {
-            const fieldIndex = buttonIndex % sortFields.length;
-            const direction = buttonIndex < sortFields.length ? 'asc' : 'desc';
+          if (buttonIndex < sortMenuOptions.length) {
+            const selectedOption = sortMenuOptions[buttonIndex];
             actions.setSortOptions({
-              field: sortFields[fieldIndex].value,
-              direction,
+              field: selectedOption.field,
+              direction: selectedOption.direction,
             });
           }
         }
@@ -197,9 +256,20 @@ export default function WardrobeScreen() {
     setEditingItem(undefined);
   };
 
-  const renderItem = ({ item }: { item: ClothingItem }) => (
+  const handleRefresh = async () => {
+    await actions.loadClothingItems();
+  };
+
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: ClothingItem;
+    index: number;
+  }) => (
     <ClothingItemCard
       item={item}
+      index={index}
       isSelected={selectedItems.includes(item.id)}
       onPress={() => handleItemPress(item)}
       onLongPress={() => handleItemLongPress(item)}
@@ -246,6 +316,13 @@ export default function WardrobeScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>My Wardrobe</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCcw size={20} color={isLoading ? '#9ca3af' : '#6b7280'} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
@@ -323,25 +400,43 @@ export default function WardrobeScreen() {
         numColumns={viewMode === 'grid' ? 2 : 1}
         key={viewMode} // Force re-render when view mode changes
         contentContainerStyle={styles.listContainer}
+        columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <ShoppingBag size={64} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>No items found</Text>
-            <Text style={styles.emptySubtitle}>
-              {searchQuery || activeFiltersCount > 0
-                ? 'Try adjusting your search or filters'
-                : 'Add your first clothing item to get started'}
-            </Text>
-            {!searchQuery && activeFiltersCount === 0 && (
-              <TouchableOpacity
-                style={styles.emptyButton}
-                onPress={() => setShowAddModal(true)}
-              >
-                <Text style={styles.emptyButtonText}>Add Item</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>Loading your wardrobe...</Text>
+              <Text style={styles.emptySubtitle}>
+                Setting up your clothing items from the database
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <ShoppingBag size={64} color="#d1d5db" />
+              <Text style={styles.emptyTitle}>No items found</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery || activeFiltersCount > 0
+                  ? 'Try adjusting your search or filters'
+                  : "Your wardrobe data is loading from the database. Try refreshing if items don't appear."}
+              </Text>
+              {!searchQuery && activeFiltersCount === 0 && (
+                <View style={styles.emptyActions}>
+                  <TouchableOpacity
+                    style={styles.emptyButton}
+                    onPress={() => setShowAddModal(true)}
+                  >
+                    <Text style={styles.emptyButtonText}>Add Item</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.emptyButton, styles.refreshButton]}
+                    onPress={handleRefresh}
+                  >
+                    <Text style={styles.emptyButtonText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )
         }
       />
 
@@ -509,17 +604,29 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontFamily: 'Inter-Regular',
   },
+  emptyActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+  },
   emptyButton: {
     backgroundColor: '#3b82f6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    flex: 1,
   },
   emptyButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
     fontFamily: 'Inter-SemiBold',
+    textAlign: 'center',
+  },
+  refreshButton: {
+    backgroundColor: '#10b981',
   },
   errorContainer: {
     flex: 1,
@@ -557,5 +664,8 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#6b7280',
+  },
+  gridRow: {
+    justifyContent: 'space-between',
   },
 });

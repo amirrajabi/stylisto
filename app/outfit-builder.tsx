@@ -1,38 +1,38 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import { Save, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  FlatList,
   SafeAreaView,
   ScrollView,
+  StyleSheet,
   TouchableOpacity,
-  FlatList,
+  View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Plus, Save, X } from 'lucide-react-native';
-import { useWardrobe } from '../hooks/useWardrobe';
+import { BodyMedium, Button, H1, H3, Input } from '../components/ui';
 import { ClothingItemCard } from '../components/wardrobe/ClothingItemCard';
-import { ClothingItem, Outfit } from '../types/wardrobe';
 import { Colors } from '../constants/Colors';
-import { Typography } from '../constants/Typography';
-import { Spacing, Layout } from '../constants/Spacing';
-import { Button, Input, H1, H3, BodyMedium } from '../components/ui';
+import { Layout, Spacing } from '../constants/Spacing';
+import { useWardrobe } from '../hooks/useWardrobe';
+import { ClothingItem, Outfit } from '../types/wardrobe';
 import { generateId } from '../utils/wardrobeUtils';
 
 export default function OutfitBuilderScreen() {
   const { editOutfitId } = useLocalSearchParams<{ editOutfitId?: string }>();
   const { items, outfits, selectedItems, actions } = useWardrobe();
-  
-  const editOutfit = editOutfitId ? outfits.find(o => o.id === editOutfitId) : undefined;
-  
+
+  const editOutfit = editOutfitId
+    ? outfits.find(o => o.id === editOutfitId)
+    : undefined;
+
   const [outfitItems, setOutfitItems] = useState<ClothingItem[]>(
     editOutfit?.items || items.filter(item => selectedItems.includes(item.id))
   );
   const [outfitName, setOutfitName] = useState(editOutfit?.name || '');
   const [notes, setNotes] = useState(editOutfit?.notes || '');
 
-  const availableItems = items.filter(item => 
-    !outfitItems.some(outfitItem => outfitItem.id === item.id)
+  const availableItems = items.filter(
+    item => !outfitItems.some(outfitItem => outfitItem.id === item.id)
   );
 
   const handleAddItem = (item: ClothingItem) => {
@@ -77,14 +77,21 @@ export default function OutfitBuilderScreen() {
 
     // Clear selection
     actions.clearSelection();
-    
+
     router.back();
   };
 
-  const renderOutfitItem = ({ item }: { item: ClothingItem }) => (
+  const renderOutfitItem = ({
+    item,
+    index,
+  }: {
+    item: ClothingItem;
+    index: number;
+  }) => (
     <View style={styles.outfitItemContainer}>
       <ClothingItemCard
         item={item}
+        index={index}
         onPress={() => {}}
         onToggleFavorite={() => actions.toggleFavorite(item.id)}
         onMoreOptions={() => handleRemoveItem(item.id)}
@@ -98,9 +105,16 @@ export default function OutfitBuilderScreen() {
     </View>
   );
 
-  const renderAvailableItem = ({ item }: { item: ClothingItem }) => (
+  const renderAvailableItem = ({
+    item,
+    index,
+  }: {
+    item: ClothingItem;
+    index: number;
+  }) => (
     <ClothingItemCard
       item={item}
+      index={index}
       onPress={() => handleAddItem(item)}
       onToggleFavorite={() => actions.toggleFavorite(item.id)}
       onMoreOptions={() => {}}
@@ -156,7 +170,8 @@ export default function OutfitBuilderScreen() {
           ) : (
             <View style={styles.emptyOutfit}>
               <BodyMedium color="secondary">
-                No items added yet. Select items from below to build your outfit.
+                No items added yet. Select items from below to build your
+                outfit.
               </BodyMedium>
             </View>
           )}

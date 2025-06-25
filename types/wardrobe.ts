@@ -35,7 +35,7 @@ export interface Outfit {
   updatedAt: string;
 }
 
-export const enum ClothingCategory {
+export enum ClothingCategory {
   TOPS = 'tops',
   BOTTOMS = 'bottoms',
   DRESSES = 'dresses',
@@ -48,14 +48,14 @@ export const enum ClothingCategory {
   SWIMWEAR = 'swimwear',
 }
 
-export const enum Season {
+export enum Season {
   SPRING = 'spring',
   SUMMER = 'summer',
   FALL = 'fall',
   WINTER = 'winter',
 }
 
-export const enum Occasion {
+export enum Occasion {
   CASUAL = 'casual',
   WORK = 'work',
   FORMAL = 'formal',

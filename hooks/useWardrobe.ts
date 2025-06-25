@@ -32,15 +32,48 @@ export const useWardrobe = () => {
     setError(null);
 
     try {
+      console.log('Loading clothing items from database...');
       const result = await wardrobeService.getClothingItems();
       if (result.error) {
+        console.error('Error loading clothing items:', result.error);
         setError(result.error);
       } else if (result.data) {
-        // Clear existing items and load from database
-        dispatch(wardrobeActions.setItems(result.data));
+        console.log('Loaded items from database:', result.data.length);
+        // If no items exist, create sample items
+        if (result.data.length === 0) {
+          console.log('No items found, creating sample items...');
+          const sampleResult = await wardrobeService.createSampleItems();
+          if (sampleResult.success) {
+            console.log('Sample items created successfully, reloading...');
+            // Reload items after creating samples
+            const newResult = await wardrobeService.getClothingItems();
+            if (newResult.error) {
+              console.error(
+                'Error reloading items after sample creation:',
+                newResult.error
+              );
+              setError(newResult.error);
+            } else if (newResult.data) {
+              console.log(
+                'Successfully reloaded items after sample creation:',
+                newResult.data.length
+              );
+              dispatch(wardrobeActions.setItems(newResult.data));
+            }
+          } else {
+            console.warn('Failed to create sample items:', sampleResult.error);
+            dispatch(wardrobeActions.setItems(result.data));
+          }
+        } else {
+          console.log('Displaying existing items from database');
+          dispatch(wardrobeActions.setItems(result.data));
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error('Exception during clothing items loading:', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -208,7 +241,7 @@ export const useWardrobe = () => {
 
     // Apply sorting
     const { sortOptions } = wardrobeState;
-    filtered.sort((a, b) => {
+    const sortedFiltered = [...filtered].sort((a, b) => {
       let aValue: any = a[sortOptions.field];
       let bValue: any = b[sortOptions.field];
 
@@ -230,7 +263,7 @@ export const useWardrobe = () => {
       return 0;
     });
 
-    return filtered;
+    return sortedFiltered;
   };
 
   const getWardrobeStats = (): WardrobeStats => {
@@ -293,6 +326,7 @@ export const useWardrobe = () => {
       deleteItem,
       toggleFavorite,
       loadClothingItems,
+      refreshData: loadClothingItems, // Alias for manual refresh
       // Legacy Redux actions for outfits and UI state
       addOutfit: (outfit: Outfit) =>
         dispatch(wardrobeActions.addOutfit(outfit)),
