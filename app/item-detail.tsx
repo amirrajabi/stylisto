@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   CreditCard as Edit,
@@ -18,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { BodyMedium, BodySmall, Button, H1, H3 } from '../components/ui';
+import OptimizedImage from '../components/ui/OptimizedImage';
 import { Colors } from '../constants/Colors';
 import { Layout, Spacing } from '../constants/Spacing';
 import { Typography } from '../constants/Typography';
@@ -136,10 +136,30 @@ export default function ItemDetailScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Image */}
         <View style={styles.imageContainer}>
-          <Image
+          <OptimizedImage
             source={{ uri: item.imageUrl }}
             style={styles.image}
             contentFit="cover"
+            priority="high"
+            placeholder={{
+              uri: 'https://via.placeholder.com/400x400/f5f5f5/999999?text=Loading',
+            }}
+            onLoad={() => {
+              if (__DEV__) {
+                console.log('Item image loaded successfully');
+              }
+            }}
+            onError={error => {
+              if (__DEV__) {
+                console.warn('Failed to load item image:', {
+                  name: item.name,
+                  urlLength: item.imageUrl?.length,
+                  isSupabaseUrl: item.imageUrl?.includes('supabase'),
+                  errorType:
+                    error instanceof Error ? error.message : 'Unknown error',
+                });
+              }
+            }}
           />
           <TouchableOpacity
             style={styles.favoriteButton}
