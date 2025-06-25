@@ -2,10 +2,9 @@ export interface User {
   id: string;
   email: string;
   phone?: string;
-  full_name?: string;
+  first_name?: string;
+  last_name?: string;
   avatar_url?: string;
-  email_confirmed_at?: string;
-  phone_confirmed_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,7 +25,8 @@ export interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  fullName: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface ForgotPasswordFormData {
@@ -36,15 +36,6 @@ export interface ForgotPasswordFormData {
 export interface ResetPasswordFormData {
   password: string;
   confirmPassword: string;
-}
-
-export interface SendOTPFormData {
-  email: string;
-}
-
-export interface VerifyOTPFormData {
-  email: string;
-  otp: string;
 }
 
 export interface AuthError {

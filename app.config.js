@@ -13,11 +13,14 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.stylisto.app',
+      infoPlist: {
+        UIViewControllerBasedStatusBarAppearance: true,
+      },
     },
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#1a1a1a',
       },
       package: 'com.stylisto.app',
       edgeToEdgeEnabled: true,
@@ -35,7 +38,7 @@ export default {
           image: './assets/images/splash-icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
-          backgroundColor: '#ffffff',
+          backgroundColor: '#1a1a1a',
         },
       ],
       [

@@ -10,9 +10,10 @@ import { supabase } from './supabase';
 export interface AuthUser {
   id: string;
   email: string;
-  full_name?: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
   avatar_url?: string;
-  email_confirmed_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -24,13 +25,16 @@ export interface AuthSession {
   user: AuthUser;
 }
 
-export interface SendOTPData {
+export interface SignInWithPasswordData {
   email: string;
+  password: string;
 }
 
-export interface VerifyOTPData {
+export interface SignUpWithPasswordData {
   email: string;
-  token: string;
+  password: string;
+  first_name: string;
+  last_name: string;
 }
 
 export class AuthService {
@@ -44,44 +48,50 @@ export class AuthService {
   }
 
   /**
-   * Send OTP to email address
+   * Sign up with email and password
    */
-  async sendOTP({ email }: SendOTPData) {
+  async signUpWithPassword({
+    email,
+    password,
+    first_name,
+    last_name,
+  }: SignUpWithPasswordData) {
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signUp({
         email,
+        password,
         options: {
-          shouldCreateUser: true,
           data: {
-            // Additional user data can be added here
+            first_name,
+            last_name,
           },
         },
       });
 
       if (error) throw error;
 
-      // Log OTP send attempt
-      errorHandling.captureMessage('Email OTP sent successfully', {
+      // Log successful signup
+      errorHandling.captureMessage('User signed up successfully', {
         severity: ErrorSeverity.INFO,
         category: ErrorCategory.AUTH,
         context: {
           email:
-            email.substring(0, 3) + '***' + email.substring(email.indexOf('@')), // Log masked email for privacy
+            email.substring(0, 3) + '***' + email.substring(email.indexOf('@')),
+          action: 'sign_up_with_password',
         },
       });
 
       return data;
     } catch (error) {
-      console.error('Send OTP error:', error);
+      console.error('Sign up error:', error);
 
-      // Log OTP send error
       errorHandling.captureError(
-        error instanceof Error ? error : new AuthError('Send OTP failed'),
+        error instanceof Error ? error : new AuthError('Sign up failed'),
         {
           severity: ErrorSeverity.ERROR,
           category: ErrorCategory.AUTH,
           context: {
-            action: 'send_email_otp',
+            action: 'sign_up_with_password',
             email:
               email.substring(0, 3) +
               '***' +
@@ -95,122 +105,56 @@ export class AuthService {
   }
 
   /**
-   * Verify OTP and complete authentication
+   * Sign in with email and password
    */
-  async verifyOTP({ email, token }: VerifyOTPData) {
+  async signInWithPassword({ email, password }: SignInWithPasswordData) {
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        token,
-        type: 'email',
+        password,
       });
 
       if (error) throw error;
 
-      // Create or update user profile in our users table
-      if (data.user && !error) {
-        const { error: profileError } = await supabase.from('users').upsert(
-          {
-            id: data.user.id,
-            email: data.user.email!,
-            email_confirmed_at: data.user.email_confirmed_at,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'id',
-          }
-        );
-
-        if (profileError) {
-          console.error('Error updating user profile:', profileError);
-          errorHandling.captureError(profileError, {
-            severity: ErrorSeverity.ERROR,
-            category: ErrorCategory.AUTH,
-            context: {
-              action: 'update_user_profile',
-              userId: data.user.id,
-            },
-          });
-        }
-
-        // Create default user preferences if not exists
-        const { data: existingPrefs } = await supabase
-          .from('user_preferences')
-          .select('user_id')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (!existingPrefs) {
-          const { error: preferencesError } = await supabase
-            .from('user_preferences')
-            .insert({
-              user_id: data.user.id,
-              style_preferences: {},
-              size_preferences: {},
-              color_preferences: [],
-              brand_preferences: [],
-              notification_settings: {
-                outfit_reminders: true,
-                weather_alerts: true,
-                style_tips: true,
-                new_features: true,
-              },
-              privacy_settings: {
-                profile_visibility: 'private',
-                share_outfits: false,
-                analytics_tracking: true,
-              },
-            });
-
-          if (preferencesError) {
-            console.error('Error creating user preferences:', preferencesError);
-            errorHandling.captureError(preferencesError, {
-              severity: ErrorSeverity.ERROR,
-              category: ErrorCategory.AUTH,
-              context: {
-                action: 'create_user_preferences',
-                userId: data.user.id,
-              },
-            });
-          }
-        }
-
-        // Record user session
-        await this.recordUserSession(data.user.id);
-
-        // Set user in error handling service
-        errorHandling.setUser(data.user.id, data.user.email);
-      }
-
-      // Log successful verification
-      errorHandling.captureMessage('Email OTP verified successfully', {
+      // Log successful sign in
+      errorHandling.captureMessage('User signed in successfully', {
         severity: ErrorSeverity.INFO,
         category: ErrorCategory.AUTH,
         context: {
-          email:
-            email.substring(0, 3) + '***' + email.substring(email.indexOf('@')),
+          action: 'sign_in_with_password',
           userId: data.user?.id,
-        },
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Verify OTP error:', error);
-
-      // Log verification error
-      errorHandling.captureError(
-        error instanceof Error
-          ? error
-          : new AuthError('OTP verification failed'),
-        {
-          severity: ErrorSeverity.ERROR,
-          category: ErrorCategory.AUTH,
-          context: {
-            action: 'verify_email_otp',
+          additionalData: {
             email:
               email.substring(0, 3) +
               '***' +
               email.substring(email.indexOf('@')),
+          },
+        },
+      });
+
+      // Set user in error handling service
+      if (data.user) {
+        errorHandling.setUser(data.user.id, data.user.email);
+        await this.recordUserSession(data.user.id);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Sign in error:', error);
+
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Sign in failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'sign_in_with_password',
+            additionalData: {
+              email:
+                email.substring(0, 3) +
+                '***' +
+                email.substring(email.indexOf('@')),
+            },
           },
         }
       );
@@ -266,6 +210,51 @@ export class AuthService {
   }
 
   /**
+   * Reset password
+   */
+  async resetPassword(email: string) {
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/verify?type=recovery&redirect_to=${process.env.EXPO_PUBLIC_REDIRECT_URL}`,
+      });
+
+      if (error) throw error;
+
+      // Log password reset request
+      errorHandling.captureMessage('Password reset requested', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          action: 'reset_password',
+          email:
+            email.substring(0, 3) + '***' + email.substring(email.indexOf('@')),
+        },
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Reset password error:', error);
+
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Password reset failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'reset_password',
+            email:
+              email.substring(0, 3) +
+              '***' +
+              email.substring(email.indexOf('@')),
+          },
+        }
+      );
+
+      throw error;
+    }
+  }
+
+  /**
    * Update user profile
    */
   async updateProfile(updates: Partial<AuthUser>) {
@@ -273,36 +262,49 @@ export class AuthService {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
 
-      // Update auth user data
+      if (!user) {
+        throw new AuthError('No authenticated user');
+      }
+
+      // Update auth metadata if needed
       const authUpdates: any = {};
-      if (updates.full_name !== undefined) {
-        authUpdates.data = { full_name: updates.full_name };
+      if (updates.first_name !== undefined) {
+        authUpdates.first_name = updates.first_name;
+      }
+      if (updates.last_name !== undefined) {
+        authUpdates.last_name = updates.last_name;
       }
 
       if (Object.keys(authUpdates).length > 0) {
-        const { error: authError } =
-          await supabase.auth.updateUser(authUpdates);
+        const { error: authError } = await supabase.auth.updateUser({
+          data: authUpdates,
+        });
+
         if (authError) throw authError;
       }
 
-      // Update user profile in our users table
-      const profileUpdates: any = {
+      // Update user table
+      const userUpdates: any = {
         updated_at: new Date().toISOString(),
       };
 
-      if (updates.full_name !== undefined)
-        profileUpdates.full_name = updates.full_name;
-      if (updates.avatar_url !== undefined)
-        profileUpdates.avatar_url = updates.avatar_url;
+      if (updates.first_name !== undefined) {
+        userUpdates.first_name = updates.first_name;
+      }
+      if (updates.last_name !== undefined) {
+        userUpdates.last_name = updates.last_name;
+      }
+      if (updates.avatar_url !== undefined) {
+        userUpdates.avatar_url = updates.avatar_url;
+      }
 
-      const { error: profileError } = await supabase
+      const { error: dbError } = await supabase
         .from('users')
-        .update(profileUpdates)
+        .update(userUpdates)
         .eq('id', user.id);
 
-      if (profileError) throw profileError;
+      if (dbError) throw dbError;
 
       // Log profile update
       errorHandling.captureMessage('Profile updated successfully', {
@@ -310,12 +312,12 @@ export class AuthService {
         category: ErrorCategory.AUTH,
         context: {
           userId: user.id,
+          updatedFields: Object.keys(updates),
         },
       });
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error('Profile update error:', error);
 
-      // Log profile update error
       errorHandling.captureError(
         error instanceof Error ? error : new AuthError('Profile update failed'),
         {
@@ -323,6 +325,7 @@ export class AuthService {
           category: ErrorCategory.AUTH,
           context: {
             action: 'update_profile',
+            updatedFields: Object.keys(updates),
           },
         }
       );
@@ -340,23 +343,12 @@ export class AuthService {
         data: { session },
         error,
       } = await supabase.auth.getSession();
+
       if (error) throw error;
+
       return session;
     } catch (error) {
       console.error('Get session error:', error);
-
-      // Log session error
-      errorHandling.captureError(
-        error instanceof Error ? error : new AuthError('Get session failed'),
-        {
-          severity: ErrorSeverity.ERROR,
-          category: ErrorCategory.AUTH,
-          context: {
-            action: 'get_session',
-          },
-        }
-      );
-
       throw error;
     }
   }
@@ -370,23 +362,12 @@ export class AuthService {
         data: { user },
         error,
       } = await supabase.auth.getUser();
+
       if (error) throw error;
+
       return user;
     } catch (error) {
       console.error('Get user error:', error);
-
-      // Log user error
-      errorHandling.captureError(
-        error instanceof Error ? error : new AuthError('Get user failed'),
-        {
-          severity: ErrorSeverity.ERROR,
-          category: ErrorCategory.AUTH,
-          context: {
-            action: 'get_user',
-          },
-        }
-      );
-
       throw error;
     }
   }
@@ -396,86 +377,82 @@ export class AuthService {
    */
   async refreshSession() {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.refreshSession();
+
       if (error) throw error;
-      return data.session;
+
+      return session;
     } catch (error) {
       console.error('Refresh session error:', error);
-
-      // Log refresh error
-      errorHandling.captureError(
-        error instanceof Error
-          ? error
-          : new AuthError('Refresh session failed'),
-        {
-          severity: ErrorSeverity.ERROR,
-          category: ErrorCategory.AUTH,
-          context: {
-            action: 'refresh_session',
-          },
-        }
-      );
-
       throw error;
     }
   }
 
   /**
-   * Record user session
+   * Record user session start
    */
   private async recordUserSession(userId: string) {
     try {
       const { error } = await supabase.from('user_sessions').insert({
         user_id: userId,
         platform: Platform.OS,
-        app_version: '1.0.0', // This should come from app config
+        app_version: '1.0.0', // TODO: Get from app config
       });
 
       if (error) {
         console.error('Error recording user session:', error);
-        errorHandling.captureError(error, {
-          severity: ErrorSeverity.WARNING,
-          category: ErrorCategory.AUTH,
-          context: {
-            action: 'record_user_session',
-            userId,
-          },
-        });
       }
     } catch (error) {
-      console.error('Error recording user session:', error);
+      console.error('Record session error:', error);
     }
   }
 
   /**
-   * End user session
+   * Record user session end
    */
   private async endUserSession(userId: string) {
     try {
-      const { error } = await supabase
+      // Find the most recent session without an end time
+      const { data: sessions, error: fetchError } = await supabase
         .from('user_sessions')
-        .update({
-          session_end: new Date().toISOString(),
-        })
+        .select('*')
         .eq('user_id', userId)
-        .is('session_end', null);
+        .is('session_end', null)
+        .order('session_start', { ascending: false })
+        .limit(1);
 
-      if (error) {
-        console.error('Error ending user session:', error);
-        errorHandling.captureError(error, {
-          severity: ErrorSeverity.WARNING,
-          category: ErrorCategory.AUTH,
-          context: {
-            action: 'end_user_session',
-            userId,
-          },
-        });
+      if (fetchError) {
+        console.error('Error fetching user session:', fetchError);
+        return;
+      }
+
+      if (sessions && sessions.length > 0) {
+        const session = sessions[0];
+        const sessionEnd = new Date();
+        const sessionStart = new Date(session.session_start);
+        const durationMinutes = Math.round(
+          (sessionEnd.getTime() - sessionStart.getTime()) / (1000 * 60)
+        );
+
+        const { error: updateError } = await supabase
+          .from('user_sessions')
+          .update({
+            session_end: sessionEnd.toISOString(),
+            duration_minutes: durationMinutes,
+          })
+          .eq('id', session.id);
+
+        if (updateError) {
+          console.error('Error updating user session:', updateError);
+        }
       }
     } catch (error) {
-      console.error('Error ending user session:', error);
+      console.error('End session error:', error);
     }
   }
 }
 
-// Create singleton instance
 export const authService = AuthService.getInstance();

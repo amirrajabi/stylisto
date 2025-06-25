@@ -198,6 +198,7 @@ const styles = StyleSheet.create({
     color: Colors.error[600],
     flex: 1,
     fontSize: 14,
+    lineHeight: 18,
     fontWeight: '500',
   },
 });

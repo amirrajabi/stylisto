@@ -217,66 +217,78 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     color: Colors.white,
+    lineHeight: 24,
   },
   smallText: {
     ...Typography.button.small,
     fontSize: 14,
     fontWeight: '600',
-    lineHeight: 18, // Fix lineHeight issue
+    lineHeight: 20,
   },
   mediumText: {
     ...Typography.button.medium,
     fontSize: 16,
     fontWeight: '600',
-    lineHeight: 20, // Fix lineHeight issue
+    lineHeight: 24,
   },
   largeText: {
     ...Typography.button.large,
     fontSize: 18,
     fontWeight: '700',
-    lineHeight: 22, // Fix lineHeight issue from Typography.button.large
+    lineHeight: 28,
   },
 
   // Text color variants
   primaryText: {
     color: Colors.white,
     fontWeight: '600',
+    lineHeight: 24,
   },
   secondaryText: {
     color: Colors.white,
     fontWeight: '600',
+    lineHeight: 24,
   },
   outlineText: {
     color: Colors.primary[700],
     fontWeight: '600',
+    lineHeight: 24,
   },
   ghostText: {
     color: Colors.primary[700],
     fontWeight: '600',
+    lineHeight: 24,
   },
   destructiveText: {
     color: Colors.white,
     fontWeight: '600',
+    lineHeight: 24,
   },
 
   // Disabled text colors
   disabledText: {
     opacity: 0.8,
+    lineHeight: 24,
   },
   primaryDisabledText: {
     color: Colors.neutral[500],
+    lineHeight: 24,
   },
   secondaryDisabledText: {
     color: Colors.neutral[500],
+    lineHeight: 24,
   },
   outlineDisabledText: {
     color: Colors.neutral[400],
+    lineHeight: 24,
   },
   ghostDisabledText: {
     color: Colors.neutral[400],
+    lineHeight: 24,
   },
   destructiveDisabledText: {
     color: Colors.neutral[500],
+    lineHeight: 24,
   },
 
   // Content layout
@@ -284,9 +296,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 24,
   },
   textContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   leftIcon: {
     marginRight: Spacing.sm,
@@ -300,23 +314,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 24,
   },
   loadingText: {
     marginLeft: Spacing.sm,
+    lineHeight: 20,
   },
 
   // Subtitle
   subtitle: {
     marginTop: Spacing.xs,
     color: Colors.text.secondary,
+    lineHeight: 18,
   },
   smallSubtitle: {
     ...Typography.caption.small,
+    lineHeight: 16,
   },
   mediumSubtitle: {
     ...Typography.caption.medium,
+    lineHeight: 18,
   },
   largeSubtitle: {
     ...Typography.caption.large,
+    lineHeight: 20,
   },
 });

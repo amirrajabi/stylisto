@@ -1,17 +1,18 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
-import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -20,25 +21,38 @@ interface AuthLayoutProps {
 
 const { width, height } = Dimensions.get('window');
 
-export const AuthLayout: React.FC<AuthLayoutProps> = ({ 
-  children, 
-  showLogo = true 
+export const AuthLayout: React.FC<AuthLayoutProps> = ({
+  children,
+  showLogo = true,
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: 0 }]}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}
         >
           {/* Background Image */}
           <View style={styles.backgroundContainer}>
             <Image
-              source={{ uri: 'https://images.pexels.com/photos/996329/pexels-photo-996329.jpeg?auto=compress&cs=tinysrgb&w=1200' }}
+              source={{
+                uri: 'https://images.pexels.com/photos/996329/pexels-photo-996329.jpeg?auto=compress&cs=tinysrgb&w=1200',
+              }}
               style={styles.backgroundImage}
               contentFit="cover"
             />
@@ -51,7 +65,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
                   <Image
-                    source={{ uri: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=200' }}
+                    source={require('../../assets/images/splash-icon.png')}
                     style={styles.logoImage}
                     contentFit="cover"
                   />
@@ -59,13 +73,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               </View>
             )}
 
-            <View style={styles.formContainer}>
-              {children}
-            </View>
+            <View style={styles.formContainer}>{children}</View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -77,9 +89,13 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   scrollContent: {
     flexGrow: 1,
-    minHeight: height,
+    minHeight: height + (StatusBar.currentHeight || 0),
   },
   backgroundContainer: {
     position: 'absolute',
@@ -99,6 +115,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     paddingTop: height * 0.15,
+    backgroundColor: 'transparent',
   },
   logoContainer: {
     alignItems: 'center',
@@ -127,5 +144,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
     minHeight: height * 0.6,
     ...Shadows.xl,
+    marginTop: 'auto',
   },
 });

@@ -89,41 +89,6 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Send OTP to email address
-  const sendOTP = useCallback(async (email: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      const data = await authService.sendOTP({ email });
-      setAuthState(prev => ({ ...prev, loading: false }));
-      return data;
-    } catch (error: any) {
-      setAuthState(prev => ({
-        ...prev,
-        error: error.message,
-        loading: false,
-      }));
-      throw error;
-    }
-  }, []);
-
-  // Verify OTP and complete authentication
-  const verifyOTP = useCallback(async (email: string, token: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      const data = await authService.verifyOTP({ email, token });
-      return data;
-    } catch (error: any) {
-      setAuthState(prev => ({
-        ...prev,
-        error: error.message,
-        loading: false,
-      }));
-      throw error;
-    }
-  }, []);
-
   // Sign out
   const signOut = useCallback(async () => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
@@ -139,6 +104,54 @@ export const useAuth = () => {
       throw error;
     }
   }, []);
+
+  // Sign up with password
+  const signUpWithPassword = useCallback(
+    async (data: {
+      email: string;
+      password: string;
+      first_name: string;
+      last_name: string;
+    }) => {
+      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+      try {
+        const result = await authService.signUpWithPassword(data);
+        return result;
+      } catch (error: any) {
+        setAuthState(prev => ({
+          ...prev,
+          error: error.message,
+          loading: false,
+        }));
+        throw error;
+      }
+    },
+    []
+  );
+
+  // Sign in with password
+  const signInWithPassword = useCallback(
+    async (email: string, password: string) => {
+      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+      try {
+        const result = await authService.signInWithPassword({
+          email,
+          password,
+        });
+        return result;
+      } catch (error: any) {
+        setAuthState(prev => ({
+          ...prev,
+          error: error.message,
+          loading: false,
+        }));
+        throw error;
+      }
+    },
+    []
+  );
 
   // Update profile
   const updateProfile = useCallback(async (updates: Partial<AuthUser>) => {
@@ -163,12 +176,31 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Reset password
+  const resetPassword = useCallback(async (email: string) => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const result = await authService.resetPassword(email);
+      setAuthState(prev => ({ ...prev, loading: false }));
+      return result;
+    } catch (error: any) {
+      setAuthState(prev => ({
+        ...prev,
+        error: error.message,
+        loading: false,
+      }));
+      throw error;
+    }
+  }, []);
+
   return {
     ...authState,
-    sendOTP,
-    verifyOTP,
+    signUpWithPassword,
+    signInWithPassword,
     signOut,
     updateProfile,
+    resetPassword,
   };
 };
 
@@ -176,9 +208,10 @@ export const useAuth = () => {
 const mapSupabaseUser = (supabaseUser: User): AuthUser => ({
   id: supabaseUser.id,
   email: supabaseUser.email || '',
-  full_name: supabaseUser.user_metadata?.full_name,
+  username: supabaseUser.user_metadata?.username,
+  first_name: supabaseUser.user_metadata?.first_name,
+  last_name: supabaseUser.user_metadata?.last_name,
   avatar_url: supabaseUser.user_metadata?.avatar_url,
-  email_confirmed_at: supabaseUser.email_confirmed_at,
   created_at: supabaseUser.created_at,
   updated_at: supabaseUser.updated_at || supabaseUser.created_at,
 });

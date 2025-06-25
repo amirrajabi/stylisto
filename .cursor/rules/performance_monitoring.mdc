@@ -1,0 +1,289 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Performance Monitoring Workflow
+
+This guide outlines the comprehensive process for monitoring, measuring, and optimizing the performance of the Next.js application using multiple tools and methodologies.
+
+## Performance Monitoring Philosophy
+
+- **Continuous Monitoring**: Performance is not a one-time optimization but an ongoing process throughout development
+- **Real User Metrics (RUM)**: Focus on metrics that impact actual user experience
+- **Lab Data Validation**: Use synthetic testing to validate optimizations before deployment
+- **Performance Budget**: Maintain strict performance budgets to prevent regression
+- **Progressive Enhancement**: Build fast by default, enhance with features that don't compromise core performance
+
+## Performance Monitoring Stack
+
+### Core Web Vitals Focus
+- **Largest Contentful Paint (LCP)**: ≤ 2.5 seconds
+- **First Input Delay (FID)**: ≤ 100 milliseconds  
+- **Cumulative Layout Shift (CLS)**: ≤ 0.1
+- **First Contentful Paint (FCP)**: ≤ 2.0 seconds
+- **Total Blocking Time (TBT)**: ≤ 200 milliseconds
+
+### Monitoring Tools
+- **Lighthouse CI**: Automated performance testing in CI/CD pipeline
+- **Playwright Performance Tests**: Synthetic performance monitoring
+- **Next.js Built-in Analytics**: Server-side performance insights
+- **Web Vitals Library**: Real user monitoring in production
+- **Chrome DevTools**: Local development performance profiling
+- **Vercel Analytics**: Production performance monitoring (if deployed on Vercel)
+
+## Performance Monitoring Workflow Process
+
+### 1. Pre-Development Performance Setup
+
+- **Initialize Performance Budget**: Ensure `lighthouse-budget.json` is configured with appropriate thresholds
+- **Set Up Performance Testing**: Configure Playwright for performance testing scenarios
+- **Enable Next.js Analytics**: Configure built-in Next.js performance monitoring
+- **Install Performance Dependencies**: Ensure web-vitals library is installed and configured
+- **Configure CI Performance Checks**: Set up automated performance testing in CI/CD pipeline
+
+### 2. Development Phase Performance Monitoring
+
+- **Local Performance Profiling**:
+  - Use Chrome DevTools Performance tab for detailed analysis
+  - Monitor Network tab for resource optimization opportunities
+  - Use Lighthouse audits in Chrome DevTools for quick local checks
+  - Profile React components using React DevTools Profiler
+
+- **Development Server Optimization**:
+  - Monitor Next.js build analyzer output
+  - Check bundle size warnings during development
+  - Use `next build --debug` for detailed build analysis
+  - Monitor hot-reload performance during development
+
+### 3. Pre-Commit Performance Validation
+
+- **Lighthouse CI Checks**: Run local Lighthouse audits before committing
+- **Bundle Size Analysis**: Check for unexpected bundle size increases
+- **Performance Test Execution**: Run critical user journey performance tests
+- **Core Web Vitals Validation**: Ensure all metrics meet target thresholds
+
+### 4. Continuous Integration Performance Testing
+
+- **Automated Lighthouse Audits**: Run comprehensive Lighthouse tests on every PR
+- **Performance Regression Detection**: Compare performance metrics against baseline
+- **Bundle Size Monitoring**: Track and alert on bundle size increases
+- **Performance Budget Enforcement**: Fail builds that exceed performance budgets
+
+### 5. Production Performance Monitoring
+
+- **Real User Monitoring (RUM)**:
+  - Collect Core Web Vitals from real users using web-vitals library
+  - Monitor performance across different devices and network conditions
+  - Track performance trends over time
+  - Set up alerts for performance degradation
+
+- **Synthetic Monitoring**:
+  - Schedule regular Lighthouse audits against production
+  - Monitor critical user journeys with Playwright
+  - Test performance from multiple geographic locations
+  - Validate performance after deployments
+
+## Performance Testing Implementation
+
+### Playwright Performance Tests
+
+Create performance-focused E2E tests that measure:
+- Page load times for critical pages
+- Navigation performance between routes
+- Form submission and interaction responsiveness
+- Image loading and optimization effectiveness
+- API response times and rendering performance
+
+### Lighthouse CI Integration
+
+Configure automated Lighthouse audits that:
+- Run on every pull request
+- Compare against performance budgets
+- Generate detailed performance reports
+- Block deployments that fail performance criteria
+- Track performance trends over time
+
+### Web Vitals Monitoring
+
+Implement client-side monitoring that:
+- Collects Core Web Vitals from real users
+- Segments performance data by device type, network, and geography
+- Provides actionable insights for optimization
+- Integrates with analytics platforms for reporting
+
+## Performance Optimization Strategies
+
+### Next.js Specific Optimizations
+
+- **Image Optimization**: Use Next.js Image component with proper sizing and formats
+- **Code Splitting**: Implement dynamic imports for large components and libraries
+- **Static Generation**: Maximize use of SSG for better performance
+- **API Route Optimization**: Optimize API routes for fast response times
+- **Bundle Analysis**: Regular analysis of bundle composition and optimization opportunities
+
+### React Performance Patterns
+
+- **Component Memoization**: Use React.memo, useMemo, and useCallback appropriately
+- **Lazy Loading**: Implement React.lazy for code splitting components
+- **Virtualization**: Use virtual scrolling for large lists
+- **State Management Optimization**: Optimize Zustand store subscriptions
+- **Effect Optimization**: Minimize unnecessary re-renders and effect executions
+
+### Resource Optimization
+
+- **Asset Optimization**: Compress and optimize images, fonts, and other assets
+- **Caching Strategy**: Implement appropriate caching headers and strategies
+- **CDN Configuration**: Optimize asset delivery through CDN
+- **Critical CSS**: Inline critical CSS and defer non-critical styles
+- **JavaScript Optimization**: Minimize and compress JavaScript bundles
+
+## Performance Monitoring Commands & Tools
+
+### Local Development Commands
+
+```bash
+# Run Lighthouse audit locally
+npx lighthouse http://localhost:3000 --output-path=./lighthouse-report.html
+
+# Analyze Next.js bundle
+npm run build && npx @next/bundle-analyzer
+
+# Run performance-focused E2E tests
+npm run test:e2e:performance
+
+# Generate performance report
+npm run performance:audit
+```
+
+### Performance Testing with Playwright
+
+```bash
+# Run performance tests
+npm run test:e2e -- --grep="performance"
+
+# Run performance tests with detailed reporting
+npm run test:e2e:performance -- --reporter=html
+
+# Debug performance tests
+npm run test:e2e:debug -- --grep="performance"
+```
+
+### Continuous Monitoring Commands
+
+```bash
+# Run Lighthouse CI
+npx lhci autorun
+
+# Check performance budget
+npx lighthouse-ci upload
+
+# Generate performance comparison report
+npm run performance:compare
+```
+
+## Performance Metrics & Thresholds
+
+### Core Web Vitals Targets (as defined in lighthouse-budget.json)
+- **First Contentful Paint**: ≤ 2000ms
+- **Largest Contentful Paint**: ≤ 2500ms  
+- **Cumulative Layout Shift**: ≤ 0.1
+- **Total Blocking Time**: ≤ 200ms
+
+### Resource Budget Targets
+- **JavaScript Bundle**: ≤ 300KB
+- **CSS Bundle**: ≤ 50KB
+- **Images**: ≤ 500KB total
+- **Fonts**: ≤ 100KB
+- **Total Resources**: ≤ 1000KB
+
+### Resource Count Limits
+- **JavaScript Files**: ≤ 10
+- **CSS Files**: ≤ 5
+- **Images**: ≤ 20
+- **Third-party Resources**: ≤ 10
+
+## Performance Monitoring Best Practices
+
+### Measurement Strategies
+
+- **Baseline Establishment**: Establish performance baselines for all critical pages
+- **Regular Auditing**: Schedule regular performance audits (weekly/monthly)
+- **Trend Analysis**: Monitor performance trends to identify gradual degradation
+- **Comparative Analysis**: Compare performance across different environments and versions
+
+### Alert Configuration
+
+- **Performance Regression Alerts**: Set up alerts for significant performance degradation
+- **Budget Violation Alerts**: Alert when performance budgets are exceeded
+- **Core Web Vitals Alerts**: Monitor and alert on Core Web Vitals threshold violations
+- **Error Rate Correlation**: Correlate performance degradation with error rates
+
+### Reporting & Analysis
+
+- **Weekly Performance Reports**: Generate weekly performance summary reports
+- **Performance Dashboard**: Maintain a real-time performance monitoring dashboard
+- **Stakeholder Communication**: Provide regular performance updates to stakeholders
+- **Performance Review Process**: Include performance review in sprint retrospectives
+
+## Performance Monitoring Integration with TaskMaster
+
+### Performance Task Management
+
+- **Performance Audit Tasks**: Create tasks for regular performance audits
+- **Optimization Tasks**: Track performance optimization work through TaskMaster
+- **Performance Testing Tasks**: Manage performance testing implementation
+- **Monitoring Setup Tasks**: Track setup and configuration of monitoring tools
+
+### Performance-Related Task Types
+
+- **performance-audit**: Regular performance auditing tasks
+- **performance-optimization**: Performance improvement tasks
+- **performance-testing**: Performance test implementation tasks
+- **performance-monitoring**: Monitoring setup and maintenance tasks
+
+### Performance Workflow Integration
+
+When creating performance-related tasks:
+- Use `add_task` with performance-specific prompts for comprehensive task creation
+- Include performance metrics and targets in task descriptions
+- Set up dependencies between performance tasks (e.g., audit before optimization)
+- Use `expand_task` to break down complex performance optimization work
+
+## Emergency Performance Response
+
+### Performance Incident Response Process
+
+1. **Detection**: Automated alerts or user reports of performance issues
+2. **Assessment**: Quick analysis using monitoring tools to understand scope and impact
+3. **Triage**: Prioritize based on user impact and business criticality
+4. **Mitigation**: Implement immediate fixes or rollbacks if necessary
+5. **Root Cause Analysis**: Comprehensive analysis to prevent recurrence
+6. **Documentation**: Document findings and update monitoring/prevention strategies
+
+### Performance Rollback Strategy
+
+- **Deployment Rollback**: Quick rollback process for performance-breaking deployments
+- **Feature Flags**: Use feature flags to quickly disable performance-impacting features
+- **CDN Cache Purging**: Clear CDN caches if performance issues are asset-related
+- **Database Optimization**: Quick database query optimization for API performance issues
+
+## Performance Monitoring Maintenance
+
+### Regular Maintenance Tasks
+
+- **Update Performance Budgets**: Quarterly review and update of performance budgets
+- **Tool Updates**: Keep performance monitoring tools updated
+- **Alert Calibration**: Regular review and calibration of performance alerts
+- **Report Analysis**: Monthly analysis of performance reports and trends
+
+### Performance Monitoring Evolution
+
+- **New Metrics Integration**: Regularly evaluate and integrate new performance metrics
+- **Tool Evaluation**: Periodic evaluation of new performance monitoring tools
+- **Process Improvement**: Continuous improvement of performance monitoring processes
+- **Team Training**: Regular training on performance monitoring best practices
+
+---
+
+*This performance monitoring workflow should be adapted based on specific project requirements and team practices. Regular review and updates ensure the workflow remains effective and relevant.*

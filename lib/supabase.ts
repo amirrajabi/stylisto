@@ -210,7 +210,8 @@ export interface Database {
         Row: {
           id: string;
           email: string;
-          full_name: string | null;
+          first_name: string | null;
+          last_name: string | null;
           avatar_url: string | null;
           created_at: string;
           updated_at: string;
@@ -219,7 +220,8 @@ export interface Database {
         Insert: {
           id: string;
           email: string;
-          full_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -228,7 +230,8 @@ export interface Database {
         Update: {
           id?: string;
           email?: string;
-          full_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -370,7 +373,8 @@ export interface Database {
       user_wardrobe_summary: {
         Row: {
           user_id: string;
-          full_name: string | null;
+          first_name: string | null;
+          last_name: string | null;
           total_items: number;
           favorite_items: number;
           total_outfits: number;

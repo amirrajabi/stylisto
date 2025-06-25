@@ -1,6 +1,6 @@
 /**
  * Design System Colors
- * 
+ *
  * This file defines the complete color palette for the Stylisto app,
  * including primary, secondary, semantic colors, and neutral tones.
  * All colors meet WCAG 2.1 AA accessibility standards with proper contrast ratios.
@@ -137,7 +137,7 @@ export const Colors = {
 
   // Background Colors
   background: {
-    primary: '#FFFFFF',
+    primary: '#1a1a1a',
     secondary: '#F9FAFB',
     tertiary: '#F3F4F6',
     overlay: 'rgba(0, 0, 0, 0.5)',
@@ -182,7 +182,7 @@ export const Colors = {
 // Dark Mode Colors
 export const DarkColors = {
   ...Colors,
-  
+
   // Override specific colors for dark mode
   background: {
     primary: '#111827',
@@ -231,10 +231,11 @@ export const getColorWithOpacity = (color: string, opacity: number): string => {
 
 export const getContrastColor = (backgroundColor: string): string => {
   // Simple contrast calculation - in production, use a more sophisticated algorithm
-  const isLight = backgroundColor === Colors.white || 
-                  backgroundColor.includes('50') || 
-                  backgroundColor.includes('100') ||
-                  backgroundColor.includes('200');
-  
+  const isLight =
+    backgroundColor === Colors.white ||
+    backgroundColor.includes('50') ||
+    backgroundColor.includes('100') ||
+    backgroundColor.includes('200');
+
   return isLight ? Colors.text.primary : Colors.text.inverse;
 };

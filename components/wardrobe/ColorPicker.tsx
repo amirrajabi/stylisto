@@ -1,16 +1,16 @@
+import { Palette } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Palette } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 
 interface ColorPickerProps {
   color: string;
@@ -64,11 +64,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   predefinedColors = DEFAULT_COLORS,
 }) => {
   const [inputValue, setInputValue] = useState(color);
-  
+
   // Handle input change
   const handleInputChange = (text: string) => {
     setInputValue(text);
-    
+
     // If input is a valid color name or hex code, update the color
     if (text.startsWith('#') && /^#([0-9A-F]{3}){1,2}$/i.test(text)) {
       onColorChange(text);
@@ -77,24 +77,24 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       const hexCode = Object.entries(COLOR_NAMES).find(
         ([_, name]) => name.toLowerCase() === text.toLowerCase()
       )?.[0];
-      
+
       if (hexCode) {
         onColorChange(hexCode);
       }
     }
   };
-  
+
   // Get color name from hex
   const getColorName = (hexCode: string): string => {
     return COLOR_NAMES[hexCode.toUpperCase()] || hexCode;
   };
-  
+
   // Handle color selection
   const handleColorSelect = (selectedColor: string) => {
     onColorChange(selectedColor);
     setInputValue(getColorName(selectedColor));
   };
-  
+
   // Handle input blur
   const handleInputBlur = () => {
     // Reset input to current color if invalid
@@ -111,7 +111,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           <Text style={styles.title}>Color</Text>
         </View>
       </View>
-      
+
       <View style={styles.colorInputContainer}>
         <TextInput
           style={styles.colorInput}
@@ -121,51 +121,56 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           placeholder="Enter color name or hex code"
           placeholderTextColor={Colors.text.tertiary}
         />
-        <View 
+        <View
           style={[
-            styles.colorPreview, 
+            styles.colorPreview,
             { backgroundColor: color },
             color.toLowerCase() === '#ffffff' && styles.whiteColorPreview,
-          ]} 
+          ]}
         />
       </View>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.colorPalette}
       >
-        {predefinedColors.map((colorOption) => (
+        {predefinedColors.map(colorOption => (
           <TouchableOpacity
             key={colorOption}
             style={[
               styles.colorOption,
               { backgroundColor: colorOption },
-              colorOption.toLowerCase() === '#ffffff' && styles.whiteColorOption,
+              colorOption.toLowerCase() === '#ffffff' &&
+                styles.whiteColorOption,
               color === colorOption && styles.selectedColorOption,
             ]}
             onPress={() => handleColorSelect(colorOption)}
           />
         ))}
       </ScrollView>
-      
+
       <View style={styles.colorNamesContainer}>
         <Text style={styles.colorNamesTitle}>Common Colors:</Text>
         <View style={styles.colorNames}>
-          {Object.entries(COLOR_NAMES).slice(0, 8).map(([hex, name]) => (
-            <TouchableOpacity
-              key={hex}
-              style={styles.colorNameButton}
-              onPress={() => handleColorSelect(hex)}
-            >
-              <Text style={[
-                styles.colorNameText,
-                color === hex && styles.selectedColorNameText,
-              ]}>
-                {name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {Object.entries(COLOR_NAMES)
+            .slice(0, 8)
+            .map(([hex, name]) => (
+              <TouchableOpacity
+                key={hex}
+                style={styles.colorNameButton}
+                onPress={() => handleColorSelect(hex)}
+              >
+                <Text
+                  style={[
+                    styles.colorNameText,
+                    color === hex && styles.selectedColorNameText,
+                  ]}
+                >
+                  {name}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </View>
       </View>
     </View>

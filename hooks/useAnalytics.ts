@@ -1,5 +1,11 @@
 import { useCallback, useEffect } from 'react';
-import { analytics, EventCategory, ConversionFunnel, FunnelStep, ConsentStatus } from '../lib/analytics';
+import {
+  analytics,
+  ConsentStatus,
+  ConversionFunnel,
+  EventCategory,
+  FunnelStep,
+} from '../lib/analytics';
 import { useAuth } from './useAuth';
 
 export const useAnalytics = () => {
@@ -9,20 +15,21 @@ export const useAnalytics = () => {
   useEffect(() => {
     const initializeAnalytics = async () => {
       await analytics.initialize();
-      
+
       if (user) {
         analytics.setUserId(user.id);
         analytics.setUserProperties({
           email: user.email,
-          full_name: user.full_name,
+          first_name: user.first_name,
+          last_name: user.last_name,
         });
       } else {
         analytics.setUserId(null);
       }
     };
-    
+
     initializeAnalytics();
-    
+
     return () => {
       // End session when component unmounts
       analytics.endSession();
@@ -30,36 +37,48 @@ export const useAnalytics = () => {
   }, [user]);
 
   // Track screen view
-  const trackScreenView = useCallback((screenName: string, properties?: Record<string, any>) => {
-    analytics.trackScreenView(screenName, properties);
-  }, []);
+  const trackScreenView = useCallback(
+    (screenName: string, properties?: Record<string, any>) => {
+      analytics.trackScreenView(screenName, properties);
+    },
+    []
+  );
 
   // Track event
-  const trackEvent = useCallback((
-    eventName: string,
-    properties?: Record<string, any>,
-    category?: EventCategory
-  ) => {
-    analytics.trackEvent(eventName, properties, { category });
-  }, []);
+  const trackEvent = useCallback(
+    (
+      eventName: string,
+      properties?: Record<string, any>,
+      category?: EventCategory
+    ) => {
+      analytics.trackEvent(eventName, properties, { category });
+    },
+    []
+  );
 
   // Track funnel step
-  const trackFunnelStep = useCallback((
-    funnelName: ConversionFunnel,
-    step: FunnelStep,
-    properties?: Record<string, any>
-  ) => {
-    analytics.trackFunnelStep(funnelName, step, properties);
-  }, []);
+  const trackFunnelStep = useCallback(
+    (
+      funnelName: ConversionFunnel,
+      step: FunnelStep,
+      properties?: Record<string, any>
+    ) => {
+      analytics.trackFunnelStep(funnelName, step, properties);
+    },
+    []
+  );
 
   // Track error
-  const trackError = useCallback((
-    errorName: string,
-    errorMessage: string,
-    properties?: Record<string, any>
-  ) => {
-    analytics.trackError(errorName, errorMessage, properties);
-  }, []);
+  const trackError = useCallback(
+    (
+      errorName: string,
+      errorMessage: string,
+      properties?: Record<string, any>
+    ) => {
+      analytics.trackError(errorName, errorMessage, properties);
+    },
+    []
+  );
 
   // Set user properties
   const setUserProperties = useCallback((properties: Record<string, any>) => {

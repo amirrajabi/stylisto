@@ -1,0 +1,172 @@
+---
+description: Guidelines for creating and maintaining Cursor rules to ensure consistency and effectiveness.
+globs: .cursor/rules/*.mdc
+alwaysApply: true
+---
+# **Project FarsiFly: AI-Powered Development Environment & Coding Standards (v5.0.0 - React Native)**
+
+**Author**: Senior Full-Stack Engineer  
+**Date**: June 25, 2025
+
+## Introduction
+
+This document outlines the definitive coding standards, architectural patterns, and development workflow for this project. Its purpose is to ensure a clean, scalable, and maintainable codebase. These guidelines are designed for a development process augmented by AI assistants like Cursor. Adherence to these standards is mandatory for all contributors.
+
+## 1\. Core Philosophy: The "Vibe Coding" Principles
+
+  - **Clarity Over Cleverness**: Code should be self-documenting. Prioritize readability and simplicity.
+  - **Component-Driven**: The UI is built from a well-defined, reusable, and independently verifiable set of components managed in Storybook.
+  - **Strongly-Typed**: We leverage TypeScript to its full potential to eliminate runtime errors and improve developer experience.
+  - **API-Centric**: The core logic, data processing, and security reside on the server-side (Backend). The mobile application is a powerful client that consumes these A logic only when essential.
+  - **Performance-First**: We prioritize performance at every level, from code architecture to the final user experience. Application performance is continuously monitored and optimized.
+  - **Automate Everything**: From code formatting and linting to testing and deployments, we rely on our CI/CD pipeline to maintain quality and consistency.
+
+## 2\. AI Agent Directives (For Cursor IDE)
+
+Before executing any task, you **MUST** adhere to these operational protocols:
+
+  - **Task Initiation**: Start every new task or coding session with the 👽 emoji in the chat.
+  - **Status Review Protocol**: Before beginning any development work, you **MUST**:
+    1.  Read and review the `docs/project-progress-tracker.md` file to understand the current project status.
+    2.  Read and review the `tasks/tasks.json` file to check task statuses and dependencies.
+    3.  Identify which tasks are completed, in-progress, or pending.
+    4.  Ensure you understand the current sprint focus and blocking dependencies.
+    5.  Update the progress tracker if you complete any tasks or subtasks during the session.
+  - **Communication Protocol**:
+      - **Interactive Chat**: All communication with the user within the IDE chat interface **MUST** be in Farsi.
+      - **Project Artifacts**: All generated code, file names, commit messages, and documentation **MUST** be in English.
+  - **Language Standards for Codebase**:
+      - **English-Only Source Code**: ALL source code, including variable names, function names, class names, type definitions, interface names, constant names, and any other identifiers **MUST** be written in English only.
+      - **English-Only Text Content**: ALL hardcoded strings, error messages, log messages, console outputs, and any text content within the source code **MUST** be written in English only.
+      - **No Farsi in Code**: Farsi text, comments, or identifiers are strictly prohibited in any source code files (.ts, .tsx, .js, .jsx).
+      - **English Documentation**: All inline documentation, JSDoc comments, README files, and technical documentation **MUST** be written in English.
+      - **Localization Exception**: User-facing content that needs to be displayed in Farsi should be handled through proper internationalization (i18n) mechanisms and stored in separate content files (e.g., `content/fa.json`), never hardcoded in source files.
+  - **Environment**:
+      - Connect only to the cloud-hosted Supabase instance using the provided credentials.
+      - Do not use a local Supabase instance or emulator.
+  - **Terminal Usage**:
+      - Terminal use is restricted. Do not run servers, tests, or deployments.
+      - Permitted commands: `npm install`, `npx expo start`, `npx expo run:ios`, `npx expo run:android`, `supabase gen types`, and other commands explicitly requested by the user.
+  - **Testing**:
+      - Your primary role is to write files, components, and their corresponding tests (`.test.ts`, `.spec.ts`).
+      - Do not execute the test suite yourself. The CI/CD pipeline is responsible for running all tests.
+  - **Comments**: Do not write comments in the code (`//`, `/* */`). Use descriptive naming and logical structure instead.
+
+## 3\. Project Stack & Setup
+
+  - **Framework**: React Native & Expo SDK 53+
+  - **Language**: TypeScript (Strict Mode)
+  - **Navigation**: React Navigation
+  - **UI**: Tamagui (for performant components and optimized styling)
+  - **State Management**: Zustand
+  - **Forms**: React Hook Form & Zod
+  - **Data Fetching**: TanStack Query (React Query)
+  - **Backend & DB**: Supabase (Auth, DB, Storage)
+  - **Services**: Stripe (Payments), Resend (Emails)
+  - **Project Structure**: All application code resides in directories at the project root.
+  - **Environment Variables**: Managed in `.env` and never committed to Git. Accessed via `expo-constants`.
+
+## 4\. Directory & Code Structure
+
+We follow a feature-centric architecture at the project root. Expo Router is used for file-based routing.
+
+```
+/
+├── app/                  # Expo Router: Routes, screens, layouts
+│   ├── (tabs)/           # Route group for main tabs
+│   │   ├── _layout.tsx   # Layout for the tabs
+│   │   └── home.tsx      # Home screen
+│   ├── (auth)/           # Route group for authentication
+│   └── _layout.tsx       # Root application layout
+├── assets/               # Images, fonts, and other static files
+├── components/           # Shared, reusable React components
+├── constants/            # Constant values (colors, styles, content keys)
+├── content/              # Externalized JSON content (e.g., fa.json for Farsi text)
+├── hooks/                # Custom shared React hooks
+├── lib/                  # Core logic, utilities, 3rd-party initializations (Supabase client)
+├── services/             # Typed abstractions for backend logic (Supabase queries)
+├── store/                # Zustand global state stores
+└── types/                # Global TypeScript types
+```
+
+## 5\. Component-Driven Development (CDD) with Storybook
+
+Our UI is built and documented in Storybook, which serves as our single source of truth for all components.
+
+  - **Everything is a Component**: All UI elements, layouts, and sections must be implemented as React components. Avoid large monolithic files by breaking down functionality into smaller, composable components.
+  - **Check Before Building**: Before creating any new component, always check Storybook to see if a suitable component already exists.
+  - **Component Granularity**: Components must be small, focused, and adhere to the Single Responsibility Principle.
+  - **Storybook-First**: When creating a new component, you **MUST** also create a corresponding `.stories.tsx` file. This story should document all states and variations of the component.
+  - **Use Tamagui**: All base UI elements (buttons, inputs, cards, etc.) must be built from Tamagui components or React Native's core components (`View`, `Text`, `Pressable`).
+  - **Props**: All component props must be explicitly typed in a colocated `*.types.ts` file or directly in the component file for simple cases.
+
+## 6\. TypeScript & Naming Conventions
+
+  - **Strict Mode**: `strict: true` is enforced in `tsconfig.json`.
+  - **Avoid `any`**: The `any` type is forbidden. Use `unknown` for values of an unknown type and perform safe type checking.
+  - **File Size Limit**: Each file must contain fewer than 500 lines of code. If a file exceeds this limit, it must be refactored into smaller, more focused modules or components.
+  - **Naming Conventions** (Enforced by ESLint):
+      - **PascalCase**: Components, Types, Interfaces, Stores (e.g., `UserProfile`, `type UserProfileProps`, `useUserStore`).
+      - **camelCase**: Variables, Functions, Zustand Actions (e.g., `const userProfile`, `function getUserProfile()`, `fetchUserProfile()`).
+      - **UPPER\_SNAKE\_CASE**: Constants, Enum members, Content Keys (e.g., `const API_URL`, `Colors.PRIMARY`).
+
+## 7\. State & Data Management
+
+  - **Local State**: Use `useState` for state that is local to a single component (e.g., modal visibility).
+  - **Global State**: Use Zustand for all global or shared state that needs to be accessed across multiple components.
+      - Zustand stores live in the `store/` directory.
+      - Stores must be modular, fully typed, and use selectors for optimized re-renders.
+  - **Server State (Data Fetching)**: Use TanStack Query (React Query) for all asynchronous operations like fetching, caching, and updating server data.
+      - Wrap all Supabase calls within TanStack Query hooks (`useQuery`, `useMutation`).
+
+## 8\. Forms & Validation
+
+  - **Form Library**: All forms must be built using React Hook Form.
+  - **Schema Validation**: All form and API input must be validated using Zod.
+      - Define a Zod schema for each form.
+      - Use the `@hookform/resolvers/zod` package to connect your schema to React Hook Form.
+      - Reuse Zod schemas for both client-side and server-side validation.
+
+## 9\. Security
+
+  - **Row-Level Security (RLS)**: RLS is mandatory on all Supabase tables that contain sensitive or user-specific data. Policies must be reviewed regularly.
+  - **Secure Storage**: Sensitive client-side data like auth tokens **MUST** be stored using `expo-secure-store`.
+  - **Input Validation**: All data from external sources (user input, API responses) must be validated with Zod.
+  - **Environment Secrets**: Never hardcode secrets. Use the `.env` file.
+  - **Authentication & Authorization**: All user management, authentication, and authorization must be handled by Supabase Auth.
+
+## 10\. Testing Strategy
+
+A comprehensive test suite is crucial for maintaining application quality. The CI pipeline will run all tests on every push.
+
+  - **Unit Tests (Jest)**: For pure functions, utilities, and complex business logic in the `lib` and `services` directories.
+  - **Integration Tests (React Native Testing Library)**: For components, hooks, and user flows. Test component behavior, not implementation details.
+  - **End-to-End (E2E) Tests (Maestro)**: For critical user paths like authentication, checkout, and core feature interactions. These will be written on-demand for key flows.
+  - **Performance Testing**: Performance monitoring using tools like Flipper and the built-in Expo profilers.
+
+## 11\. Localization & Formatting (Australia)
+
+Since this project is being developed for the Australian market, all currency and date formatting must follow Australian standards:
+
+  - **Currency Formatting**:
+      - Always use Australian Dollar (AUD).
+      - Format: `$X,XXX.XX AUD` (e.g., `$1,tl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' })`.
+  - **Date Formatting**:
+      - Use Australian date format: `DD/MM/YYYY` (e.g., `25/12/2024`).
+      - For date-time displays, use 24-hour format: `DD/MM/YYYY HH:mm` (e.g., `25/12/2024 14:30`).
+      - Use `date-fns` or `Intl.DateTimeFormat('en-AU')`.
+  - **Time Zone**:
+      - Default to Australian Eastern Time (AET/AEDT).
+  - **Numbers & Decimals**:
+      - Use a period as the decimal separator and a comma as the thousands separator (e.g., `1,234.56`).
+
+## 12\. Git & Commit Conventions
+
+  - **Branching Strategy**: We use a simple feature-branch workflow.
+      - Create a new branch from `main` for each new task (e.g., `feat/user-login` or `fix/form-validation`).
+      - Once complete, submit a Pull Request (PR) for review.
+      - After approval and passing CI checks, the branch will be squashed and merged into `main`.
+  - **Commit Messages**: We follow the Conventional Commits specification. This is essential for automated versioning and changelog generation.
+      - **Format**: `<type>(<scope>): <subject>`
+      - **Example**: `feat(auth): add password reset functionality`
+      - **Common types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.

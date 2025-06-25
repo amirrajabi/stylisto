@@ -1,6 +1,6 @@
 /**
  * Design System Typography
- * 
+ *
  * This file defines the typography system including font families,
  * sizes, weights, and line heights for consistent text styling.
  */
@@ -15,13 +15,13 @@ export const FontFamily = {
     android: 'Roboto',
     default: 'Inter', // Fallback for web
   }),
-  
+
   secondary: Platform.select({
     ios: 'SF Pro Text',
     android: 'Roboto',
     default: 'Inter',
   }),
-  
+
   mono: Platform.select({
     ios: 'SF Mono',
     android: 'Roboto Mono',
@@ -84,21 +84,21 @@ export const Typography = {
       fontFamily: FontFamily.primary,
       fontSize: FontSize['6xl'],
       fontWeight: FontWeight.bold,
-      lineHeight: LineHeight.tight,
+      lineHeight: 75, // 60px * 1.25
       letterSpacing: LetterSpacing.tight,
     },
     medium: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize['5xl'],
       fontWeight: FontWeight.bold,
-      lineHeight: LineHeight.tight,
+      lineHeight: 60, // 48px * 1.25
       letterSpacing: LetterSpacing.tight,
     },
     small: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize['4xl'],
       fontWeight: FontWeight.bold,
-      lineHeight: LineHeight.snug,
+      lineHeight: 45, // 36px * 1.25
       letterSpacing: LetterSpacing.normal,
     },
   },
@@ -109,42 +109,42 @@ export const Typography = {
       fontFamily: FontFamily.primary,
       fontSize: FontSize['3xl'],
       fontWeight: FontWeight.bold,
-      lineHeight: LineHeight.tight,
+      lineHeight: 38, // 30px * 1.27
       letterSpacing: LetterSpacing.normal,
     },
     h2: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize['2xl'],
       fontWeight: FontWeight.semibold,
-      lineHeight: LineHeight.snug,
+      lineHeight: 32, // 24px * 1.33
       letterSpacing: LetterSpacing.normal,
     },
     h3: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize.xl,
       fontWeight: FontWeight.semibold,
-      lineHeight: LineHeight.snug,
+      lineHeight: 28, // 20px * 1.4
       letterSpacing: LetterSpacing.normal,
     },
     h4: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize.lg,
       fontWeight: FontWeight.medium,
-      lineHeight: LineHeight.normal,
+      lineHeight: 26, // 18px * 1.44
       letterSpacing: LetterSpacing.normal,
     },
     h5: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize.base,
       fontWeight: FontWeight.medium,
-      lineHeight: LineHeight.normal,
+      lineHeight: 24, // 16px * 1.5
       letterSpacing: LetterSpacing.normal,
     },
     h6: {
       fontFamily: FontFamily.primary,
       fontSize: FontSize.sm,
       fontWeight: FontWeight.medium,
-      lineHeight: LineHeight.normal,
+      lineHeight: 20, // 14px * 1.43
       letterSpacing: LetterSpacing.wide,
     },
   },
@@ -155,21 +155,21 @@ export const Typography = {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.lg,
       fontWeight: FontWeight.regular,
-      lineHeight: LineHeight.relaxed,
+      lineHeight: 28, // 18px * 1.56
       letterSpacing: LetterSpacing.normal,
     },
     medium: {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.base,
       fontWeight: FontWeight.regular,
-      lineHeight: LineHeight.normal,
+      lineHeight: 24, // 16px * 1.5
       letterSpacing: LetterSpacing.normal,
     },
     small: {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.sm,
       fontWeight: FontWeight.regular,
-      lineHeight: LineHeight.normal,
+      lineHeight: 20, // 14px * 1.43
       letterSpacing: LetterSpacing.normal,
     },
   },
@@ -180,21 +180,21 @@ export const Typography = {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.sm,
       fontWeight: FontWeight.medium,
-      lineHeight: LineHeight.normal,
+      lineHeight: 20, // 14px * 1.43 for better text visibility
       letterSpacing: LetterSpacing.wide,
     },
     medium: {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.xs,
       fontWeight: FontWeight.medium,
-      lineHeight: LineHeight.normal,
+      lineHeight: 18, // 12px * 1.5 for better text visibility
       letterSpacing: LetterSpacing.wide,
     },
     small: {
       fontFamily: FontFamily.secondary,
       fontSize: 10,
       fontWeight: FontWeight.medium,
-      lineHeight: LineHeight.normal,
+      lineHeight: 15, // 10px * 1.5 for better text visibility
       letterSpacing: LetterSpacing.wider,
     },
   },
@@ -205,21 +205,21 @@ export const Typography = {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.base,
       fontWeight: FontWeight.semibold,
-      lineHeight: LineHeight.none,
+      lineHeight: 24, // 16px * 1.5 for better text visibility
       letterSpacing: LetterSpacing.normal,
     },
     medium: {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.sm,
       fontWeight: FontWeight.semibold,
-      lineHeight: LineHeight.none,
+      lineHeight: 20, // 14px * 1.43 for better text visibility
       letterSpacing: LetterSpacing.normal,
     },
     small: {
       fontFamily: FontFamily.secondary,
       fontSize: FontSize.xs,
       fontWeight: FontWeight.semibold,
-      lineHeight: LineHeight.none,
+      lineHeight: 18, // 12px * 1.5 for better text visibility
       letterSpacing: LetterSpacing.wide,
     },
   },
@@ -229,7 +229,7 @@ export const Typography = {
     fontFamily: FontFamily.secondary,
     fontSize: FontSize.base,
     fontWeight: FontWeight.medium,
-    lineHeight: LineHeight.normal,
+    lineHeight: 24, // 16px * 1.5
     letterSpacing: LetterSpacing.normal,
     textDecorationLine: 'underline' as const,
   },
@@ -239,7 +239,7 @@ export const Typography = {
     fontFamily: FontFamily.mono,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.regular,
-    lineHeight: LineHeight.normal,
+    lineHeight: 20, // 14px * 1.43
     letterSpacing: LetterSpacing.normal,
   },
 };

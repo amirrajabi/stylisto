@@ -8,12 +8,20 @@ export default function AuthLayout() {
         headerShown: false,
         contentStyle: { backgroundColor: Colors.background.primary },
         animation: 'slide_from_right',
+        statusBarStyle: 'light',
+        statusBarBackgroundColor: Colors.background.primary,
       }}
     >
       <Stack.Screen name="login" options={{ title: 'Login' }} />
       <Stack.Screen name="register" options={{ title: 'Register' }} />
-      <Stack.Screen name="forgot-password" options={{ title: 'Forgot Password' }} />
-      <Stack.Screen name="reset-password" options={{ title: 'Reset Password' }} />
+      <Stack.Screen
+        name="forgot-password"
+        options={{ title: 'Forgot Password' }}
+      />
+      <Stack.Screen
+        name="reset-password"
+        options={{ title: 'Reset Password' }}
+      />
     </Stack>
   );
 }
