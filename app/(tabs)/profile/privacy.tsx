@@ -21,6 +21,7 @@ import {
   View,
 } from 'react-native';
 
+import { PrivacyModal } from '../../../components/auth/PrivacyModal';
 import { H1 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
@@ -313,6 +314,11 @@ export default function PrivacyScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <PrivacyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </SafeAreaView>
   );
 }

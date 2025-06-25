@@ -1,4 +1,11 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -143,53 +150,45 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
 
   const { itemWidth, itemHeight, numColumns } = getItemDimensions();
 
-  // Layout provider for RecyclerListView
-  const layoutProvider = useRef(
-    new LayoutProvider(
-      index => {
-        if (index === items.length && items.length > 0) {
-          return ViewTypes.FOOTER;
+  // Layout provider for RecyclerListView - recreate when dimensions change
+  const layoutProvider = useMemo(
+    () =>
+      new LayoutProvider(
+        index => {
+          if (index === items.length && items.length > 0) {
+            return ViewTypes.FOOTER;
+          }
+          return viewMode === 'grid'
+            ? ViewTypes.GRID_ITEM
+            : ViewTypes.LIST_ITEM;
+        },
+        (type, dim) => {
+          switch (type) {
+            case ViewTypes.GRID_ITEM:
+              dim.width = itemWidth;
+              dim.height = itemHeight;
+              break;
+            case ViewTypes.LIST_ITEM:
+              dim.width = itemWidth;
+              dim.height = itemHeight;
+              break;
+            case ViewTypes.FOOTER:
+              dim.width = SCREEN_WIDTH;
+              dim.height = 80;
+              break;
+            default:
+              dim.width = 0;
+              dim.height = 0;
+              break;
+          }
         }
-        return viewMode === 'grid' ? ViewTypes.GRID_ITEM : ViewTypes.LIST_ITEM;
-      },
-      (type, dim) => {
-        switch (type) {
-          case ViewTypes.GRID_ITEM:
-            dim.width = itemWidth;
-            dim.height = itemHeight;
-            break;
-          case ViewTypes.LIST_ITEM:
-            dim.width = itemWidth;
-            dim.height = itemHeight;
-            break;
-          case ViewTypes.FOOTER:
-            dim.width = SCREEN_WIDTH;
-            dim.height = 80;
-            break;
-          default:
-            dim.width = 0;
-            dim.height = 0;
-            break;
-        }
-      }
-    )
-  ).current;
-
-  // Update layout provider when dimensions change
-  useEffect(() => {
-    layoutProvider.setLayoutForType(ViewTypes.GRID_ITEM, {
-      width: itemWidth,
-      height: itemHeight,
-    });
-    layoutProvider.setLayoutForType(ViewTypes.LIST_ITEM, {
-      width: itemWidth,
-      height: itemHeight,
-    });
-  }, [itemWidth, itemHeight, viewMode]);
+      ),
+    [itemWidth, itemHeight, viewMode, items.length]
+  );
 
   // Row renderer for RecyclerListView
   const rowRenderer = useCallback(
-    (type, item: ClothingItem, index) => {
+    (type: any, item: ClothingItem, index: number) => {
       if (type === ViewTypes.FOOTER) {
         return (
           <View style={styles.footer}>

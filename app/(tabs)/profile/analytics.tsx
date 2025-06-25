@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { PrivacyModal } from '../../../components/auth/PrivacyModal';
 import { H1 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
@@ -28,14 +29,8 @@ import { useAnalytics } from '../../../hooks/useAnalytics';
 import { ConsentStatus } from '../../../lib/analytics';
 
 export default function AnalyticsSettingsScreen() {
-  const {
-    getConsentStatus,
-    setConsentStatus,
-    trackScreenView,
-    consent,
-    updateConsent,
-    analytics: analyticsData,
-  } = useAnalytics();
+  const { getConsentStatus, setConsentStatus, trackScreenView } =
+    useAnalytics();
   const [consentEnabled, setConsentEnabled] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
