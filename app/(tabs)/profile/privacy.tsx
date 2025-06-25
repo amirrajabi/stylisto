@@ -1,22 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  Switch,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, Shield, Eye, EyeOff, BarChart, Share2, Save } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
+import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  BarChart,
+  Eye,
+  EyeOff,
+  Save,
+  Share2,
+  Shield,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
 import { H1 } from '../../../components/ui';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
 
 interface PrivacySettings {
   profileVisibility: 'public' | 'private';
@@ -31,6 +40,8 @@ export default function PrivacyScreen() {
     analyticsTracking: true,
   });
   const [hasChanges, setHasChanges] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Load privacy settings from AsyncStorage
   useEffect(() => {
@@ -44,7 +55,7 @@ export default function PrivacyScreen() {
         console.error('Failed to load privacy settings:', error);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -55,56 +66,59 @@ export default function PrivacyScreen() {
         const storedSettings = await AsyncStorage.getItem('@privacy_settings');
         if (storedSettings) {
           const parsedSettings = JSON.parse(storedSettings);
-          const changed = 
+          const changed =
             parsedSettings.profileVisibility !== settings.profileVisibility ||
             parsedSettings.shareOutfits !== settings.shareOutfits ||
             parsedSettings.analyticsTracking !== settings.analyticsTracking;
-          
+
           setHasChanges(changed);
         } else {
           // If no stored settings, check against defaults
-          const changed = 
+          const changed =
             settings.profileVisibility !== 'private' ||
             settings.shareOutfits !== false ||
             settings.analyticsTracking !== true;
-          
+
           setHasChanges(changed);
         }
       } catch (error) {
         console.error('Error checking for changes:', error);
       }
     };
-    
+
     checkForChanges();
   }, [settings]);
 
   const handleToggle = (key: keyof PrivacySettings, value: any) => {
     setSettings(prev => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
   const handleSave = async () => {
     try {
       await AsyncStorage.setItem('@privacy_settings', JSON.stringify(settings));
-      
+
       // In a real app, you would also update the server
       // await supabase.from('user_preferences').upsert({
       //   user_id: user.id,
       //   privacy_settings: settings
       // });
-      
+
       Alert.alert(
         'Settings Saved',
         'Your privacy settings have been updated.',
         [{ text: 'OK' }]
       );
-      
+
       setHasChanges(false);
     } catch (error) {
       console.error('Error saving privacy settings:', error);
-      Alert.alert('Error', 'Failed to save privacy settings. Please try again.');
+      Alert.alert(
+        'Error',
+        'Failed to save privacy settings. Please try again.'
+      );
     }
   };
 
@@ -126,29 +140,44 @@ export default function PrivacyScreen() {
             <Shield size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Privacy Settings</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            Control how your information is used and who can see your profile and outfits.
+            Control how your information is used and who can see your profile
+            and outfits.
           </Text>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
-                <Eye size={18} color={settings.profileVisibility === 'public' ? Colors.success[500] : Colors.error[500]} />
+                <Eye
+                  size={18}
+                  color={
+                    settings.profileVisibility === 'public'
+                      ? Colors.success[500]
+                      : Colors.error[500]
+                  }
+                />
                 <Text style={styles.settingTitle}>Profile Visibility</Text>
               </View>
               <Text style={styles.settingDescription}>
-                {settings.profileVisibility === 'public' 
-                  ? 'Your profile is visible to other users' 
+                {settings.profileVisibility === 'public'
+                  ? 'Your profile is visible to other users'
                   : 'Your profile is private and only visible to you'}
               </Text>
             </View>
             <TouchableOpacity
               style={[
                 styles.visibilityButton,
-                settings.profileVisibility === 'public' ? styles.visibilityPublic : styles.visibilityPrivate
+                settings.profileVisibility === 'public'
+                  ? styles.visibilityPublic
+                  : styles.visibilityPrivate,
               ]}
-              onPress={() => handleToggle('profileVisibility', settings.profileVisibility === 'public' ? 'private' : 'public')}
+              onPress={() =>
+                handleToggle(
+                  'profileVisibility',
+                  settings.profileVisibility === 'public' ? 'private' : 'public'
+                )
+              }
             >
               <Text style={styles.visibilityButtonText}>
                 {settings.profileVisibility === 'public' ? 'Public' : 'Private'}
@@ -160,7 +189,7 @@ export default function PrivacyScreen() {
               )}
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
@@ -173,12 +202,15 @@ export default function PrivacyScreen() {
             </View>
             <Switch
               value={settings.shareOutfits}
-              onValueChange={(value) => handleToggle('shareOutfits', value)}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              onValueChange={value => handleToggle('shareOutfits', value)}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
@@ -191,20 +223,23 @@ export default function PrivacyScreen() {
             </View>
             <Switch
               value={settings.analyticsTracking}
-              onValueChange={(value) => handleToggle('analyticsTracking', value)}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              onValueChange={value => handleToggle('analyticsTracking', value)}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
         </View>
-        
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Shield size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Data & Privacy</Text>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.dataButton}
             onPress={() => router.push('/profile/data-export')}
           >
@@ -213,8 +248,8 @@ export default function PrivacyScreen() {
               Download a copy of all your personal data (GDPR compliant)
             </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.dataButton, styles.deleteDataButton]}
             onPress={() => {
               Alert.alert(
@@ -222,10 +257,10 @@ export default function PrivacyScreen() {
                 'Are you sure you want to delete your account? This action cannot be undone.',
                 [
                   { text: 'Cancel', style: 'cancel' },
-                  { 
-                    text: 'Delete Account', 
+                  {
+                    text: 'Delete Account',
                     style: 'destructive',
-                    onPress: () => router.push('/profile/delete-account')
+                    onPress: () => router.push('/profile/delete-account'),
                   },
                 ]
               );
@@ -237,44 +272,42 @@ export default function PrivacyScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>Privacy Information</Text>
           <Text style={styles.infoText}>
-            Stylisto is committed to protecting your privacy and personal data. We only collect information that's necessary to provide you with the best experience.
+            Stylisto is committed to protecting your privacy and personal data.
+            We only collect information that's necessary to provide you with the
+            best experience.
           </Text>
           <Text style={styles.infoText}>
-            You can read our full privacy policy and terms of service for more details on how we handle your data.
+            You can read our full privacy policy and terms of service for more
+            details on how we handle your data.
           </Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.policyButton}
             onPress={() => {
-              // In a real app, this would open the privacy policy
-              Alert.alert('Privacy Policy', 'This would open the privacy policy in a real app.');
+              setShowPrivacyModal(true);
             }}
           >
             <Text style={styles.policyButtonText}>View Privacy Policy</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.policyButton}
             onPress={() => {
-              // In a real app, this would open the terms of service
-              Alert.alert('Terms of Service', 'This would open the terms of service in a real app.');
+              setShowTermsModal(true);
             }}
           >
             <Text style={styles.policyButtonText}>View Terms of Service</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
+
       {hasChanges && (
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-          >
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Save size={20} color={Colors.white} />
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>

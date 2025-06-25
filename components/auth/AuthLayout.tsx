@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import React from 'react';
 import {
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,8 +18,6 @@ interface AuthLayoutProps {
   showLogo?: boolean;
 }
 
-const { width, height } = Dimensions.get('window');
-
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
   showLogo = true,
@@ -28,53 +25,45 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: 0 }]}>
+    <View style={styles.container}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="transparent"
         translucent
       />
+
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top },
+            { paddingTop: insets.top + 20 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          style={styles.scrollView}
+          bounces={true}
         >
-          {/* Background Image */}
-          <View style={styles.backgroundContainer}>
-            <Image
-              source={{
-                uri: 'https://images.pexels.com/photos/996329/pexels-photo-996329.jpeg?auto=compress&cs=tinysrgb&w=1200',
-              }}
-              style={styles.backgroundImage}
-              contentFit="cover"
-            />
-            <View style={styles.overlay} />
-          </View>
-
-          {/* Content */}
-          <View style={styles.contentContainer}>
+          <View style={styles.topSection}>
             {showLogo && (
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
                   <Image
                     source={require('../../assets/images/splash-icon.png')}
                     style={styles.logoImage}
-                    contentFit="cover"
+                    contentFit="contain"
                   />
                 </View>
               </View>
             )}
-
-            <View style={styles.formContainer}>{children}</View>
           </View>
+
+          <View style={styles.contentCard}>{children}</View>
+
+          <View style={styles.bottomSpacer} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -84,66 +73,50 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.primary[600],
   },
   keyboardView: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,
-    minHeight: height + (StatusBar.currentHeight || 0),
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
-  backgroundContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: height * 0.6,
-  },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  contentContainer: {
-    flex: 1,
-    paddingTop: height * 0.15,
-    backgroundColor: 'transparent',
+  topSection: {
+    paddingVertical: Spacing['2xl'],
+    alignItems: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: Spacing['2xl'],
+    marginBottom: Spacing.lg,
   },
   logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: Layout.borderRadius.full,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.white,
-    padding: 4,
+    padding: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...Shadows.lg,
   },
   logoImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: Layout.borderRadius.full,
+    width: 50,
+    height: 50,
   },
-  formContainer: {
+  contentCard: {
     flex: 1,
     backgroundColor: Colors.surface.primary,
-    borderTopLeftRadius: Layout.borderRadius['3xl'],
-    borderTopRightRadius: Layout.borderRadius['3xl'],
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing['2xl'],
-    paddingBottom: Spacing.xl,
-    minHeight: height * 0.6,
+    borderRadius: Layout.borderRadius['2xl'],
+    padding: Spacing.xl,
+    minHeight: 400,
     ...Shadows.xl,
-    marginTop: 'auto',
+  },
+  bottomSpacer: {
+    height: Spacing.xl,
   },
 });

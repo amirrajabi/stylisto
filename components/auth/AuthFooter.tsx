@@ -1,9 +1,11 @@
-import { router } from 'expo-router';
-import React from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { router, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { BodySmall } from '../ui';
+import { PrivacyModal } from './PrivacyModal';
+import { TermsModal } from './TermsModal';
 
 interface AuthFooterProps {
   currentPage: 'login' | 'register';
@@ -11,24 +13,70 @@ interface AuthFooterProps {
 
 export function AuthFooter({ currentPage }: AuthFooterProps) {
   const currentYear = new Date().getFullYear();
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigation = useNavigation();
+  const mountedRef = useRef(true);
 
-  const handleTermsPress = () => {
-    // For now, open a web link. Later this can be replaced with an in-app modal or screen
-    Linking.openURL('https://stylisto.app/terms-and-conditions');
-  };
+  const forceCloseModals = useCallback(() => {
+    if (!mountedRef.current) return;
+    setShowTermsModal(false);
+    setShowPrivacyModal(false);
+    setIsNavigating(false);
+  }, []);
 
-  const handlePrivacyPress = () => {
-    // For now, open a web link. Later this can be replaced with an in-app modal or screen
-    Linking.openURL('https://stylisto.app/privacy-policy');
-  };
+  const handleTermsPress = useCallback(() => {
+    if (isNavigating) return;
+    setShowTermsModal(true);
+  }, [isNavigating]);
 
-  const handleNavigationPress = () => {
-    if (currentPage === 'login') {
-      router.push('/(auth)/register');
-    } else {
-      router.push('/(auth)/login');
-    }
-  };
+  const handleCloseTermsModal = useCallback(() => {
+    setShowTermsModal(false);
+  }, []);
+
+  const handlePrivacyPress = useCallback(() => {
+    if (isNavigating) return;
+    setShowPrivacyModal(true);
+  }, [isNavigating]);
+
+  const handleClosePrivacyModal = useCallback(() => {
+    setShowPrivacyModal(false);
+  }, []);
+
+  const handleNavigationPress = useCallback(() => {
+    if (isNavigating) return;
+
+    setIsNavigating(true);
+    forceCloseModals();
+
+    setTimeout(() => {
+      if (currentPage === 'login') {
+        router.push('/(auth)/register');
+      } else {
+        router.push('/(auth)/login');
+      }
+    }, 50);
+  }, [currentPage, forceCloseModals, isNavigating]);
+
+  useEffect(() => {
+    forceCloseModals();
+  }, [currentPage, forceCloseModals]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    const unsubscribe = navigation.addListener('beforeRemove', () => {
+      forceCloseModals();
+    });
+
+    return () => {
+      mountedRef.current = false;
+      unsubscribe();
+    };
+  }, [navigation, forceCloseModals]);
+
+  const shouldShowModals = !isNavigating;
 
   return (
     <View style={styles.container}>
@@ -36,9 +84,11 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
       <View style={styles.navigationContainer}>
         <Pressable
           onPress={handleNavigationPress}
+          disabled={isNavigating}
           style={({ pressed }) => [
             styles.navigationPressable,
             pressed && styles.pressedState,
+            isNavigating && styles.disabledState,
           ]}
         >
           <BodySmall color="secondary" style={styles.navigationText}>
@@ -57,9 +107,11 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
         <View style={styles.legalLinksRow}>
           <Pressable
             onPress={handleTermsPress}
+            disabled={isNavigating}
             style={({ pressed }) => [
               styles.legalPressable,
               pressed && styles.pressedState,
+              isNavigating && styles.disabledState,
             ]}
           >
             <BodySmall color="secondary" style={styles.legalLink}>
@@ -73,9 +125,11 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
 
           <Pressable
             onPress={handlePrivacyPress}
+            disabled={isNavigating}
             style={({ pressed }) => [
               styles.legalPressable,
               pressed && styles.pressedState,
+              isNavigating && styles.disabledState,
             ]}
           >
             <BodySmall color="secondary" style={styles.legalLink}>
@@ -89,6 +143,19 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
           © {currentYear} Stylisto. All rights reserved.
         </BodySmall>
       </View>
+
+      {shouldShowModals && (
+        <>
+          <TermsModal
+            visible={showTermsModal}
+            onClose={handleCloseTermsModal}
+          />
+          <PrivacyModal
+            visible={showPrivacyModal}
+            onClose={handleClosePrivacyModal}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -159,5 +226,8 @@ const styles = StyleSheet.create({
   pressedState: {
     opacity: 0.7,
     backgroundColor: Colors.neutral[100],
+  },
+  disabledState: {
+    opacity: 0.5,
   },
 });

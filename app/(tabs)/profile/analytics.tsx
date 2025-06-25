@@ -1,49 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  Switch,
-  ScrollView,
-  Platform,
-} from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, BarChart, PieChart, Activity, Eye, EyeOff, Download } from 'lucide-react-native';
-import { analytics, ConsentStatus } from '../../../lib/analytics';
-import { useAnalytics } from '../../../hooks/useAnalytics';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
+import {
+  Activity,
+  ArrowLeft,
+  BarChart,
+  Download,
+  Eye,
+  EyeOff,
+  PieChart,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { H1 } from '../../../components/ui';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
+import { useAnalytics } from '../../../hooks/useAnalytics';
+import { ConsentStatus } from '../../../lib/analytics';
 
 export default function AnalyticsSettingsScreen() {
-  const { getConsentStatus, setConsentStatus, trackScreenView } = useAnalytics();
+  const {
+    getConsentStatus,
+    setConsentStatus,
+    trackScreenView,
+    consent,
+    updateConsent,
+    analytics: analyticsData,
+  } = useAnalytics();
   const [consentEnabled, setConsentEnabled] = useState(false);
-  
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
   // Track screen view
   useEffect(() => {
     trackScreenView('AnalyticsSettings');
   }, [trackScreenView]);
-  
+
   // Load initial consent status
   useEffect(() => {
     const status = getConsentStatus();
     setConsentEnabled(status === ConsentStatus.GRANTED);
   }, [getConsentStatus]);
-  
+
   // Handle consent toggle
   const handleConsentToggle = async (value: boolean) => {
     setConsentEnabled(value);
-    await setConsentStatus(value ? ConsentStatus.GRANTED : ConsentStatus.DENIED);
+    await setConsentStatus(
+      value ? ConsentStatus.GRANTED : ConsentStatus.DENIED
+    );
   };
-  
+
   // Handle data export
   const handleDataExport = () => {
     // In a real app, this would trigger a data export process
-    alert('Your data export has been requested. You will receive an email with your data shortly.');
+    alert(
+      'Your data export has been requested. You will receive an email with your data shortly.'
+    );
   };
 
   return (
@@ -64,11 +84,12 @@ export default function AnalyticsSettingsScreen() {
             <BarChart size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Data Collection</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            Control how Stylisto collects and uses your data to improve the app experience.
+            Control how Stylisto collects and uses your data to improve the app
+            experience.
           </Text>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Analytics Collection</Text>
@@ -79,11 +100,14 @@ export default function AnalyticsSettingsScreen() {
             <Switch
               value={consentEnabled}
               onValueChange={handleConsentToggle}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Platform.OS === 'ios' ? undefined : Colors.white}
             />
           </View>
-          
+
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>What data do we collect?</Text>
             <Text style={styles.infoText}>
@@ -92,21 +116,17 @@ export default function AnalyticsSettingsScreen() {
             <Text style={styles.infoText}>
               • Device information (type, OS version)
             </Text>
-            <Text style={styles.infoText}>
-              • App performance metrics
-            </Text>
-            <Text style={styles.infoText}>
-              • Crash reports
-            </Text>
+            <Text style={styles.infoText}>• App performance metrics</Text>
+            <Text style={styles.infoText}>• Crash reports</Text>
           </View>
         </View>
-        
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <PieChart size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>How We Use Your Data</Text>
           </View>
-          
+
           <View style={styles.usageCard}>
             <View style={styles.usageItem}>
               <Activity size={20} color={Colors.primary[700]} />
@@ -117,21 +137,24 @@ export default function AnalyticsSettingsScreen() {
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.usageItem}>
               <Activity size={20} color={Colors.primary[700]} />
               <View style={styles.usageContent}>
                 <Text style={styles.usageTitle}>Develop New Features</Text>
                 <Text style={styles.usageDescription}>
-                  We identify opportunities for new features based on how you use the app
+                  We identify opportunities for new features based on how you
+                  use the app
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.usageItem}>
               <Activity size={20} color={Colors.primary[700]} />
               <View style={styles.usageContent}>
-                <Text style={styles.usageTitle}>Fix Bugs & Performance Issues</Text>
+                <Text style={styles.usageTitle}>
+                  Fix Bugs & Performance Issues
+                </Text>
                 <Text style={styles.usageDescription}>
                   We track errors and performance to make the app more reliable
                 </Text>
@@ -139,17 +162,18 @@ export default function AnalyticsSettingsScreen() {
             </View>
           </View>
         </View>
-        
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Eye size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Your Privacy Rights</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            You have control over your data and can exercise these rights at any time:
+            You have control over your data and can exercise these rights at any
+            time:
           </Text>
-          
+
           <View style={styles.rightsList}>
             <View style={styles.rightItem}>
               <View style={styles.rightIcon}>
@@ -158,11 +182,12 @@ export default function AnalyticsSettingsScreen() {
               <View style={styles.rightContent}>
                 <Text style={styles.rightTitle}>Right to Opt Out</Text>
                 <Text style={styles.rightDescription}>
-                  You can disable analytics collection at any time using the toggle above
+                  You can disable analytics collection at any time using the
+                  toggle above
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.rightItem}>
               <View style={styles.rightIcon}>
                 <Download size={16} color={Colors.white} />
@@ -175,7 +200,7 @@ export default function AnalyticsSettingsScreen() {
               </View>
             </View>
           </View>
-          
+
           <TouchableOpacity
             style={styles.exportButton}
             onPress={handleDataExport}
@@ -184,24 +209,29 @@ export default function AnalyticsSettingsScreen() {
             <Text style={styles.exportButtonText}>Request Data Export</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.section}>
           <Text style={styles.privacyTitle}>Privacy Policy</Text>
           <Text style={styles.privacyText}>
-            For more information about how we handle your data, please read our full Privacy Policy.
+            For more information about how we handle your data, please read our
+            full Privacy Policy.
           </Text>
-          
+
           <TouchableOpacity
             style={styles.privacyButton}
             onPress={() => {
-              // In a real app, this would open the privacy policy
-              alert('This would open the Privacy Policy in a real app');
+              setShowPrivacyModal(true);
             }}
           >
             <Text style={styles.privacyButtonText}>View Privacy Policy</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <PrivacyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </SafeAreaView>
   );
 }

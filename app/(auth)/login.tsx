@@ -84,8 +84,8 @@ export default function LoginScreen() {
         </BodyMedium>
       </View>
 
-      <View style={styles.form}>
-        <View style={styles.mainContent}>
+      <View style={styles.formContainer}>
+        <View style={styles.fieldsContainer}>
           <Controller
             control={form.control}
             name="email"
@@ -124,28 +124,28 @@ export default function LoginScreen() {
           />
         </View>
 
-        <View style={styles.buttonContainer}>
+        <View style={styles.actionsContainer}>
           <Button
             title="Sign In"
             onPress={form.handleSubmit(onSubmit)}
             disabled={loading || form.formState.isSubmitting}
             style={styles.signInButton}
           />
-        </View>
-      </View>
 
-      <View style={styles.forgotPasswordContainer}>
-        <BodyMedium color="secondary" style={styles.forgotPasswordText}>
-          Can&apos;t access your account?
-        </BodyMedium>
-        <Button
-          title="Reset Password"
-          variant="ghost"
-          size="small"
-          onPress={handleForgotPassword}
-          style={styles.forgotPasswordButton}
-          textStyle={styles.forgotPasswordLinkText}
-        />
+          <View style={styles.forgotPasswordContainer}>
+            <BodyMedium color="secondary" style={styles.forgotPasswordText}>
+              Can&apos;t access your account?
+            </BodyMedium>
+            <Button
+              title="Reset Password"
+              variant="ghost"
+              size="small"
+              onPress={handleForgotPassword}
+              style={styles.forgotPasswordButton}
+              textStyle={styles.forgotPasswordLinkText}
+            />
+          </View>
+        </View>
       </View>
 
       <AuthFooter currentPage="login" />
@@ -156,28 +156,34 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   title: {
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
   subtitle: {
     textAlign: 'center',
+    maxWidth: 280,
   },
-  form: {
+  formContainer: {
     flex: 1,
     justifyContent: 'space-between',
+    minHeight: 200,
   },
-  mainContent: {
-    gap: Spacing.md,
+  fieldsContainer: {
+    gap: Spacing.lg,
   },
-  forgotPassword: {
-    alignItems: 'flex-end',
+  actionsContainer: {
+    gap: Spacing.lg,
+    marginTop: Spacing.xl,
+  },
+  signInButton: {
+    backgroundColor: Colors.primary[600],
   },
   forgotPasswordContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   forgotPasswordText: {
     textAlign: 'center',
@@ -186,19 +192,12 @@ const styles = StyleSheet.create({
   forgotPasswordButton: {
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
   },
   forgotPasswordLinkText: {
     color: Colors.primary[600],
     fontSize: 14,
     fontWeight: '600',
     textDecorationLine: 'underline',
-  },
-  buttonContainer: {
-    gap: Spacing.md,
-    marginTop: Spacing.xl,
-  },
-  signInButton: {
-    backgroundColor: Colors.primary[600],
   },
 });

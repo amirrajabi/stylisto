@@ -1,15 +1,23 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { Key, Mail, User } from 'lucide-react-native';
+import { ArrowLeft, Key, Mail, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { FormField } from '../../components/auth/FormField';
 import { LoadingOverlay } from '../../components/auth/LoadingOverlay';
-import { BodyMedium, BodySmall, Button, H1 } from '../../components/ui';
+import { PrivacyModal } from '../../components/auth/PrivacyModal';
+import { TermsModal } from '../../components/auth/TermsModal';
+import {
+  BodyMedium,
+  BodySmall,
+  Button,
+  CheckBox,
+  H1,
+} from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
@@ -37,6 +45,9 @@ const registerSchema = z
         'Password must contain at least one uppercase letter, one lowercase letter, and one number'
       ),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    acceptTerms: z.boolean().refine(val => val === true, {
+      message: 'You must accept the Terms and Conditions',
+    }),
   })
   .refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -48,6 +59,8 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterScreen() {
   const { signUpWithPassword, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -57,6 +70,7 @@ export default function RegisterScreen() {
       lastName: '',
       password: '',
       confirmPassword: '',
+      acceptTerms: false,
     },
   });
 
@@ -97,6 +111,26 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleBackToLogin = () => {
+    router.push('/(auth)/login');
+  };
+
+  const handleTermsPress = () => {
+    setShowTermsModal(true);
+  };
+
+  const handlePrivacyPress = () => {
+    setShowPrivacyModal(true);
+  };
+
+  const handleCloseTermsModal = () => {
+    setShowTermsModal(false);
+  };
+
+  const handleClosePrivacyModal = () => {
+    setShowPrivacyModal(false);
+  };
+
   return (
     <AuthLayout>
       <LoadingOverlay
@@ -105,14 +139,20 @@ export default function RegisterScreen() {
       />
 
       <View style={styles.header}>
+        <Button
+          title=""
+          onPress={handleBackToLogin}
+          style={styles.backButton}
+          leftIcon={<ArrowLeft size={20} color={Colors.primary[600]} />}
+        />
         <H1 style={styles.title}>Create Account</H1>
         <BodyMedium color="secondary" style={styles.subtitle}>
           Sign up to get started with Stylisto
         </BodyMedium>
       </View>
 
-      <View style={styles.form}>
-        <View style={styles.mainContent}>
+      <View style={styles.formContainer}>
+        <View style={styles.fieldsContainer}>
           <Controller
             control={form.control}
             name="email"
@@ -205,21 +245,61 @@ export default function RegisterScreen() {
             Password must be at least 8 characters with uppercase, lowercase,
             and number
           </BodySmall>
+
+          <Controller
+            control={form.control}
+            name="acceptTerms"
+            render={({ field: { value, onChange } }) => (
+              <View style={styles.termsContainer}>
+                <CheckBox
+                  checked={value}
+                  onToggle={() => onChange(!value)}
+                  error={!!form.formState.errors.acceptTerms}
+                >
+                  <View style={styles.termsLinksRow}>
+                    <BodySmall style={styles.termsText}>
+                      I agree to the{' '}
+                    </BodySmall>
+                    <Pressable onPress={handleTermsPress}>
+                      <BodySmall style={styles.termsLinkText}>Terms</BodySmall>
+                    </Pressable>
+                    <BodySmall style={styles.termsText}> & </BodySmall>
+                    <Pressable onPress={handlePrivacyPress}>
+                      <BodySmall style={styles.termsLinkText}>
+                        Privacy Policy
+                      </BodySmall>
+                    </Pressable>
+                  </View>
+                </CheckBox>
+                {form.formState.errors.acceptTerms && (
+                  <BodySmall style={styles.errorText}>
+                    {form.formState.errors.acceptTerms.message}
+                  </BodySmall>
+                )}
+              </View>
+            )}
+          />
         </View>
 
-        <View style={styles.buttonContainer}>
+        <View style={styles.actionsContainer}>
           <Button
             title="Create Account"
             onPress={form.handleSubmit(onSubmit)}
             disabled={
               loading || form.formState.isSubmitting || !form.formState.isValid
             }
-            style={styles.button}
+            style={styles.createButton}
           />
         </View>
       </View>
 
       <AuthFooter currentPage="register" />
+
+      <TermsModal visible={showTermsModal} onClose={handleCloseTermsModal} />
+      <PrivacyModal
+        visible={showPrivacyModal}
+        onClose={handleClosePrivacyModal}
+      />
     </AuthLayout>
   );
 }
@@ -228,30 +308,64 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: Spacing.lg,
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: Spacing.xs,
   },
   title: {
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
     textAlign: 'center',
     maxWidth: 280,
   },
-  form: {
+  formContainer: {
     flex: 1,
     justifyContent: 'space-between',
+    minHeight: 300,
   },
-  mainContent: {
-    flex: 1,
+  fieldsContainer: {
+    gap: Spacing.md,
   },
   helperText: {
-    marginTop: Spacing.sm,
     textAlign: 'center',
+    fontSize: 13,
+    opacity: 0.8,
   },
-  buttonContainer: {
+  termsContainer: {
+    marginTop: Spacing.md,
+  },
+  termsLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  termsText: {
+    lineHeight: 20,
+    color: Colors.text.secondary,
+  },
+  termsLinkText: {
+    color: Colors.primary[600],
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+  errorText: {
+    color: Colors.error[600],
+    marginTop: Spacing.xs,
+    marginLeft: 28,
+  },
+  actionsContainer: {
     marginTop: Spacing.xl,
   },
-  button: {
+  createButton: {
+    backgroundColor: Colors.primary[600],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

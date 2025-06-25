@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
-import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { FormField } from '../../components/auth/FormField';
 import { LoadingOverlay } from '../../components/auth/LoadingOverlay';
@@ -155,8 +154,6 @@ export default function ResetPasswordScreen() {
           />
         </View>
       </View>
-
-      <AuthFooter currentPage="login" />
     </AuthLayout>
   );
 }

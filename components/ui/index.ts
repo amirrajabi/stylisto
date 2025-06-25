@@ -1,6 +1,6 @@
 /**
  * UI Components Index
- * 
+ *
  * Central export file for all design system components
  */
 
@@ -17,8 +17,16 @@ export type { CardProps } from './Card';
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
 
+export { CheckBox } from './CheckBox';
+
 // Typography components
 export {
+  BodyLarge,
+  BodyMedium,
+  BodySmall,
+  CaptionLarge,
+  CaptionMedium,
+  CaptionSmall,
   DisplayLarge,
   DisplayMedium,
   DisplaySmall,
@@ -28,11 +36,5 @@ export {
   H4,
   H5,
   H6,
-  BodyLarge,
-  BodyMedium,
-  BodySmall,
-  CaptionLarge,
-  CaptionMedium,
-  CaptionSmall,
   Link,
 } from './Typography';
