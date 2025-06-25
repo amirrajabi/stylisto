@@ -212,7 +212,9 @@ export default function OutfitDetailScreen() {
           )}
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatDate(outfit.createdAt)}</Text>
+            <Text style={styles.statValue}>
+              {outfit.createdAt ? formatDate(outfit.createdAt) : 'Unknown'}
+            </Text>
             <Text style={styles.statLabel}>Created</Text>
           </View>
         </View>

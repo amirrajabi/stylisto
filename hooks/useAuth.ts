@@ -1,10 +1,11 @@
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 import { authService, AuthUser } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import type { ProfileUpdateFormData, User } from '../types/auth';
 
 export interface AuthState {
-  user: AuthUser | null;
+  user: User | null;
   session: Session | null;
   loading: boolean;
   error: string | null;
@@ -20,6 +21,16 @@ export const useAuth = () => {
     isAuthenticated: false,
   });
 
+  // Get user profile from users table
+  const getUserProfile = useCallback(async (): Promise<User | null> => {
+    try {
+      return await authService.getUserProfile();
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+  }, []);
+
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
@@ -29,10 +40,29 @@ export const useAuth = () => {
         const session = await authService.getSession();
 
         if (mounted) {
+          let userProfile: User | null = null;
+
+          if (session?.user) {
+            // Try to get full user profile from users table
+            userProfile = await getUserProfile();
+
+            // If no profile exists, create one (for existing users)
+            if (!userProfile && session.user) {
+              userProfile = {
+                id: session.user.id,
+                email: session.user.email || '',
+                first_name: session.user.user_metadata?.first_name,
+                last_name: session.user.user_metadata?.last_name,
+                created_at: session.user.created_at,
+                updated_at: session.user.updated_at || session.user.created_at,
+              };
+            }
+          }
+
           setAuthState(prev => ({
             ...prev,
             session,
-            user: session?.user ? mapSupabaseUser(session.user) : null,
+            user: userProfile,
             isAuthenticated: !!session?.user,
             loading: false,
             error: null,
@@ -59,10 +89,17 @@ export const useAuth = () => {
 
       console.log('Auth state changed:', event, session?.user?.email);
 
+      let userProfile: User | null = null;
+
+      if (session?.user) {
+        // Try to get full user profile from users table
+        userProfile = await getUserProfile();
+      }
+
       setAuthState(prev => ({
         ...prev,
         session,
-        user: session?.user ? mapSupabaseUser(session.user) : null,
+        user: userProfile,
         isAuthenticated: !!session?.user,
         loading: false,
         error: null,
@@ -70,7 +107,6 @@ export const useAuth = () => {
 
       // Handle specific auth events
       if (event === 'SIGNED_OUT') {
-        // Clear any app-specific state here
         console.log('User signed out');
       }
 
@@ -80,10 +116,8 @@ export const useAuth = () => {
 
       if (event === 'SIGNED_IN') {
         console.log('User signed in:', session?.user?.email);
-        // Record session for all sign-in events (email confirmation, password reset, etc.)
         if (session?.user?.id) {
           try {
-            // Record session using AuthService method that handles user creation if needed
             await authService.recordSession(session.user.id);
           } catch (error) {
             console.error('Error recording session on sign in event:', error);
@@ -96,7 +130,63 @@ export const useAuth = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [getUserProfile]);
+
+  // Update profile using new comprehensive method
+  const updateUserProfile = useCallback(
+    async (updates: ProfileUpdateFormData) => {
+      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+      try {
+        const updatedProfile = await authService.updateUserProfile(updates);
+
+        // Update local state
+        setAuthState(prev => ({
+          ...prev,
+          user: updatedProfile,
+          loading: false,
+        }));
+
+        return updatedProfile;
+      } catch (error: any) {
+        setAuthState(prev => ({
+          ...prev,
+          error: error.message,
+          loading: false,
+        }));
+        throw error;
+      }
+    },
+    []
+  );
+
+  // Update profile (legacy method for backward compatibility)
+  const updateProfile = useCallback(
+    async (updates: Partial<AuthUser>) => {
+      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+      try {
+        await authService.updateProfile(updates);
+
+        // Refresh user profile from database
+        const userProfile = await getUserProfile();
+
+        setAuthState(prev => ({
+          ...prev,
+          user: userProfile,
+          loading: false,
+        }));
+      } catch (error: any) {
+        setAuthState(prev => ({
+          ...prev,
+          error: error.message,
+          loading: false,
+        }));
+        throw error;
+      }
+    },
+    [getUserProfile]
+  );
 
   // Sign out
   const signOut = useCallback(async () => {
@@ -161,29 +251,6 @@ export const useAuth = () => {
     },
     []
   );
-
-  // Update profile
-  const updateProfile = useCallback(async (updates: Partial<AuthUser>) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      await authService.updateProfile(updates);
-
-      // Update local state
-      setAuthState(prev => ({
-        ...prev,
-        user: prev.user ? { ...prev.user, ...updates } : null,
-        loading: false,
-      }));
-    } catch (error: any) {
-      setAuthState(prev => ({
-        ...prev,
-        error: error.message,
-        loading: false,
-      }));
-      throw error;
-    }
-  }, []);
 
   // Reset password
   const resetPassword = useCallback(async (email: string) => {
@@ -253,6 +320,7 @@ export const useAuth = () => {
     signUpWithPassword,
     signInWithPassword,
     signOut,
+    updateUserProfile,
     updateProfile,
     resetPassword,
     handleOAuthCallback,
@@ -260,7 +328,7 @@ export const useAuth = () => {
 };
 
 // Helper function to map Supabase user to our AuthUser interface
-const mapSupabaseUser = (supabaseUser: User): AuthUser => ({
+const mapSupabaseUser = (supabaseUser: SupabaseUser): AuthUser => ({
   id: supabaseUser.id,
   email: supabaseUser.email || '',
   username: supabaseUser.user_metadata?.username,

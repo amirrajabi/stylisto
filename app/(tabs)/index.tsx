@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import {
   Filter,
   Grid,
@@ -33,6 +34,8 @@ export default function WardrobeScreen() {
     filters,
     sortOptions,
     searchQuery,
+    isLoading,
+    error,
     actions,
   } = useWardrobe();
 
@@ -46,27 +49,28 @@ export default function WardrobeScreen() {
     const allItems = filteredItems;
     return {
       colors: [...new Set(allItems.map(item => item.color))],
-      brands: [...new Set(allItems.map(item => item.brand).filter(Boolean))],
+      brands: [
+        ...new Set(
+          allItems
+            .map(item => item.brand)
+            .filter((brand): brand is string => Boolean(brand))
+        ),
+      ],
       tags: [...new Set(allItems.flatMap(item => item.tags))],
     };
   }, [filteredItems]);
 
   const handleItemPress = (item: ClothingItem) => {
-    if (selectedItems.length > 0) {
-      // Multi-select mode
-      if (selectedItems.includes(item.id)) {
-        actions.deselectItem(item.id);
-      } else {
-        actions.selectItem(item.id);
-      }
-    } else {
-      // Single item view - could navigate to detail screen
-      console.log('View item details:', item.name);
-    }
+    router.push({
+      pathname: '/item-detail',
+      params: { itemId: item.id },
+    });
   };
 
   const handleItemLongPress = (item: ClothingItem) => {
-    if (!selectedItems.includes(item.id)) {
+    if (selectedItems.includes(item.id)) {
+      actions.deselectItem(item.id);
+    } else {
       actions.selectItem(item.id);
     }
   };
@@ -83,20 +87,28 @@ export default function WardrobeScreen() {
           destructiveButtonIndex,
           cancelButtonIndex,
         },
-        buttonIndex => {
+        async buttonIndex => {
           if (buttonIndex === 0) {
             setEditingItem(item);
             setShowAddModal(true);
           } else if (buttonIndex === 1) {
             Alert.alert(
               'Delete Item',
-              `Are you sure you want to delete "${item.name}"?`,
+              'Are you sure you want to delete this item?',
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Delete',
                   style: 'destructive',
-                  onPress: () => actions.deleteItem(item.id),
+                  onPress: async () => {
+                    const result = await actions.deleteItem(item.id);
+                    if (!result.success) {
+                      Alert.alert(
+                        'Error',
+                        result.error || 'Failed to delete item'
+                      );
+                    }
+                  },
                 },
               ]
             );
@@ -104,38 +116,42 @@ export default function WardrobeScreen() {
         }
       );
     } else {
-      Alert.alert(
-        'Item Options',
-        `What would you like to do with "${item.name}"?`,
-        [
-          {
-            text: 'Edit',
-            onPress: () => {
-              setEditingItem(item);
-              setShowAddModal(true);
-            },
+      Alert.alert('Item Options', 'What would you like to do?', [
+        {
+          text: 'Edit',
+          onPress: () => {
+            setEditingItem(item);
+            setShowAddModal(true);
           },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              Alert.alert(
-                'Delete Item',
-                `Are you sure you want to delete "${item.name}"?`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => actions.deleteItem(item.id),
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete Item',
+              'Are you sure you want to delete this item?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    const result = await actions.deleteItem(item.id);
+                    if (!result.success) {
+                      Alert.alert(
+                        'Error',
+                        result.error || 'Failed to delete item'
+                      );
+                    }
                   },
-                ]
-              );
-            },
+                },
+              ]
+            );
           },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     }
   };
 
@@ -176,12 +192,8 @@ export default function WardrobeScreen() {
     }
   };
 
-  const handleAddItem = (item: ClothingItem) => {
-    if (editingItem) {
-      actions.updateItem(item);
-    } else {
-      actions.addItem(item);
-    }
+  const handleAddItem = async (item: ClothingItem) => {
+    // Item is already saved to database via the modal, no additional action needed
     setEditingItem(undefined);
   };
 
@@ -191,7 +203,15 @@ export default function WardrobeScreen() {
       isSelected={selectedItems.includes(item.id)}
       onPress={() => handleItemPress(item)}
       onLongPress={() => handleItemLongPress(item)}
-      onToggleFavorite={() => actions.toggleFavorite(item.id)}
+      onToggleFavorite={async () => {
+        const result = await actions.toggleFavorite(item.id);
+        if (!result.success) {
+          Alert.alert(
+            'Error',
+            result.error || 'Failed to update favorite status'
+          );
+        }
+      }}
       onMoreOptions={() => handleMoreOptions(item)}
       showStats
     />
@@ -203,6 +223,22 @@ export default function WardrobeScreen() {
     }
     return count + (filter ? 1 : 0);
   }, 0);
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => actions.loadClothingItems()}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -308,6 +344,13 @@ export default function WardrobeScreen() {
           </View>
         }
       />
+
+      {/* Show loading indicator */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      )}
 
       {/* Modals */}
       <FilterModal
@@ -477,5 +520,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     fontFamily: 'Inter-SemiBold',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
   },
 });

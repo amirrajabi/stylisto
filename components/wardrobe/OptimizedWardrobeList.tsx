@@ -53,6 +53,7 @@ interface OptimizedWardrobeListProps {
   onItemLongPress?: (item: ClothingItem) => void;
   onToggleFavorite: (id: string) => void;
   onMoreOptions: (item: ClothingItem) => void;
+  onDelete?: (item: ClothingItem) => void;
   selectedItems?: string[];
   emptyState?: {
     type: 'empty' | 'no-results' | 'filtered';
@@ -79,6 +80,7 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
   onItemLongPress,
   onToggleFavorite,
   onMoreOptions,
+  onDelete,
   selectedItems = [],
   emptyState,
   testID,
@@ -208,6 +210,7 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
           onLongPress={() => onItemLongPress?.(item)}
           onToggleFavorite={() => onToggleFavorite(item.id)}
           onMoreOptions={() => onMoreOptions(item)}
+          onDelete={onDelete}
           showStats
           index={index}
         />
@@ -220,6 +223,7 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
       onItemLongPress,
       onToggleFavorite,
       onMoreOptions,
+      onDelete,
       isLoading,
     ]
   );

@@ -10,6 +10,7 @@ import {
   BatchProcessingProgress,
   useImageProcessing,
 } from '../utils/imageProcessing';
+import { generateId } from '../utils/wardrobeUtils';
 
 interface UploadItem {
   id: string;
@@ -55,7 +56,7 @@ export default function CameraScreen() {
 
     // Initialize upload items
     const items: UploadItem[] = capturedPhotos.map((uri, index) => ({
-      id: `upload-${Date.now()}-${index}`,
+      id: generateId(),
       uri,
       name: `Photo ${index + 1}`,
       status: 'pending',

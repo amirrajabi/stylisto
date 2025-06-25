@@ -31,6 +31,12 @@ export default function ProfileLayout() {
         }}
       />
       <Stack.Screen
+        name="edit-profile"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="notifications"
         options={{
           headerShown: false,

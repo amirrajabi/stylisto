@@ -1,31 +1,30 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
+  Camera,
+  Image as ImageIcon,
+  Plus,
+  Save,
+  Sparkles,
+  X,
+} from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
   Alert,
   Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Image } from 'expo-image';
-import { 
-  X, 
-  Camera, 
-  Image as ImageIcon, 
-  Save,
-  Plus,
-  Trash2,
-  Sparkles,
-} from 'lucide-react-native';
-import { useImageProcessing } from '../../../utils/imageProcessing';
 import { ClothingAnalyzer } from '../../../components/ai/ClothingAnalyzer';
-import { useClothingAnalysis, AnalysisState } from '../../../hooks/useClothingAnalysis';
+import { useClothingAnalysis } from '../../../hooks/useClothingAnalysis';
 import { ClothingAnalysisResult } from '../../../lib/visionAI';
-import { ClothingCategory, Season, Occasion } from '../../../types/wardrobe';
+import { useImageProcessing } from '../../../utils/imageProcessing';
+import { generateId } from '../../../utils/wardrobeUtils';
 
 interface ClothingItemForm {
   name: string;
@@ -43,24 +42,52 @@ interface ClothingItemForm {
 }
 
 const CATEGORIES = [
-  'tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 
-  'accessories', 'underwear', 'activewear', 'sleepwear', 'swimwear'
+  'tops',
+  'bottoms',
+  'dresses',
+  'outerwear',
+  'shoes',
+  'accessories',
+  'underwear',
+  'activewear',
+  'sleepwear',
+  'swimwear',
 ];
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter'];
 
 const OCCASIONS = [
-  'casual', 'work', 'formal', 'party', 'sport', 'travel', 'date', 'special'
+  'casual',
+  'work',
+  'formal',
+  'party',
+  'sport',
+  'travel',
+  'date',
+  'special',
 ];
 
 const COLORS = [
-  '#000000', '#FFFFFF', '#808080', '#FF0000', '#00FF00', '#0000FF',
-  '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#FFC0CB',
-  '#A52A2A', '#000080', '#008000', '#800000'
+  '#000000',
+  '#FFFFFF',
+  '#808080',
+  '#FF0000',
+  '#00FF00',
+  '#0000FF',
+  '#FFFF00',
+  '#FF00FF',
+  '#00FFFF',
+  '#FFA500',
+  '#800080',
+  '#FFC0CB',
+  '#A52A2A',
+  '#000080',
+  '#008000',
+  '#800000',
 ];
 
 export default function AddItemScreen() {
-  const params = useLocalSearchParams<{ 
+  const params = useLocalSearchParams<{
     editItemId?: string;
     photoUri?: string;
   }>();
@@ -86,7 +113,12 @@ export default function AddItemScreen() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { optimizeForClothing, validateImage } = useImageProcessing();
-  const { loading: analysisLoading, error: analysisError, result: analysisResult, analyzeImage } = useClothingAnalysis();
+  const {
+    loading: analysisLoading,
+    error: analysisError,
+    result: analysisResult,
+    analyzeImage,
+  } = useClothingAnalysis();
 
   // Apply analysis results to form data
   useEffect(() => {
@@ -129,24 +161,30 @@ export default function AddItemScreen() {
     });
   }, []);
 
-  const handleRemoveImage = useCallback((indexToRemove: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove),
-    }));
-    
-    if (selectedImageIndex >= indexToRemove && selectedImageIndex > 0) {
-      setSelectedImageIndex(prev => prev - 1);
-    }
-  }, [selectedImageIndex]);
+  const handleRemoveImage = useCallback(
+    (indexToRemove: number) => {
+      setFormData(prev => ({
+        ...prev,
+        images: prev.images.filter((_, index) => index !== indexToRemove),
+      }));
 
-  const handleToggleArrayItem = useCallback((array: string[], item: string, field: keyof ClothingItemForm) => {
-    const newArray = array.includes(item)
-      ? array.filter(i => i !== item)
-      : [...array, item];
-    
-    setFormData(prev => ({ ...prev, [field]: newArray }));
-  }, []);
+      if (selectedImageIndex >= indexToRemove && selectedImageIndex > 0) {
+        setSelectedImageIndex(prev => prev - 1);
+      }
+    },
+    [selectedImageIndex]
+  );
+
+  const handleToggleArrayItem = useCallback(
+    (array: string[], item: string, field: keyof ClothingItemForm) => {
+      const newArray = array.includes(item)
+        ? array.filter(i => i !== item)
+        : [...array, item];
+
+      setFormData(prev => ({ ...prev, [field]: newArray }));
+    },
+    []
+  );
 
   const handleAddTag = useCallback(() => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
@@ -170,13 +208,16 @@ export default function AddItemScreen() {
       Alert.alert('No Image', 'Please add an image to analyze');
       return;
     }
-    
+
     setShowAnalyzer(true);
   }, [formData.images]);
 
-  const handleAnalysisComplete = useCallback((result: ClothingAnalysisResult) => {
-    // Analysis results are applied via the useEffect
-  }, []);
+  const handleAnalysisComplete = useCallback(
+    (result: ClothingAnalysisResult) => {
+      // Analysis results are applied via the useEffect
+    },
+    []
+  );
 
   const handleSave = useCallback(async () => {
     // Validation
@@ -195,7 +236,7 @@ export default function AddItemScreen() {
     try {
       // Validate and optimize images
       const processedImages = [];
-      
+
       for (const imageUri of formData.images) {
         const validation = await validateImage(imageUri);
         if (!validation.isValid) {
@@ -210,7 +251,7 @@ export default function AddItemScreen() {
 
       // Create clothing item object
       const clothingItem = {
-        id: params.editItemId || `item-${Date.now()}`,
+        id: params.editItemId || generateId(),
         name: formData.name.trim(),
         category: formData.category,
         subcategory: formData.subcategory.trim(),
@@ -239,7 +280,6 @@ export default function AddItemScreen() {
 
       // Navigate back
       router.back();
-
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Save Error', 'Failed to save item. Please try again.');
@@ -258,8 +298,8 @@ export default function AddItemScreen() {
         <Text style={styles.headerTitle}>
           {params.editItemId ? 'Edit Item' : 'Add New Item'}
         </Text>
-        <TouchableOpacity 
-          style={styles.saveButton} 
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleSave}
           disabled={isProcessing}
         >
@@ -274,7 +314,7 @@ export default function AddItemScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Photos</Text>
             {formData.images.length > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.analyzeButton}
                 onPress={handleAnalyzeImage}
               >
@@ -283,15 +323,20 @@ export default function AddItemScreen() {
               </TouchableOpacity>
             )}
           </View>
-          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.photosScroll}
+          >
             <View style={styles.photosContainer}>
               {formData.images.map((imageUri, index) => (
-                <TouchableOpacity 
-                  key={index} 
+                <TouchableOpacity
+                  key={index}
                   style={[
                     styles.photoContainer,
-                    selectedImageIndex === index && styles.selectedPhotoContainer
+                    selectedImageIndex === index &&
+                      styles.selectedPhotoContainer,
                   ]}
                   onPress={() => setSelectedImageIndex(index)}
                 >
@@ -308,15 +353,21 @@ export default function AddItemScreen() {
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
-              
+
               {formData.images.length < 5 && (
                 <View style={styles.addPhotoButtons}>
-                  <TouchableOpacity style={styles.addPhotoButton} onPress={handleTakePhoto}>
+                  <TouchableOpacity
+                    style={styles.addPhotoButton}
+                    onPress={handleTakePhoto}
+                  >
                     <Camera size={24} color="#6B7280" />
                     <Text style={styles.addPhotoText}>Camera</Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity style={styles.addPhotoButton} onPress={handleAddPhoto}>
+
+                  <TouchableOpacity
+                    style={styles.addPhotoButton}
+                    onPress={handleAddPhoto}
+                  >
                     <ImageIcon size={24} color="#6B7280" />
                     <Text style={styles.addPhotoText}>Gallery</Text>
                   </TouchableOpacity>
@@ -332,15 +383,15 @@ export default function AddItemScreen() {
             <View style={styles.analyzerContainer}>
               <View style={styles.analyzerHeader}>
                 <Text style={styles.analyzerTitle}>AI Analysis</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.closeAnalyzerButton}
                   onPress={() => setShowAnalyzer(false)}
                 >
                   <X size={16} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-              
-              <ClothingAnalyzer 
+
+              <ClothingAnalyzer
                 imageUri={formData.images[selectedImageIndex]}
                 onAnalysisComplete={handleAnalysisComplete}
               />
@@ -351,7 +402,7 @@ export default function AddItemScreen() {
         {/* Basic Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Information</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name *</Text>
             <TextInput
@@ -379,7 +430,8 @@ export default function AddItemScreen() {
                     <Text
                       style={[
                         styles.chipText,
-                        formData.category === category && styles.selectedChipText,
+                        formData.category === category &&
+                          styles.selectedChipText,
                       ]}
                     >
                       {category.replace('_', ' ')}
@@ -396,7 +448,9 @@ export default function AddItemScreen() {
               <TextInput
                 style={styles.input}
                 value={formData.brand}
-                onChangeText={brand => setFormData(prev => ({ ...prev, brand }))}
+                onChangeText={brand =>
+                  setFormData(prev => ({ ...prev, brand }))
+                }
                 placeholder="e.g., Nike"
                 placeholderTextColor="#9CA3AF"
               />
@@ -456,12 +510,15 @@ export default function AddItemScreen() {
                   styles.chip,
                   formData.seasons.includes(season) && styles.selectedChip,
                 ]}
-                onPress={() => handleToggleArrayItem(formData.seasons, season, 'seasons')}
+                onPress={() =>
+                  handleToggleArrayItem(formData.seasons, season, 'seasons')
+                }
               >
                 <Text
                   style={[
                     styles.chipText,
-                    formData.seasons.includes(season) && styles.selectedChipText,
+                    formData.seasons.includes(season) &&
+                      styles.selectedChipText,
                   ]}
                 >
                   {season}
@@ -482,12 +539,19 @@ export default function AddItemScreen() {
                   styles.chip,
                   formData.occasions.includes(occasion) && styles.selectedChip,
                 ]}
-                onPress={() => handleToggleArrayItem(formData.occasions, occasion, 'occasions')}
+                onPress={() =>
+                  handleToggleArrayItem(
+                    formData.occasions,
+                    occasion,
+                    'occasions'
+                  )
+                }
               >
                 <Text
                   style={[
                     styles.chipText,
-                    formData.occasions.includes(occasion) && styles.selectedChipText,
+                    formData.occasions.includes(occasion) &&
+                      styles.selectedChipText,
                   ]}
                 >
                   {occasion}
@@ -509,7 +573,10 @@ export default function AddItemScreen() {
               placeholderTextColor="#9CA3AF"
               onSubmitEditing={handleAddTag}
             />
-            <TouchableOpacity style={styles.addTagButton} onPress={handleAddTag}>
+            <TouchableOpacity
+              style={styles.addTagButton}
+              onPress={handleAddTag}
+            >
               <Plus size={20} color="#3B82F6" />
             </TouchableOpacity>
           </View>

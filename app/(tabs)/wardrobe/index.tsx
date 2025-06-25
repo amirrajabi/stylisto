@@ -21,6 +21,7 @@ import {
   Platform,
   SafeAreaView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -76,7 +77,9 @@ export default function WardrobeScreen() {
 
   // Refs
   const searchInputRef = useRef<TextInput>(null);
-  const searchDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchDebounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // Start performance measurement
   useEffect(() => {
@@ -107,7 +110,11 @@ export default function WardrobeScreen() {
       seasons: [...new Set(allItems.flatMap(item => item.season))],
       occasions: [...new Set(allItems.flatMap(item => item.occasion))],
       colors: [...new Set(allItems.map(item => item.color))],
-      brands: [...new Set(allItems.map(item => item.brand).filter(Boolean))],
+      brands: [
+        ...new Set(
+          allItems.map(item => item.brand).filter(Boolean) as string[]
+        ),
+      ],
     };
   }, [filteredItems]);
 
@@ -154,16 +161,93 @@ export default function WardrobeScreen() {
 
   const handleMoreOptions = useCallback(
     (item: ClothingItem) => {
-      // Show options menu
       scheduleAfterInteractions(() => {
         if (Platform.OS === 'ios') {
-          // Use ActionSheetIOS
+          const { ActionSheetIOS } = require('react-native');
+          ActionSheetIOS.showActionSheetWithOptions(
+            {
+              options: ['Edit', 'Delete', 'Cancel'],
+              destructiveButtonIndex: 1,
+              cancelButtonIndex: 2,
+            },
+            async (buttonIndex: number) => {
+              if (buttonIndex === 0) {
+                // Edit item
+                router.push({
+                  pathname: '/wardrobe/add-item',
+                  params: { itemId: item.id },
+                });
+              } else if (buttonIndex === 1) {
+                // Delete item
+                const { Alert } = require('react-native');
+                Alert.alert(
+                  'Delete Item',
+                  `Are you sure you want to delete "${item.name}"?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: async () => {
+                        const result = await actions.deleteItem(item.id);
+                        if (!result.success) {
+                          Alert.alert(
+                            'Delete Failed',
+                            result.error || 'Failed to delete item'
+                          );
+                        }
+                      },
+                    },
+                  ]
+                );
+              }
+            }
+          );
         } else {
-          // Use Alert for Android
+          // Android Alert
+          const { Alert } = require('react-native');
+          Alert.alert('Item Options', 'What would you like to do?', [
+            {
+              text: 'Edit',
+              onPress: () => {
+                router.push({
+                  pathname: '/wardrobe/add-item',
+                  params: { itemId: item.id },
+                });
+              },
+            },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => {
+                Alert.alert(
+                  'Delete Item',
+                  `Are you sure you want to delete "${item.name}"?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: async () => {
+                        const result = await actions.deleteItem(item.id);
+                        if (!result.success) {
+                          Alert.alert(
+                            'Delete Failed',
+                            result.error || 'Failed to delete item'
+                          );
+                        }
+                      },
+                    },
+                  ]
+                );
+              },
+            },
+            { text: 'Cancel', style: 'cancel' },
+          ]);
         }
       });
     },
-    [scheduleAfterInteractions]
+    [scheduleAfterInteractions, actions, router]
   );
 
   const handleSort = useCallback(() => {
@@ -242,6 +326,34 @@ export default function WardrobeScreen() {
     actions.setSearchQuery('');
     setShowSearch(false);
   }, [actions]);
+
+  const handleDeleteItem = useCallback(
+    (item: ClothingItem) => {
+      scheduleAfterInteractions(() => {
+        Alert.alert(
+          'Delete Item',
+          `Are you sure you want to delete "${item.name}"?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: async () => {
+                const result = await actions.deleteItem(item.id);
+                if (!result.success) {
+                  Alert.alert(
+                    'Delete Failed',
+                    result.error || 'Failed to delete item'
+                  );
+                }
+              },
+            },
+          ]
+        );
+      });
+    },
+    [scheduleAfterInteractions, actions]
+  );
 
   // Animated styles
   const headerAnimatedStyle = useAnimatedStyle(() => ({
@@ -381,6 +493,7 @@ export default function WardrobeScreen() {
         onItemLongPress={handleItemLongPress}
         onToggleFavorite={actions.toggleFavorite}
         onMoreOptions={handleMoreOptions}
+        onDelete={handleDeleteItem}
         selectedItems={selectedItems}
         emptyState={
           paginatedItems.length === 0

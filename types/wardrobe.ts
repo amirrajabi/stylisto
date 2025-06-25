@@ -11,13 +11,13 @@ export interface ClothingItem {
   imageUrl: string;
   tags: string[];
   isFavorite: boolean;
-  lastWorn?: Date;
+  lastWorn?: string;
   timesWorn: number;
-  purchaseDate?: Date;
+  purchaseDate?: string;
   price?: number;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Outfit {
@@ -29,10 +29,10 @@ export interface Outfit {
   tags: string[];
   isFavorite: boolean;
   timesWorn: number;
-  lastWorn?: Date;
+  lastWorn?: string;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const enum ClothingCategory {

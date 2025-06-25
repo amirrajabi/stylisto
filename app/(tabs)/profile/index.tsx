@@ -587,6 +587,12 @@ export default function ProfileScreen() {
         <MenuSection title="Account">
           <MenuItem
             icon={<User size={20} color={colors.text.secondary} />}
+            title="Edit Profile"
+            subtitle="Update your complete profile information"
+            onPress={() => router.push('/profile/edit-profile')}
+          />
+          <MenuItem
+            icon={<User size={20} color={colors.text.secondary} />}
             title="Personal Information"
             subtitle="Update your profile details"
             onPress={() => router.push('/profile/personal-info')}

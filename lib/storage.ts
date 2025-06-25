@@ -1,7 +1,7 @@
-import { supabase } from './supabase';
-import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
+import { supabase } from './supabase';
 
 export interface UploadOptions {
   bucket: string;
@@ -35,7 +35,7 @@ export interface TransformOptions {
   width?: number;
   height?: number;
   resize?: 'cover' | 'contain' | 'fill';
-  format?: 'webp' | 'jpeg' | 'png';
+  format?: 'origin' | 'webp' | 'jpeg' | 'png';
   quality?: number;
 }
 
@@ -63,27 +63,63 @@ class StorageService {
       const bucket = 'wardrobe-images';
       const timestamp = Date.now();
       const fileExtension = this.getFileExtension(imageUri);
-      
+
       // Organize storage paths by user and item type
       const basePath = `${userId}/${itemType}`;
-      const fileName = itemId 
+      const fileName = itemId
         ? `${itemId}_${timestamp}.${fileExtension}`
         : `${timestamp}.${fileExtension}`;
       const fullPath = `${basePath}/${fileName}`;
 
       let fileData: ArrayBuffer;
-      let contentType = options.contentType || `image/${fileExtension}`;
+      let contentType = options.contentType || this.getMimeType(fileExtension);
 
       if (Platform.OS === 'web') {
         // Web: Convert data URL to blob
         const response = await fetch(imageUri);
         fileData = await response.arrayBuffer();
       } else {
-        // Mobile: Read file and convert to ArrayBuffer
-        const base64 = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        fileData = decode(base64);
+        // Mobile: Handle different URI types
+        if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
+          // Remote URL: Download first, then read
+          const downloadResult = await FileSystem.downloadAsync(
+            imageUri,
+            FileSystem.documentDirectory +
+              'temp_' +
+              Date.now() +
+              '.' +
+              fileExtension
+          );
+          const base64 = await FileSystem.readAsStringAsync(
+            downloadResult.uri,
+            {
+              encoding: FileSystem.EncodingType.Base64,
+            }
+          );
+          fileData = decode(base64);
+
+          // Clean up temporary file
+          await FileSystem.deleteAsync(downloadResult.uri, {
+            idempotent: true,
+          });
+        } else if (imageUri.startsWith('file://') || imageUri.startsWith('/')) {
+          // Local file: Read directly
+          const fileInfo = await FileSystem.getInfoAsync(imageUri);
+          if (!fileInfo.exists) {
+            throw new Error(`File not found: ${imageUri}`);
+          }
+
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          fileData = decode(base64);
+        } else if (imageUri.startsWith('data:')) {
+          // Data URL: Extract base64
+          const base64 = imageUri.split(',')[1];
+          fileData = decode(base64);
+        } else {
+          throw new Error(`Unsupported URI format: ${imageUri}`);
+        }
       }
 
       const { data, error } = await supabase.storage
@@ -107,11 +143,13 @@ class StorageService {
       }
 
       return {
-        data: data ? {
-          id: data.id,
-          path: data.path,
-          fullPath: data.fullPath,
-        } : null,
+        data: data
+          ? {
+              id: data.id,
+              path: data.path,
+              fullPath: data.fullPath,
+            }
+          : null,
         error: null,
       };
     } catch (error) {
@@ -137,11 +175,16 @@ class StorageService {
 
     for (let i = 0; i < imageUris.length; i++) {
       const imageUri = imageUris[i];
-      
+
       try {
-        const result = await this.uploadImage(imageUri, userId, itemType, itemId);
+        const result = await this.uploadImage(
+          imageUri,
+          userId,
+          itemType,
+          itemId
+        );
         results.push(result);
-        
+
         onProgress?.(i + 1, imageUris.length);
       } catch (error) {
         results.push({
@@ -163,17 +206,9 @@ class StorageService {
     transforms?: TransformOptions
   ): string {
     try {
-      const { data } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(path, {
-          transform: transforms ? {
-            width: transforms.width,
-            height: transforms.height,
-            resize: transforms.resize,
-            format: transforms.format,
-            quality: transforms.quality,
-          } : undefined,
-        });
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path, {
+        transform: transforms as any,
+      });
 
       return data.publicUrl;
     } catch (error) {
@@ -212,7 +247,7 @@ class StorageService {
         format: 'webp',
         quality: 90,
       },
-      original: undefined,
+      original: {} as TransformOptions,
     };
 
     return this.getImageUrl(path, bucket, transformOptions[type]);
@@ -226,9 +261,7 @@ class StorageService {
     bucket: string = 'wardrobe-images'
   ): Promise<{ error: Error | null }> {
     try {
-      const { error } = await supabase.storage
-        .from(bucket)
-        .remove([path]);
+      const { error } = await supabase.storage.from(bucket).remove([path]);
 
       return { error };
     } catch (error) {
@@ -245,9 +278,7 @@ class StorageService {
     bucket: string = 'wardrobe-images'
   ): Promise<{ error: Error | null }> {
     try {
-      const { error } = await supabase.storage
-        .from(bucket)
-        .remove(paths);
+      const { error } = await supabase.storage.from(bucket).remove(paths);
 
       return { error };
     } catch (error) {
@@ -269,13 +300,11 @@ class StorageService {
     } = {}
   ): Promise<{ data: StorageFile[] | null; error: Error | null }> {
     try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .list(path, {
-          limit: options.limit || 100,
-          offset: options.offset || 0,
-          sortBy: options.sortBy || { column: 'created_at', order: 'desc' },
-        });
+      const { data, error } = await supabase.storage.from(bucket).list(path, {
+        limit: options.limit || 100,
+        offset: options.offset || 0,
+        sortBy: options.sortBy || { column: 'created_at', order: 'desc' },
+      });
 
       return { data, error };
     } catch (error) {
@@ -292,18 +321,16 @@ class StorageService {
     bucket: string = 'wardrobe-images'
   ): Promise<{ data: any | null; error: Error | null }> {
     try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .list('', {
-          search: path,
-          limit: 1,
-        });
+      const { data, error } = await supabase.storage.from(bucket).list('', {
+        search: path,
+        limit: 1,
+      });
 
       if (error) throw error;
 
-      return { 
-        data: data && data.length > 0 ? data[0] : null, 
-        error: null 
+      return {
+        data: data && data.length > 0 ? data[0] : null,
+        error: null,
       };
     } catch (error) {
       console.error('Get file info error:', error);
@@ -323,8 +350,10 @@ class StorageService {
 
     try {
       // Get all files for user
-      const { data: files, error: listError } = await this.listFiles(`${userId}/`);
-      
+      const { data: files, error: listError } = await this.listFiles(
+        `${userId}/`
+      );
+
       if (listError) {
         errors.push(`Failed to list files: ${listError.message}`);
         return { deletedFiles, errors };
@@ -355,7 +384,7 @@ class StorageService {
 
       // Collect all referenced paths
       const referencedPaths = new Set<string>();
-      
+
       clothingItems?.forEach(item => {
         if (item.image_url) {
           const path = this.extractPathFromUrl(item.image_url);
@@ -383,9 +412,11 @@ class StorageService {
 
       if (!dryRun && orphanedFiles.length > 0) {
         // Delete orphaned files
-        const pathsToDelete = orphanedFiles.map(file => `${userId}/${file.name}`);
+        const pathsToDelete = orphanedFiles.map(
+          file => `${userId}/${file.name}`
+        );
         const { error: deleteError } = await this.deleteBatch(pathsToDelete);
-        
+
         if (deleteError) {
           errors.push(`Failed to delete files: ${deleteError.message}`);
         } else {
@@ -393,11 +424,14 @@ class StorageService {
         }
       } else {
         // Dry run - just return what would be deleted
-        deletedFiles.push(...orphanedFiles.map(file => `${userId}/${file.name}`));
+        deletedFiles.push(
+          ...orphanedFiles.map(file => `${userId}/${file.name}`)
+        );
       }
-
     } catch (error) {
-      errors.push(`Cleanup error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      errors.push(
+        `Cleanup error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
 
     return { deletedFiles, errors };
@@ -414,7 +448,7 @@ class StorageService {
   }> {
     try {
       const { data: files } = await this.listFiles(`${userId}/`);
-      
+
       if (!files) {
         return {
           totalFiles: 0,
@@ -518,16 +552,33 @@ class StorageService {
     return extension || 'jpg';
   }
 
+  private getMimeType(extension: string): string {
+    const mimeTypes: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      bmp: 'image/bmp',
+      tiff: 'image/tiff',
+      svg: 'image/svg+xml',
+    };
+
+    return mimeTypes[extension.toLowerCase()] || 'image/jpeg';
+  }
+
   private extractPathFromUrl(url: string): string | null {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split('/');
-      const bucketIndex = pathParts.findIndex(part => part === 'wardrobe-images');
-      
+      const bucketIndex = pathParts.findIndex(
+        part => part === 'wardrobe-images'
+      );
+
       if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
         return pathParts.slice(bucketIndex + 1).join('/');
       }
-      
+
       return null;
     } catch {
       return null;

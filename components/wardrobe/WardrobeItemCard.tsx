@@ -1,4 +1,8 @@
-import { Heart, MoveVertical as MoreVertical } from 'lucide-react-native';
+import {
+  Heart,
+  MoveVertical as MoreVertical,
+  Trash2,
+} from 'lucide-react-native';
 import React, { memo, useCallback } from 'react';
 import {
   Dimensions,
@@ -30,6 +34,7 @@ interface WardrobeItemCardProps {
   onLongPress?: () => void;
   onToggleFavorite: () => void;
   onMoreOptions: () => void;
+  onDelete?: (item: ClothingItem) => void;
   showStats?: boolean;
   index: number;
 }
@@ -48,6 +53,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
   onLongPress,
   onToggleFavorite,
   onMoreOptions,
+  onDelete,
   showStats = false,
   index,
 }) => {
@@ -144,6 +150,17 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
                   fill={item.isFavorite ? Colors.error[500] : 'transparent'}
                 />
               </TouchableOpacity>
+              {onDelete && (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => onDelete(item)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel="Delete item"
+                  accessibilityRole="button"
+                >
+                  <Trash2 size={18} color={Colors.error[500]} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={onMoreOptions}
@@ -240,15 +257,28 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
             />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={onMoreOptions}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="More options"
-            accessibilityRole="button"
-          >
-            <MoreVertical size={16} color={Colors.white} />
-          </TouchableOpacity>
+          <View style={styles.gridButtonsRight}>
+            {onDelete && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => onDelete(item)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Delete item"
+                accessibilityRole="button"
+              >
+                <Trash2 size={14} color={Colors.white} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.moreButton}
+              onPress={onMoreOptions}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="More options"
+              accessibilityRole="button"
+            >
+              <MoreVertical size={16} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isSelected && (
@@ -512,6 +542,19 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '500',
     textTransform: 'capitalize',
+  },
+
+  gridButtonsRight: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  deleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: 'rgba(239, 68, 68, 0.8)', // Red background for delete
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

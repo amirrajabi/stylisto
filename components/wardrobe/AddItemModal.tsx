@@ -13,13 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useWardrobe } from '../../hooks/useWardrobe';
 import {
   ClothingCategory,
   ClothingItem,
   Occasion,
   Season,
 } from '../../types/wardrobe';
-import { generateId } from '../../utils/wardrobeUtils';
 
 interface AddItemModalProps {
   visible: boolean;
@@ -60,6 +60,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
   onAddItem,
   editItem,
 }) => {
+  const { actions, isLoading } = useWardrobe();
   const scrollViewRef = useRef<ScrollView>(null);
   const [formData, setFormData] = useState<Partial<ClothingItem>>({
     name: editItem?.name || '',
@@ -74,6 +75,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     tags: editItem?.tags || [],
     notes: editItem?.notes || '',
     price: editItem?.price || undefined,
+    purchaseDate: editItem?.purchaseDate,
   });
 
   const [newTag, setNewTag] = useState('');
@@ -91,7 +93,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     }, 150);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name?.trim()) {
       Alert.alert('Error', 'Please enter an item name');
       return;
@@ -102,30 +104,46 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
       return;
     }
 
-    const item: ClothingItem = {
-      id: editItem?.id || generateId(),
-      name: formData.name.trim(),
-      category: formData.category!,
-      subcategory: formData.subcategory || '',
-      color: formData.color!,
-      brand: formData.brand,
-      size: formData.size,
-      season: formData.season!,
-      occasion: formData.occasion!,
-      imageUrl: formData.imageUrl,
-      tags: formData.tags!,
-      isFavorite: editItem?.isFavorite || false,
-      lastWorn: editItem?.lastWorn,
-      timesWorn: editItem?.timesWorn || 0,
-      purchaseDate: editItem?.purchaseDate,
-      price: formData.price,
-      notes: formData.notes,
-      createdAt: editItem?.createdAt || new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      const itemData = {
+        name: formData.name.trim(),
+        category: formData.category!,
+        subcategory: formData.subcategory || '',
+        color: formData.color!,
+        brand: formData.brand || '',
+        size: formData.size || '',
+        seasons: formData.season || [],
+        occasions: formData.occasion || [],
+        imageUri: formData.imageUrl,
+        tags: formData.tags || [],
+        notes: formData.notes || '',
+        price: formData.price
+          ? parseFloat(formData.price.toString())
+          : undefined,
+        purchaseDate: formData.purchaseDate?.toISOString().split('T')[0],
+      };
 
-    onAddItem(item);
-    onClose();
+      let result;
+      if (editItem) {
+        result = await actions.updateItem({ ...itemData, id: editItem.id });
+      } else {
+        result = await actions.addItem(itemData);
+      }
+
+      if (result.success && result.data) {
+        onAddItem(result.data);
+        onClose();
+        Alert.alert(
+          'Success',
+          `Item ${editItem ? 'updated' : 'saved'} successfully!`
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to save item');
+      }
+    } catch (error) {
+      console.error('Error saving item:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    }
   };
 
   const pickImage = async () => {
@@ -193,8 +211,14 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           <Text style={styles.title}>
             {editItem ? 'Edit Item' : 'Add New Item'}
           </Text>
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Text style={styles.saveText}>Save</Text>
+          <TouchableOpacity
+            onPress={handleSave}
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveText}>
+              {isLoading ? 'Saving...' : 'Save'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -744,5 +768,8 @@ const styles = StyleSheet.create({
   tagChipText: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#9ca3af',
   },
 });

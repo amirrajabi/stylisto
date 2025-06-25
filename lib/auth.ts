@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import type { ProfileUpdateFormData, User } from '../types/auth';
 import {
   AuthError,
   ErrorCategory,
@@ -101,6 +102,21 @@ export class AuthService {
         }
       }
 
+      // Create user profile in users table
+      if (data.user) {
+        try {
+          await this.createUserProfile({
+            id: data.user.id,
+            email: data.user.email!,
+            first_name,
+            last_name,
+          });
+        } catch (profileError) {
+          console.warn('Failed to create user profile:', profileError);
+          // Don't throw error as auth was successful
+        }
+      }
+
       // Log successful signup
       errorHandling.captureMessage('User signed up successfully', {
         severity: ErrorSeverity.INFO,
@@ -131,6 +147,36 @@ export class AuthService {
         }
       );
 
+      throw error;
+    }
+  }
+
+  /**
+   * Create user profile in users table
+   */
+  private async createUserProfile({
+    id,
+    email,
+    first_name,
+    last_name,
+  }: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  }) {
+    const { error } = await supabase.from('users').insert({
+      id,
+      email,
+      first_name,
+      last_name,
+      timezone: 'Australia/Sydney',
+      preferred_language: 'en',
+      preferred_currency: 'AUD',
+    });
+
+    if (error) {
+      console.error('Error creating user profile:', error);
       throw error;
     }
   }
@@ -391,6 +437,163 @@ export class AuthService {
         }
       );
 
+      throw error;
+    }
+  }
+
+  /**
+   * Update user profile with comprehensive fields
+   */
+  async updateUserProfile(updates: ProfileUpdateFormData) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new AuthError('No authenticated user');
+      }
+
+      // Update user table with all supported fields
+      const userUpdates: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Personal Information
+      if (updates.first_name !== undefined)
+        userUpdates.first_name = updates.first_name;
+      if (updates.last_name !== undefined)
+        userUpdates.last_name = updates.last_name;
+      if (updates.username !== undefined)
+        userUpdates.username = updates.username;
+      if (updates.date_of_birth !== undefined)
+        userUpdates.date_of_birth = updates.date_of_birth;
+      if (updates.gender !== undefined) userUpdates.gender = updates.gender;
+      if (updates.phone !== undefined) userUpdates.phone = updates.phone;
+
+      // Location
+      if (updates.country !== undefined) userUpdates.country = updates.country;
+      if (updates.city !== undefined) userUpdates.city = updates.city;
+      if (updates.timezone !== undefined)
+        userUpdates.timezone = updates.timezone;
+
+      // Preferences
+      if (updates.preferred_language !== undefined)
+        userUpdates.preferred_language = updates.preferred_language;
+      if (updates.preferred_currency !== undefined)
+        userUpdates.preferred_currency = updates.preferred_currency;
+
+      // Body measurements
+      if (updates.height_cm !== undefined)
+        userUpdates.height_cm = updates.height_cm;
+      if (updates.weight_kg !== undefined)
+        userUpdates.weight_kg = updates.weight_kg;
+      if (updates.clothing_size_top !== undefined)
+        userUpdates.clothing_size_top = updates.clothing_size_top;
+      if (updates.clothing_size_bottom !== undefined)
+        userUpdates.clothing_size_bottom = updates.clothing_size_bottom;
+      if (updates.clothing_size_shoes !== undefined)
+        userUpdates.clothing_size_shoes = updates.clothing_size_shoes;
+      if (updates.body_type !== undefined)
+        userUpdates.body_type = updates.body_type;
+
+      // Bio and social
+      if (updates.bio !== undefined) userUpdates.bio = updates.bio;
+      if (updates.website_url !== undefined)
+        userUpdates.website_url = updates.website_url;
+
+      const { data, error: dbError } = await supabase
+        .from('users')
+        .update(userUpdates)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      // Update auth metadata for basic fields
+      const authUpdates: any = {};
+      if (updates.first_name !== undefined) {
+        authUpdates.first_name = updates.first_name;
+      }
+      if (updates.last_name !== undefined) {
+        authUpdates.last_name = updates.last_name;
+      }
+
+      if (Object.keys(authUpdates).length > 0) {
+        const { error: authError } = await supabase.auth.updateUser({
+          data: authUpdates,
+        });
+
+        if (authError) {
+          console.warn('Failed to update auth metadata:', authError);
+        }
+      }
+
+      // Log profile update
+      errorHandling.captureMessage('User profile updated successfully', {
+        severity: ErrorSeverity.INFO,
+        category: ErrorCategory.AUTH,
+        context: {
+          userId: user.id,
+          additionalData: {
+            updatedFields: Object.keys(updates),
+          },
+        },
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Profile update error:', error);
+
+      errorHandling.captureError(
+        error instanceof Error ? error : new AuthError('Profile update failed'),
+        {
+          severity: ErrorSeverity.ERROR,
+          category: ErrorCategory.AUTH,
+          context: {
+            action: 'update_user_profile',
+            additionalData: {
+              updatedFields: Object.keys(updates),
+            },
+          },
+        }
+      );
+
+      throw error;
+    }
+  }
+
+  /**
+   * Get user profile from users table
+   */
+  async getUserProfile(): Promise<User | null> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - user profile doesn't exist
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Get user profile error:', error);
       throw error;
     }
   }
