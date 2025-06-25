@@ -1,20 +1,26 @@
-import React, { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Heart, MoveVertical as MoreVertical } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withSequence,
-  withDelay
+import React, { memo, useCallback } from 'react';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
+import { Colors } from '../../constants/Colors';
+import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 import { ClothingItem } from '../../types/wardrobe';
 import { formatDate, getSeasonColor } from '../../utils/wardrobeUtils';
 import OptimizedImage from '../ui/OptimizedImage';
-import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
-import { Shadows } from '../../constants/Shadows';
 
 interface WardrobeItemCardProps {
   item: ClothingItem;
@@ -31,7 +37,8 @@ interface WardrobeItemCardProps {
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
   item,
@@ -48,46 +55,41 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
-  
+
   // Initialize animations
   React.useEffect(() => {
     // Stagger animations based on index
     const delay = Math.min(index * 50, 500);
-    
-    opacity.value = withDelay(
-      delay,
-      withTiming(1, { duration: 300 })
-    );
-    
-    translateY.value = withDelay(
-      delay,
-      withTiming(0, { duration: 300 })
-    );
+
+    opacity.value = withDelay(delay, withTiming(1, { duration: 300 }));
+
+    translateY.value = withDelay(delay, withTiming(0, { duration: 300 }));
   }, [index]);
-  
+
   // Handle press animations
   const handlePressIn = useCallback(() => {
     scale.value = withSpring(0.95, { damping: 10, stiffness: 200 });
   }, []);
-  
+
   const handlePressOut = useCallback(() => {
     scale.value = withSpring(1, { damping: 15, stiffness: 200 });
   }, []);
-  
+
   // Animated styles
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [
-      { scale: scale.value },
-      { translateY: translateY.value },
-    ],
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
   }));
-  
+
   // Render grid or list view
   if (viewMode === 'list') {
     return (
       <AnimatedTouchableOpacity
-        style={[styles.listCard, isSelected && styles.selectedCard, animatedStyle]}
+        style={[
+          styles.listCard,
+          isSelected && styles.selectedCard,
+          animatedStyle,
+        ]}
         onPress={onPress}
         onLongPress={onLongPress}
         onPressIn={handlePressIn}
@@ -107,7 +109,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
             priority={index < 10 ? 'high' : 'normal'}
             placeholder={{ uri: 'https://via.placeholder.com/88?text=Loading' }}
           />
-          
+
           {isSelected && (
             <View style={styles.selectionOverlay}>
               <View style={styles.checkmark} />
@@ -117,8 +119,8 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
 
         <View style={styles.listContent}>
           <View style={styles.listHeader}>
-            <Text 
-              style={styles.listTitle} 
+            <Text
+              style={styles.listTitle}
               numberOfLines={1}
               accessibilityLabel={item.name}
             >
@@ -129,12 +131,16 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
                 style={styles.actionButton}
                 onPress={onToggleFavorite}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                accessibilityLabel={
+                  item.isFavorite ? 'Remove from favorites' : 'Add to favorites'
+                }
                 accessibilityRole="button"
               >
                 <Heart
                   size={18}
-                  color={item.isFavorite ? Colors.error[500] : Colors.text.tertiary}
+                  color={
+                    item.isFavorite ? Colors.error[500] : Colors.text.tertiary
+                  }
                   fill={item.isFavorite ? Colors.error[500] : 'transparent'}
                 />
               </TouchableOpacity>
@@ -163,9 +169,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
 
           {showStats && (
             <View style={styles.listStats}>
-              <Text style={styles.statText}>
-                Worn {item.timesWorn} times
-              </Text>
+              <Text style={styles.statText}>Worn {item.timesWorn} times</Text>
               {item.lastWorn && (
                 <Text style={styles.statText}>
                   Last: {formatDate(item.lastWorn)}
@@ -175,10 +179,13 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
           )}
 
           <View style={styles.listTags}>
-            {item.season.slice(0, 2).map((season) => (
+            {item.season.slice(0, 2).map(season => (
               <View
                 key={season}
-                style={[styles.seasonTag, { backgroundColor: getSeasonColor(season) }]}
+                style={[
+                  styles.seasonTag,
+                  { backgroundColor: getSeasonColor(season) },
+                ]}
               >
                 <Text style={styles.seasonText}>{season}</Text>
               </View>
@@ -191,7 +198,11 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
 
   return (
     <AnimatedTouchableOpacity
-      style={[styles.gridCard, isSelected && styles.selectedCard, animatedStyle]}
+      style={[
+        styles.gridCard,
+        isSelected && styles.selectedCard,
+        animatedStyle,
+      ]}
       onPress={onPress}
       onLongPress={onLongPress}
       onPressIn={handlePressIn}
@@ -211,13 +222,15 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
           priority={index < 10 ? 'high' : 'normal'}
           placeholder={{ uri: 'https://via.placeholder.com/200?text=Loading' }}
         />
-        
+
         <View style={styles.gridOverlay}>
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={onToggleFavorite}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            accessibilityLabel={
+              item.isFavorite ? 'Remove from favorites' : 'Add to favorites'
+            }
             accessibilityRole="button"
           >
             <Heart
@@ -226,7 +239,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
               fill={item.isFavorite ? Colors.error[500] : 'transparent'}
             />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.moreButton}
             onPress={onMoreOptions}
@@ -246,14 +259,14 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
       </View>
 
       <View style={styles.gridContent}>
-        <Text 
-          style={styles.gridTitle} 
+        <Text
+          style={styles.gridTitle}
           numberOfLines={2}
           accessibilityLabel={item.name}
         >
           {item.name}
         </Text>
-        
+
         {item.brand && (
           <Text style={styles.gridBrand} numberOfLines={1}>
             {item.brand}
@@ -261,10 +274,13 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
         )}
 
         <View style={styles.gridTags}>
-          {item.season.slice(0, 2).map((season) => (
+          {item.season.slice(0, 2).map(season => (
             <View
               key={season}
-              style={[styles.seasonTag, { backgroundColor: getSeasonColor(season) }]}
+              style={[
+                styles.seasonTag,
+                { backgroundColor: getSeasonColor(season) },
+              ]}
             >
               <Text style={styles.seasonText}>{season}</Text>
             </View>
@@ -276,9 +292,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
             <View style={styles.statRow}>
               <Text style={styles.gridStatText}>{item.timesWorn} worn</Text>
             </View>
-            {item.price && (
-              <Text style={styles.gridPrice}>${item.price}</Text>
-            )}
+            {item.price && <Text style={styles.gridPrice}>${item.price}</Text>}
           </View>
         )}
 

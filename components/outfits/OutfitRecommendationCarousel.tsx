@@ -1,24 +1,25 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Dimensions,
-  Share,
   Platform,
+  Share,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import Animated, {
-  useSharedValue,
+  Extrapolate,
+  interpolate,
+  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  interpolate,
-  Extrapolate,
+  useSharedValue,
 } from 'react-native-reanimated';
+import { Colors } from '../../constants/Colors';
+import { Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 import { GeneratedOutfit } from '../../lib/outfitGenerator';
 import { OutfitRecommendationCard } from './OutfitRecommendationCard';
-import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing } from '../../constants/Spacing';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,7 +35,54 @@ interface OutfitRecommendationCarouselProps {
   onSwipeEnd?: (index: number) => void;
 }
 
-export const OutfitRecommendationCarousel: React.FC<OutfitRecommendationCarouselProps> = ({
+interface PaginationDotProps {
+  index: number;
+  scrollX: Animated.SharedValue<number>;
+  activeIndex: number;
+}
+
+const PaginationDot: React.FC<PaginationDotProps> = ({
+  index,
+  scrollX,
+  activeIndex,
+}) => {
+  const dotStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      (index - 1) * SCREEN_WIDTH,
+      index * SCREEN_WIDTH,
+      (index + 1) * SCREEN_WIDTH,
+    ];
+
+    const width = interpolate(
+      scrollX.value,
+      inputRange,
+      [8, 16, 8],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolate.CLAMP
+    );
+
+    const backgroundColor =
+      index === activeIndex ? Colors.primary[700] : Colors.neutral[300];
+
+    return {
+      width,
+      opacity,
+      backgroundColor,
+    };
+  });
+
+  return <Animated.View style={[styles.paginationDot, dotStyle]} />;
+};
+
+export const OutfitRecommendationCarousel: React.FC<
+  OutfitRecommendationCarouselProps
+> = ({
   outfits,
   onSaveOutfit,
   onRefreshOutfit,
@@ -48,10 +96,10 @@ export const OutfitRecommendationCarousel: React.FC<OutfitRecommendationCarousel
 
   // Handle scroll events
   const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
+    onScroll: event => {
       scrollX.value = event.contentOffset.x;
     },
-    onMomentumEnd: (event) => {
+    onMomentumEnd: event => {
       const newIndex = Math.round(event.contentOffset.x / SCREEN_WIDTH);
       runOnJS(setActiveIndex)(newIndex);
       if (onSwipeEnd) {
@@ -61,75 +109,58 @@ export const OutfitRecommendationCarousel: React.FC<OutfitRecommendationCarousel
   });
 
   // Share outfit
-  const handleShareOutfit = useCallback(async (index: number = activeIndex) => {
-    try {
-      const outfit = outfits[index];
-      const message = `Check out this outfit I found on Stylisto!\n\n${
-        outfit.items.map(item => `• ${item.name} (${item.category})`).join('\n')
-      }`;
-      
-      await Share.share({
-        message,
-        title: 'Stylisto Outfit',
-        url: Platform.OS === 'web' ? window.location.href : undefined,
-      });
-    } catch (error) {
-      console.error('Error sharing outfit:', error);
-    }
-  }, [outfits, activeIndex]);
+  const handleShareOutfit = useCallback(
+    async (index: number = activeIndex) => {
+      try {
+        const outfit = outfits[index];
+        const message = `Check out this outfit I found on Stylisto!\n\n${outfit.items
+          .map(item => `• ${item.name} (${item.category})`)
+          .join('\n')}`;
+
+        await Share.share({
+          message,
+          title: 'Stylisto Outfit',
+          url: Platform.OS === 'web' ? window.location.href : undefined,
+        });
+      } catch (error) {
+        console.error('Error sharing outfit:', error);
+      }
+    },
+    [outfits, activeIndex]
+  );
 
   // Handle swipe left/right
-  const handleSwipeLeft = useCallback((index: number) => {
-    const nextIndex = Math.min(index + 1, outfits.length - 1);
-    scrollViewRef.current?.scrollTo({ x: nextIndex * SCREEN_WIDTH, animated: true });
-  }, [outfits.length]);
+  const handleSwipeLeft = useCallback(
+    (index: number) => {
+      const nextIndex = Math.min(index + 1, outfits.length - 1);
+      scrollViewRef.current?.scrollTo({
+        x: nextIndex * SCREEN_WIDTH,
+        animated: true,
+      });
+    },
+    [outfits.length]
+  );
 
   const handleSwipeRight = useCallback((index: number) => {
     const prevIndex = Math.max(index - 1, 0);
-    scrollViewRef.current?.scrollTo({ x: prevIndex * SCREEN_WIDTH, animated: true });
+    scrollViewRef.current?.scrollTo({
+      x: prevIndex * SCREEN_WIDTH,
+      animated: true,
+    });
   }, []);
 
   // Pagination dots
   const renderPaginationDots = () => {
     return (
       <View style={styles.paginationContainer}>
-        {outfits.map((_, index) => {
-          const dotStyle = useAnimatedStyle(() => {
-            const inputRange = [
-              (index - 1) * SCREEN_WIDTH,
-              index * SCREEN_WIDTH,
-              (index + 1) * SCREEN_WIDTH,
-            ];
-            
-            const width = interpolate(
-              scrollX.value,
-              inputRange,
-              [8, 16, 8],
-              Extrapolate.CLAMP
-            );
-            
-            const opacity = interpolate(
-              scrollX.value,
-              inputRange,
-              [0.5, 1, 0.5],
-              Extrapolate.CLAMP
-            );
-            
-            const backgroundColor = index === activeIndex 
-              ? Colors.primary[700] 
-              : Colors.neutral[300];
-            
-            return {
-              width,
-              opacity,
-              backgroundColor,
-            };
-          });
-          
-          return (
-            <Animated.View key={index} style={[styles.paginationDot, dotStyle]} />
-          );
-        })}
+        {outfits.map((_, index) => (
+          <PaginationDot
+            key={index}
+            index={index}
+            scrollX={scrollX}
+            activeIndex={activeIndex}
+          />
+        ))}
       </View>
     );
   };
@@ -170,18 +201,10 @@ export const OutfitRecommendationCarousel: React.FC<OutfitRecommendationCarousel
           </View>
         ))}
       </Animated.ScrollView>
-      
+
       {renderPaginationDots()}
     </View>
   );
-};
-
-// Helper function for runOnJS
-const runOnJS = (callback: Function) => {
-  'worklet';
-  return (value: any) => {
-    callback(value);
-  };
 };
 
 const styles = StyleSheet.create({

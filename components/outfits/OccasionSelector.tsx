@@ -8,7 +8,7 @@ import {
   ShoppingBag,
   Sparkles,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -45,14 +45,38 @@ export const OccasionSelector: React.FC<OccasionSelectorProps> = ({
   selectedOccasion,
   onSelectOccasion,
 }) => {
-  const [scaleValues] = useState(() =>
-    Object.values(Occasion).reduce(
-      (acc, occasion) => {
-        acc[occasion] = useSharedValue(1);
-        return acc;
-      },
-      {} as Record<Occasion, Animated.SharedValue<number>>
-    )
+  // Create shared values for each occasion at the top level
+  const casualScale = useSharedValue(1);
+  const workScale = useSharedValue(1);
+  const formalScale = useSharedValue(1);
+  const partyScale = useSharedValue(1);
+  const sportScale = useSharedValue(1);
+  const travelScale = useSharedValue(1);
+  const dateScale = useSharedValue(1);
+  const specialScale = useSharedValue(1);
+
+  // Create the scale values mapping
+  const scaleValues = useMemo(
+    () => ({
+      [Occasion.CASUAL]: casualScale,
+      [Occasion.WORK]: workScale,
+      [Occasion.FORMAL]: formalScale,
+      [Occasion.PARTY]: partyScale,
+      [Occasion.SPORT]: sportScale,
+      [Occasion.TRAVEL]: travelScale,
+      [Occasion.DATE]: dateScale,
+      [Occasion.SPECIAL]: specialScale,
+    }),
+    [
+      casualScale,
+      workScale,
+      formalScale,
+      partyScale,
+      sportScale,
+      travelScale,
+      dateScale,
+      specialScale,
+    ]
   );
 
   const occasionOptions: OccasionOption[] = [
@@ -125,34 +149,54 @@ export const OccasionSelector: React.FC<OccasionSelectorProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {occasionOptions.map(option => {
-          const isSelected = selectedOccasion === option.value;
-
-          const animatedStyle = useAnimatedStyle(() => {
-            return {
-              transform: [{ scale: scaleValues[option.value].value }],
-            };
-          });
-
-          return (
-            <AnimatedTouchableOpacity
-              key={option.value}
-              style={[
-                styles.occasionButton,
-                { backgroundColor: option.color },
-                isSelected && styles.selectedButton,
-                animatedStyle,
-              ]}
-              onPress={() => handleOccasionPress(option.value)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.occasionIcon}>{option.icon}</View>
-              <Text style={styles.occasionLabel}>{option.label}</Text>
-            </AnimatedTouchableOpacity>
-          );
-        })}
+        {occasionOptions.map(option => (
+          <OccasionButton
+            key={option.value}
+            option={option}
+            isSelected={selectedOccasion === option.value}
+            scaleValue={scaleValues[option.value]}
+            onPress={() => handleOccasionPress(option.value)}
+          />
+        ))}
       </ScrollView>
     </View>
+  );
+};
+
+// Extract the individual occasion button to its own component
+interface OccasionButtonProps {
+  option: OccasionOption;
+  isSelected: boolean;
+  scaleValue: Animated.SharedValue<number>;
+  onPress: () => void;
+}
+
+const OccasionButton: React.FC<OccasionButtonProps> = ({
+  option,
+  isSelected,
+  scaleValue,
+  onPress,
+}) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scaleValue.value }],
+    };
+  });
+
+  return (
+    <AnimatedTouchableOpacity
+      style={[
+        styles.occasionButton,
+        { backgroundColor: option.color },
+        isSelected && styles.selectedButton,
+        animatedStyle,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.occasionIcon}>{option.icon}</View>
+      <Text style={styles.occasionLabel}>{option.label}</Text>
+    </AnimatedTouchableOpacity>
   );
 };
 
