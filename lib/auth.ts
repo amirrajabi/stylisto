@@ -453,10 +453,100 @@ export class AuthService {
   }
 
   /**
+   * Public method to record user session (for use in auth state changes)
+   */
+  async recordSession(userId?: string) {
+    try {
+      let userIdToRecord = userId;
+
+      if (!userIdToRecord) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          console.warn('No user found to record session for');
+          return;
+        }
+        userIdToRecord = user.id;
+      }
+
+      await this.recordUserSession(userIdToRecord);
+    } catch (error) {
+      console.error('Error in public recordSession:', error);
+    }
+  }
+
+  /**
    * Record user session start
    */
   private async recordUserSession(userId: string) {
     try {
+      // Use the safe database function to record session
+      const { data, error } = await supabase.rpc('safe_record_user_session', {
+        p_user_id: userId,
+        p_platform: Platform.OS,
+        p_app_version: '1.0.0', // TODO: Get from app config
+      });
+
+      if (error) {
+        console.error('Error recording user session:', error);
+
+        // Fallback: try the manual approach
+        await this.recordUserSessionFallback(userId);
+      }
+    } catch (error) {
+      console.error('Record session error:', error);
+
+      // Fallback: try the manual approach
+      await this.recordUserSessionFallback(userId);
+    }
+  }
+
+  /**
+   * Fallback method to record user session manually
+   */
+  private async recordUserSessionFallback(userId: string) {
+    try {
+      // First check if user exists in users table
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (userCheckError && userCheckError.code !== 'PGRST116') {
+        console.error('Error checking user existence:', userCheckError);
+        return;
+      }
+
+      // If user doesn't exist, try to create user profile from auth.users
+      if (!existingUser) {
+        const {
+          data: { user: authUser },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !authUser) {
+          console.error('Error getting auth user:', authError);
+          return;
+        }
+
+        // Create user profile
+        const { error: createUserError } = await supabase.from('users').insert({
+          id: authUser.id,
+          email: authUser.email || '',
+          first_name: authUser.user_metadata?.first_name || null,
+          last_name: authUser.user_metadata?.last_name || null,
+          avatar_url: authUser.user_metadata?.avatar_url || null,
+        });
+
+        if (createUserError) {
+          console.error('Error creating user profile:', createUserError);
+          return;
+        }
+      }
+
+      // Now record the session
       const { error } = await supabase.from('user_sessions').insert({
         user_id: userId,
         platform: Platform.OS,
@@ -464,10 +554,10 @@ export class AuthService {
       });
 
       if (error) {
-        console.error('Error recording user session:', error);
+        console.error('Error recording user session (fallback):', error);
       }
     } catch (error) {
-      console.error('Record session error:', error);
+      console.error('Record session fallback error:', error);
     }
   }
 
@@ -476,6 +566,27 @@ export class AuthService {
    */
   private async endUserSession(userId: string) {
     try {
+      // Check if user exists first
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (userCheckError && userCheckError.code !== 'PGRST116') {
+        console.error('Error checking user existence:', userCheckError);
+        return;
+      }
+
+      // If user doesn't exist, we can't end a session
+      if (!existingUser) {
+        console.warn(
+          'User not found in users table, cannot end session:',
+          userId
+        );
+        return;
+      }
+
       // Find the most recent session without an end time
       const { data: sessions, error: fetchError } = await supabase
         .from('user_sessions')

@@ -1,29 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Switch,
-  ActivityIndicator,
-  Platform,
-} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Settings, User, Bell, Shield, CircleHelp as HelpCircle, LogOut, ChevronRight, Moon, Download, Trash2, Camera, BarChart } from 'lucide-react-native';
-import { useAuth } from '../../../hooks/useAuth';
-import { supabase } from '../../../lib/supabase';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
-import { H1, BodyMedium, BodySmall } from '../../../components/ui/AccessibleText';
+import {
+  BarChart,
+  Bell,
+  Camera,
+  ChevronRight,
+  Download,
+  CircleHelp as HelpCircle,
+  LogOut,
+  Moon,
+  Settings,
+  Shield,
+  Trash2,
+  User,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { AccessibilitySettingsCard } from '../../../components/profile/AccessibilitySettingsCard';
 import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
+import {
+  BodyMedium,
+  BodySmall,
+  H1,
+} from '../../../components/ui/AccessibleText';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
 import { useAnalytics } from '../../../hooks/useAnalytics';
+import { useAuth } from '../../../hooks/useAuth';
+import { supabase } from '../../../lib/supabase';
 
 export default function ProfileScreen() {
   const { user, signOut, updateProfile } = useAuth();
@@ -46,7 +64,7 @@ export default function ProfileScreen() {
     appearance: {
       darkMode: theme === 'dark',
       fontSize: 'medium',
-    }
+    },
   });
 
   // Track screen view
@@ -58,11 +76,12 @@ export default function ProfileScreen() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const storedPreferences = await AsyncStorage.getItem('@user_preferences');
+        const storedPreferences =
+          await AsyncStorage.getItem('@user_preferences');
         if (storedPreferences) {
           setUserPreferences(JSON.parse(storedPreferences));
         }
-        
+
         // Load theme preference
         const themePreference = await AsyncStorage.getItem('@theme_preference');
         if (themePreference) {
@@ -72,7 +91,7 @@ export default function ProfileScreen() {
         console.error('Failed to load preferences:', error);
       }
     };
-    
+
     loadPreferences();
   }, []);
 
@@ -80,34 +99,37 @@ export default function ProfileScreen() {
   useEffect(() => {
     const savePreferences = async () => {
       try {
-        await AsyncStorage.setItem('@user_preferences', JSON.stringify(userPreferences));
+        await AsyncStorage.setItem(
+          '@user_preferences',
+          JSON.stringify(userPreferences)
+        );
       } catch (error) {
         console.error('Failed to save preferences:', error);
       }
     };
-    
+
     savePreferences();
   }, [userPreferences]);
 
   // Handle theme toggle
   const handleThemeToggle = async (value: boolean) => {
     setDarkMode(value);
-    
+
     // Update preferences
     setUserPreferences(prev => ({
       ...prev,
       appearance: {
         ...prev.appearance,
-        darkMode: value
-      }
+        darkMode: value,
+      },
     }));
-    
+
     // Save theme preference
     await AsyncStorage.setItem('@theme_preference', value ? 'dark' : 'light');
-    
+
     // Track event
     trackEvent('theme_changed', {
-      theme: value ? 'dark' : 'light'
+      theme: value ? 'dark' : 'light',
     });
   };
 
@@ -117,14 +139,14 @@ export default function ProfileScreen() {
       ...prev,
       notifications: {
         ...prev.notifications,
-        [key]: value
-      }
+        [key]: value,
+      },
     }));
-    
+
     // Track event
     trackEvent('notification_preference_changed', {
       notification_type: key,
-      enabled: value
+      enabled: value,
     });
   };
 
@@ -134,45 +156,41 @@ export default function ProfileScreen() {
       ...prev,
       privacy: {
         ...prev.privacy,
-        [key]: value
-      }
+        [key]: value,
+      },
     }));
-    
+
     // Track event
     trackEvent('privacy_preference_changed', {
       privacy_setting: key,
-      value: value
+      value: value,
     });
   };
 
   // Handle sign out
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              
-              // Track sign out event
-              trackEvent('user_signed_out');
-              
-              await signOut();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            } finally {
-              setLoading(false);
-            }
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setLoading(true);
+
+            // Track sign out event
+            trackEvent('user_signed_out');
+
+            await signOut();
+            router.replace('/(auth)/login');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to sign out. Please try again.');
+          } finally {
+            setLoading(false);
           }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Handle account deletion
@@ -182,39 +200,42 @@ export default function ProfileScreen() {
       'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete Account', 
+        {
+          text: 'Delete Account',
           style: 'destructive',
           onPress: async () => {
             try {
               setLoading(true);
-              
+
               // First export data for GDPR compliance
               await handleExportData();
-              
+
               // Track account deletion event
               trackEvent('account_deleted');
-              
+
               // Delete user data from Supabase
               const { error } = await supabase.rpc('delete_user_account');
-              
+
               if (error) throw error;
-              
+
               // Sign out after deletion
               await signOut();
               router.replace('/(auth)/login');
-              
+
               Alert.alert(
                 'Account Deleted',
                 'Your account and all associated data have been permanently deleted.'
               );
             } catch (error) {
               console.error('Error deleting account:', error);
-              Alert.alert('Error', 'Failed to delete account. Please try again.');
+              Alert.alert(
+                'Error',
+                'Failed to delete account. Please try again.'
+              );
             } finally {
               setLoading(false);
             }
-          }
+          },
         },
       ]
     );
@@ -224,46 +245,47 @@ export default function ProfileScreen() {
   const handleExportData = async () => {
     try {
       setLoading(true);
-      
+
       // Track data export event
       trackEvent('data_export_requested');
-      
+
       // Fetch user data from Supabase
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', user?.id)
         .single();
-      
+
       if (userError) throw userError;
-      
+
       // Fetch wardrobe items
       const { data: wardrobeItems, error: wardrobeError } = await supabase
         .from('clothing_items')
         .select('*')
         .eq('user_id', user?.id)
         .is('deleted_at', null);
-      
+
       if (wardrobeError) throw wardrobeError;
-      
+
       // Fetch saved outfits
       const { data: savedOutfits, error: outfitsError } = await supabase
         .from('saved_outfits')
         .select('*')
         .eq('user_id', user?.id)
         .is('deleted_at', null);
-      
+
       if (outfitsError) throw outfitsError;
-      
+
       // Fetch user preferences
       const { data: preferences, error: preferencesError } = await supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', user?.id)
         .single();
-      
-      if (preferencesError && preferencesError.code !== 'PGRST116') throw preferencesError;
-      
+
+      if (preferencesError && preferencesError.code !== 'PGRST116')
+        throw preferencesError;
+
       // Compile all data
       const exportData = {
         user: userData,
@@ -272,10 +294,10 @@ export default function ProfileScreen() {
         outfits: savedOutfits || [],
         exportDate: new Date().toISOString(),
       };
-      
+
       // Convert to JSON string
       const jsonData = JSON.stringify(exportData, null, 2);
-      
+
       if (Platform.OS === 'web') {
         // For web: Create a download link
         const blob = new Blob([jsonData], { type: 'application/json' });
@@ -296,11 +318,8 @@ export default function ProfileScreen() {
           [{ text: 'OK' }]
         );
       }
-      
-      Alert.alert(
-        'Data Exported',
-        'Your data has been exported successfully.'
-      );
+
+      Alert.alert('Data Exported', 'Your data has been exported successfully.');
     } catch (error) {
       console.error('Error exporting data:', error);
       Alert.alert('Error', 'Failed to export data. Please try again.');
@@ -311,51 +330,47 @@ export default function ProfileScreen() {
 
   // Handle profile picture update
   const handleUpdateProfilePicture = () => {
-    Alert.alert(
-      'Update Profile Picture',
-      'Choose an option',
-      [
-        { 
-          text: 'Take Photo', 
-          onPress: () => {
-            // Track camera usage
-            trackEvent('camera_opened', {
-              purpose: 'profile_picture'
-            });
-            
-            router.push({
-              pathname: '/camera',
-              params: {
-                mode: 'camera',
-                maxPhotos: '1',
-                returnTo: '/profile',
-                itemType: 'profile'
-              }
-            });
-          }
+    Alert.alert('Update Profile Picture', 'Choose an option', [
+      {
+        text: 'Take Photo',
+        onPress: () => {
+          // Track camera usage
+          trackEvent('camera_opened', {
+            purpose: 'profile_picture',
+          });
+
+          router.push({
+            pathname: '/camera',
+            params: {
+              mode: 'camera',
+              maxPhotos: '1',
+              returnTo: '/profile',
+              itemType: 'profile',
+            },
+          });
         },
-        { 
-          text: 'Choose from Gallery', 
-          onPress: () => {
-            // Track gallery usage
-            trackEvent('gallery_opened', {
-              purpose: 'profile_picture'
-            });
-            
-            router.push({
-              pathname: '/camera',
-              params: {
-                mode: 'gallery',
-                maxPhotos: '1',
-                returnTo: '/profile',
-                itemType: 'profile'
-              }
-            });
-          }
+      },
+      {
+        text: 'Choose from Gallery',
+        onPress: () => {
+          // Track gallery usage
+          trackEvent('gallery_opened', {
+            purpose: 'profile_picture',
+          });
+
+          router.push({
+            pathname: '/camera',
+            params: {
+              mode: 'gallery',
+              maxPhotos: '1',
+              returnTo: '/profile',
+              itemType: 'profile',
+            },
+          });
         },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const MenuSection: React.FC<{
@@ -363,7 +378,9 @@ export default function ProfileScreen() {
     children: React.ReactNode;
   }> = ({ title, children }) => (
     <View style={[styles.section, { backgroundColor: colors.surface.primary }]}>
-      <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
+        {title}
+      </Text>
       {children}
     </View>
   );
@@ -376,18 +393,23 @@ export default function ProfileScreen() {
     showArrow?: boolean;
     destructive?: boolean;
     rightElement?: React.ReactNode;
-  }> = ({ icon, title, subtitle, onPress, showArrow = true, destructive = false, rightElement }) => (
-    <TouchableOpacity 
-      style={[
-        styles.menuItem, 
-        { borderBottomColor: colors.border.primary }
-      ]} 
+  }> = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    showArrow = true,
+    destructive = false,
+    rightElement,
+  }) => (
+    <TouchableOpacity
+      style={[styles.menuItem, { borderBottomColor: colors.border.primary }]}
       onPress={() => {
         // Track menu item click
         trackEvent('profile_menu_item_clicked', {
-          item: title.toLowerCase().replace(/\s+/g, '_')
+          item: title.toLowerCase().replace(/\s+/g, '_'),
         });
-        
+
         onPress();
       }}
       accessibilityRole="button"
@@ -395,82 +417,130 @@ export default function ProfileScreen() {
       accessibilityHint={subtitle}
     >
       <View style={styles.menuItemLeft}>
-        <View style={[
-          styles.menuIcon, 
-          destructive && styles.destructiveIcon,
-          { backgroundColor: destructive ? colors.error[50] : colors.surface.secondary }
-        ]}>
+        <View
+          style={[
+            styles.menuIcon,
+            destructive && styles.destructiveIcon,
+            {
+              backgroundColor: destructive
+                ? colors.error[50]
+                : colors.surface.secondary,
+            },
+          ]}
+        >
           {icon}
         </View>
         <View>
-          <Text style={[
-            styles.menuTitle, 
-            destructive && styles.destructiveText,
-            { color: destructive ? colors.error[600] : colors.text.primary }
-          ]}>
+          <Text
+            style={[
+              styles.menuTitle,
+              destructive && styles.destructiveText,
+              { color: destructive ? colors.error[600] : colors.text.primary },
+            ]}
+          >
             {title}
           </Text>
-          {subtitle && <Text style={[styles.menuSubtitle, { color: colors.text.secondary }]}>{subtitle}</Text>}
+          {subtitle && (
+            <Text
+              style={[styles.menuSubtitle, { color: colors.text.secondary }]}
+            >
+              {subtitle}
+            </Text>
+          )}
         </View>
       </View>
-      
-      {rightElement ? (
-        rightElement
-      ) : (
-        showArrow && (
-          <ChevronRight size={20} color={colors.text.tertiary} />
-        )
-      )}
+
+      {rightElement
+        ? rightElement
+        : showArrow && <ChevronRight size={20} color={colors.text.tertiary} />}
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.secondary }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: colors.background.secondary },
+      ]}
+    >
       {loading && (
-        <View style={[styles.loadingOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.3)' }]}>
+        <View
+          style={[
+            styles.loadingOverlay,
+            { backgroundColor: 'rgba(0, 0, 0, 0.3)' },
+          ]}
+        >
           <ActivityIndicator size="large" color={colors.primary[700]} />
         </View>
       )}
-      
+
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface.primary, borderBottomColor: colors.border.primary }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.surface.primary,
+            borderBottomColor: colors.border.primary,
+          },
+        ]}
+      >
         <H1>Profile</H1>
       </View>
 
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={[styles.content, { backgroundColor: colors.background.primary }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Spacing.xl }}
-        accessibilityRole="scrollView"
-        id="main-content"
+        contentContainerStyle={{ paddingBottom: Spacing['2xl'] }}
       >
-        {/* User Info */}
-        <View style={[styles.userSection, { backgroundColor: colors.surface.primary }]}>
-          <TouchableOpacity 
+        {/* User Section */}
+        <View
+          style={[
+            styles.userSection,
+            { backgroundColor: colors.surface.primary },
+          ]}
+        >
+          <TouchableOpacity
             style={styles.avatarContainer}
             onPress={handleUpdateProfilePicture}
-            accessibilityLabel="Update profile picture"
-            accessibilityHint="Double tap to choose a new profile picture"
+            accessible
             accessibilityRole="button"
+            accessibilityLabel="Update profile picture"
+            accessibilityHint="Double tap to update your profile picture"
           >
             {user?.avatar_url ? (
               <Image
                 source={{ uri: user.avatar_url }}
                 style={styles.avatar}
                 contentFit="cover"
-                accessibilityLabel="Your profile picture"
+                transition={200}
+                accessibilityIgnoresInvertColors
               />
             ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surface.secondary }]}>
-                <User size={40} color={colors.text.secondary} />
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  { backgroundColor: colors.primary[100] },
+                ]}
+              >
+                <User size={48} color={colors.primary[500]} />
               </View>
             )}
-            <View style={[styles.cameraButton, { backgroundColor: colors.primary[700] }]}>
+
+            <View
+              style={[
+                styles.cameraButton,
+                { backgroundColor: colors.primary[500] },
+              ]}
+            >
               <Camera size={16} color={colors.white} />
             </View>
           </TouchableOpacity>
-          
-          <Text style={[styles.userName, { color: colors.text.primary }]}>{user?.full_name || 'User'}</Text>
+
+          <Text style={[styles.userName, { color: colors.text.primary }]}>
+            {user?.first_name && user?.last_name
+              ? `${user.first_name} ${user.last_name}`
+              : user?.first_name || user?.last_name || 'User'}
+          </Text>
           <BodyMedium color="secondary">{user?.email}</BodyMedium>
         </View>
 
@@ -478,19 +548,35 @@ export default function ProfileScreen() {
         <AccessibilitySettingsCard />
 
         {/* Theme Toggle */}
-        <View style={[styles.themeToggleContainer, { backgroundColor: colors.surface.primary }]}>
+        <View
+          style={[
+            styles.themeToggleContainer,
+            { backgroundColor: colors.surface.primary },
+          ]}
+        >
           <View style={styles.themeToggleLeft}>
             <Moon size={20} color={colors.text.primary} />
-            <Text style={[styles.themeToggleText, { color: colors.text.primary }]}>Dark Mode</Text>
+            <Text
+              style={[styles.themeToggleText, { color: colors.text.primary }]}
+            >
+              Dark Mode
+            </Text>
           </View>
           <Switch
             value={darkMode}
             onValueChange={handleThemeToggle}
-            trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
+            trackColor={{
+              false: colors.neutral[300],
+              true: colors.primary[500],
+            }}
             thumbColor={Platform.OS === 'ios' ? undefined : colors.white}
             ios_backgroundColor={colors.neutral[300]}
             accessibilityLabel="Dark mode"
-            accessibilityHint={darkMode ? "Double tap to turn off dark mode" : "Double tap to turn on dark mode"}
+            accessibilityHint={
+              darkMode
+                ? 'Double tap to turn off dark mode'
+                : 'Double tap to turn on dark mode'
+            }
             accessibilityRole="switch"
             accessibilityState={{ checked: darkMode }}
           />
@@ -564,7 +650,9 @@ export default function ProfileScreen() {
         </MenuSection>
 
         {/* App Info */}
-        <View style={[styles.appInfo, { backgroundColor: colors.surface.primary }]}>
+        <View
+          style={[styles.appInfo, { backgroundColor: colors.surface.primary }]}
+        >
           <BodySmall color="tertiary">Stylisto v1.0.0</BodySmall>
           <BodySmall color="tertiary" style={styles.appDescription}>
             Your personal AI-powered wardrobe assistant
@@ -574,9 +662,6 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
-
-// Import Text component
-import { Text } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {

@@ -80,6 +80,15 @@ export const useAuth = () => {
 
       if (event === 'SIGNED_IN') {
         console.log('User signed in:', session?.user?.email);
+        // Record session for all sign-in events (email confirmation, password reset, etc.)
+        if (session?.user?.id) {
+          try {
+            // Record session using AuthService method that handles user creation if needed
+            await authService.recordSession(session.user.id);
+          } catch (error) {
+            console.error('Error recording session on sign in event:', error);
+          }
+        }
       }
     });
 
@@ -194,6 +203,51 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Handle OAuth callback
+  const handleOAuthCallback = useCallback(async (url: string) => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      // For OAuth callbacks, we need to handle the URL parameters
+      const urlParams = new URLSearchParams(
+        url.split('#')[1] || url.split('?')[1]
+      );
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        // Set session using the tokens
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) throw error;
+
+        if (data.session) {
+          // Session will be set automatically by onAuthStateChange listener
+          // which will also record the session
+          return data;
+        }
+      }
+
+      // If no tokens, try to get current session (might already be set)
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        return { session: sessionData.session, user: sessionData.session.user };
+      }
+
+      throw new Error('No valid session found in OAuth callback');
+    } catch (error: any) {
+      setAuthState(prev => ({
+        ...prev,
+        error: error.message,
+        loading: false,
+      }));
+      throw error;
+    }
+  }, []);
+
   return {
     ...authState,
     signUpWithPassword,
@@ -201,6 +255,7 @@ export const useAuth = () => {
     signOut,
     updateProfile,
     resetPassword,
+    handleOAuthCallback,
   };
 };
 

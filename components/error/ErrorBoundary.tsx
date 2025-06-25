@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
-import { router } from 'expo-router';
-import { CircleAlert as AlertCircle, RefreshCw, Home, ArrowLeft } from 'lucide-react-native';
 import * as Sentry from '@sentry/react-native';
-import { errorHandling, ErrorSeverity, ErrorCategory } from '../../lib/errorHandling';
+import { router } from 'expo-router';
+import {
+  CircleAlert as AlertCircle,
+  ArrowLeft,
+  Home,
+  RefreshCw,
+} from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
+import {
+  ErrorCategory,
+  errorHandling,
+  ErrorSeverity,
+} from '../../lib/errorHandling';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -16,27 +32,31 @@ interface ErrorFallbackProps {
   componentStack?: string;
 }
 
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({ 
-  error, 
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({
+  error,
   resetErrorBoundary,
   componentStack,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
-  
+
   const handleGoHome = () => {
     router.replace('/(tabs)');
     resetErrorBoundary();
   };
-  
+
   const handleGoBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
     resetErrorBoundary();
   };
-  
+
   const handleRetry = () => {
     resetErrorBoundary();
   };
-  
+
   const handleReportError = () => {
     // Send additional feedback to Sentry
     Sentry.captureUserFeedback({
@@ -44,43 +64,49 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
       name: 'User', // In a real app, get this from the user
       comments: `Error: ${error.message}\nUser reported this error manually.`,
     });
-    
+
     // Show confirmation to user
     alert('Thank you for reporting this error. Our team has been notified.');
   };
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
         <AlertCircle size={64} color={Colors.error[500]} />
       </View>
-      
+
       <Text style={styles.title}>Something went wrong</Text>
-      
+
       <Text style={styles.message}>
         {error.message || 'An unexpected error occurred. Please try again.'}
       </Text>
-      
+
       <View style={styles.actionsContainer}>
         <TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
           <RefreshCw size={20} color={Colors.white} />
           <Text style={styles.primaryButtonText}>Try Again</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.secondaryActions}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleGoBack}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleGoBack}
+          >
             <ArrowLeft size={18} color={Colors.text.primary} />
             <Text style={styles.secondaryButtonText}>Go Back</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleGoHome}>
+
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleGoHome}
+          >
             <Home size={18} color={Colors.text.primary} />
             <Text style={styles.secondaryButtonText}>Go Home</Text>
           </TouchableOpacity>
         </View>
       </View>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.detailsToggle}
         onPress={() => setShowDetails(!showDetails)}
       >
@@ -88,7 +114,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           {showDetails ? 'Hide Error Details' : 'Show Error Details'}
         </Text>
       </TouchableOpacity>
-      
+
       {showDetails && (
         <ScrollView style={styles.detailsContainer}>
           <Text style={styles.detailsTitle}>Error Details</Text>
@@ -106,8 +132,8 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
               <Text style={styles.stackTrace}>{componentStack}</Text>
             </>
           )}
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.reportButton}
             onPress={handleReportError}
           >
@@ -126,7 +152,7 @@ interface ErrorBoundaryProps {
   resetKeys?: any[];
 }
 
-export const AppErrorBoundary: React.FC<ErrorBoundaryProps> = ({ 
+export const AppErrorBoundary: React.FC<ErrorBoundaryProps> = ({
   children,
   fallback = ErrorFallback,
   onError,
@@ -141,13 +167,13 @@ export const AppErrorBoundary: React.FC<ErrorBoundaryProps> = ({
         componentStack: info.componentStack,
       },
     });
-    
+
     // Call custom error handler if provided
     if (onError) {
       onError(error, info.componentStack);
     }
   };
-  
+
   return (
     <ReactErrorBoundary
       FallbackComponent={fallback}
