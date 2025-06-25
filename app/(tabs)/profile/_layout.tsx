@@ -27,85 +27,73 @@ export default function ProfileLayout() {
       <Stack.Screen
         name="personal-info"
         options={{
-          title: 'Personal Information',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="privacy"
         options={{
-          title: 'Privacy & Security',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="help"
         options={{
-          title: 'Help & Support',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="ai-settings"
         options={{
-          title: 'AI Settings',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="storage"
         options={{
-          title: 'Storage Management',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="analytics"
         options={{
-          title: 'Analytics & Privacy',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="change-password"
         options={{
-          title: 'Change Password',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="data-export"
         options={{
-          title: 'Export Data',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="delete-account"
         options={{
-          title: 'Delete Account',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="accessibility"
         options={{
-          title: 'Accessibility',
-          headerShown: true,
+          headerShown: false,
         }}
       />
     </Stack>

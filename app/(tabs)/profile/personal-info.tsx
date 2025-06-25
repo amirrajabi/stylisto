@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { router } from 'expo-router';
+import { ArrowLeft, Key, Mail, Save, User } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  Alert,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
   TextInput,
-  Alert,
-  ActivityIndicator,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, User, Mail, Key, Save } from 'lucide-react-native';
-import { useAuth } from '../../../hooks/useAuth';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
 import { H1 } from '../../../components/ui';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
+import { useAuth } from '../../../hooks/useAuth';
 
 export default function PersonalInfoScreen() {
   const { user, updateProfile } = useAuth();
@@ -34,20 +34,20 @@ export default function PersonalInfoScreen() {
 
   const handleSave = async () => {
     if (!hasChanges) return;
-    
+
     try {
       setLoading(true);
-      
+
       await updateProfile({
         full_name: fullName,
       });
-      
+
       Alert.alert(
         'Profile Updated',
         'Your profile information has been updated successfully.',
         [{ text: 'OK' }]
       );
-      
+
       setHasChanges(false);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -78,11 +78,15 @@ export default function PersonalInfoScreen() {
           <Text style={styles.sectionDescription}>
             Update your personal information and manage your account settings.
           </Text>
-          
+
           <View style={styles.formGroup}>
             <Text style={styles.label}>Full Name</Text>
             <View style={styles.inputContainer}>
-              <User size={20} color={Colors.text.secondary} style={styles.inputIcon} />
+              <User
+                size={20}
+                color={Colors.text.secondary}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 value={fullName}
@@ -92,11 +96,15 @@ export default function PersonalInfoScreen() {
               />
             </View>
           </View>
-          
+
           <View style={styles.formGroup}>
             <Text style={styles.label}>Email Address</Text>
             <View style={styles.inputContainer}>
-              <Mail size={20} color={Colors.text.secondary} style={styles.inputIcon} />
+              <Mail
+                size={20}
+                color={Colors.text.secondary}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={[styles.input, styles.disabledInput]}
                 value={email}
@@ -106,10 +114,11 @@ export default function PersonalInfoScreen() {
               />
             </View>
             <Text style={styles.helperText}>
-              Email address cannot be changed. Contact support if you need to update your email.
+              Email address cannot be changed. Contact support if you need to
+              update your email.
             </Text>
           </View>
-          
+
           <TouchableOpacity
             style={styles.passwordButton}
             onPress={handleChangePassword}
@@ -118,24 +127,28 @@ export default function PersonalInfoScreen() {
             <Text style={styles.passwordButtonText}>Change Password</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Information</Text>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Account Created</Text>
             <Text style={styles.infoValue}>
-              {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+              {user?.created_at
+                ? new Date(user.created_at).toLocaleDateString()
+                : 'N/A'}
             </Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Last Updated</Text>
             <Text style={styles.infoValue}>
-              {user?.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'N/A'}
+              {user?.updated_at
+                ? new Date(user.updated_at).toLocaleDateString()
+                : 'N/A'}
             </Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Account ID</Text>
             <Text style={styles.infoValue}>
@@ -144,7 +157,7 @@ export default function PersonalInfoScreen() {
           </View>
         </View>
       </ScrollView>
-      
+
       {hasChanges && (
         <View style={styles.footer}>
           <TouchableOpacity

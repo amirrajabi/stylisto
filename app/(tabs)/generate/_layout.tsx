@@ -27,15 +27,13 @@ export default function GenerateLayout() {
       <Stack.Screen
         name="preferences"
         options={{
-          title: 'Style Preferences',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="weather"
         options={{
-          title: 'Weather Settings',
-          headerShown: true,
+          headerShown: false,
         }}
       />
     </Stack>

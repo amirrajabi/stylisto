@@ -27,15 +27,13 @@ export default function WardrobeLayout() {
       <Stack.Screen
         name="add-item"
         options={{
-          title: 'Add Item',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="categories"
         options={{
-          title: 'Categories',
-          headerShown: true,
+          headerShown: false,
         }}
       />
     </Stack>

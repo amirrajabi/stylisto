@@ -27,15 +27,13 @@ export default function RecommendationsLayout() {
       <Stack.Screen
         name="details"
         options={{
-          title: 'Recommendation Details',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="settings"
         options={{
-          title: 'Recommendation Settings',
-          headerShown: true,
+          headerShown: false,
         }}
       />
     </Stack>

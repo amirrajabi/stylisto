@@ -103,32 +103,28 @@ export default function RootLayout() {
                 name="item-detail"
                 options={{
                   presentation: 'modal',
-                  headerShown: true,
-                  title: 'Item Details',
+                  headerShown: false,
                 }}
               />
               <Stack.Screen
                 name="item-tag-editor"
                 options={{
                   presentation: 'modal',
-                  headerShown: true,
-                  title: 'Edit Tags',
+                  headerShown: false,
                 }}
               />
               <Stack.Screen
                 name="outfit-detail"
                 options={{
                   presentation: 'modal',
-                  headerShown: true,
-                  title: 'Outfit Details',
+                  headerShown: false,
                 }}
               />
               <Stack.Screen
                 name="outfit-builder"
                 options={{
                   presentation: 'modal',
-                  headerShown: true,
-                  title: 'Create Outfit',
+                  headerShown: false,
                 }}
               />
               <Stack.Screen
