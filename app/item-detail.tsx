@@ -1,49 +1,52 @@
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
+import {
+  CreditCard as Edit,
+  Heart,
+  Share,
+  Tag,
+  Trash2,
+} from 'lucide-react-native';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  Alert,
   SafeAreaView,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  Alert,
+  View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Image } from 'expo-image';
-import { Heart, CreditCard as Edit, Trash2, Share, Tag } from 'lucide-react-native';
-import { useWardrobe } from '../hooks/useWardrobe';
+import { BodyMedium, BodySmall, Button, H1, H3 } from '../components/ui';
 import { Colors } from '../constants/Colors';
+import { Layout, Spacing } from '../constants/Spacing';
 import { Typography } from '../constants/Typography';
-import { Spacing, Layout } from '../constants/Spacing';
-import { Shadows } from '../constants/Shadows';
-import { Button, H1, H3, BodyMedium, BodySmall } from '../components/ui';
-import { formatCurrency, formatDate, getSeasonColor, getOccasionColor } from '../utils/wardrobeUtils';
+import { useWardrobe } from '../hooks/useWardrobe';
+import {
+  formatCurrency,
+  formatDate,
+  getOccasionColor,
+  getSeasonColor,
+} from '../utils/wardrobeUtils';
 
 export default function ItemDetailScreen() {
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
   const { items, actions } = useWardrobe();
-  
+
   const item = items.find(i => i.id === itemId);
 
-  if (!item) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Item not found</Text>
-          <Button title="Go Back" onPress={() => router.back()} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const handleEdit = () => {
+    if (!item) return;
+
     router.push({
       pathname: '/wardrobe/add-item',
-      params: { editItemId: item.id }
+      params: { editItemId: item.id },
     });
   };
 
   const handleDelete = () => {
+    if (!item) return;
+
     Alert.alert(
       'Delete Item',
       `Are you sure you want to delete "${item.name}"?`,
@@ -62,16 +65,31 @@ export default function ItemDetailScreen() {
   };
 
   const handleShare = () => {
+    if (!item) return;
     // Implement share functionality
     console.log('Share item:', item.name);
   };
-  
+
   const handleEditTags = () => {
+    if (!item) return;
+
     router.push({
       pathname: '/item-tag-editor',
-      params: { itemId: item.id }
+      params: { itemId: item.id },
     });
   };
+
+  // Show error state if no item is found
+  if (!item) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Item not found</Text>
+          <Button title="Go Back" onPress={() => router.back()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,13 +119,22 @@ export default function ItemDetailScreen() {
           <View style={styles.header}>
             <H1 style={styles.title}>{item.name}</H1>
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleShare}
+              >
                 <Share size={20} color={Colors.text.secondary} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleEdit}
+              >
                 <Edit size={20} color={Colors.text.secondary} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleDelete}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleDelete}
+              >
                 <Trash2 size={20} color={Colors.error[500]} />
               </TouchableOpacity>
             </View>
@@ -134,7 +161,9 @@ export default function ItemDetailScreen() {
             <View style={styles.infoRow}>
               <BodyMedium color="secondary">Color</BodyMedium>
               <View style={styles.colorInfo}>
-                <View style={[styles.colorDot, { backgroundColor: item.color }]} />
+                <View
+                  style={[styles.colorDot, { backgroundColor: item.color }]}
+                />
                 <BodyMedium>{item.color}</BodyMedium>
               </View>
             </View>
@@ -150,7 +179,7 @@ export default function ItemDetailScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <H3 style={styles.sectionTitle}>Tags</H3>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.editTagsButton}
                 onPress={handleEditTags}
               >
@@ -158,10 +187,10 @@ export default function ItemDetailScreen() {
                 <Text style={styles.editTagsText}>Edit Tags</Text>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.tagsContainer}>
               {item.tags.length > 0 ? (
-                item.tags.map((tag) => (
+                item.tags.map(tag => (
                   <View key={tag} style={styles.customTag}>
                     <Text style={styles.customTagText}>{tag}</Text>
                   </View>
@@ -177,10 +206,13 @@ export default function ItemDetailScreen() {
             <View style={styles.section}>
               <H3 style={styles.sectionTitle}>Seasons</H3>
               <View style={styles.tagsContainer}>
-                {item.season.map((season) => (
+                {item.season.map(season => (
                   <View
                     key={season}
-                    style={[styles.tag, { backgroundColor: getSeasonColor(season) }]}
+                    style={[
+                      styles.tag,
+                      { backgroundColor: getSeasonColor(season) },
+                    ]}
                   >
                     <Text style={styles.tagText}>{season}</Text>
                   </View>
@@ -194,10 +226,13 @@ export default function ItemDetailScreen() {
             <View style={styles.section}>
               <H3 style={styles.sectionTitle}>Occasions</H3>
               <View style={styles.tagsContainer}>
-                {item.occasion.map((occasion) => (
+                {item.occasion.map(occasion => (
                   <View
                     key={occasion}
-                    style={[styles.tag, { backgroundColor: getOccasionColor(occasion) }]}
+                    style={[
+                      styles.tag,
+                      { backgroundColor: getOccasionColor(occasion) },
+                    ]}
                   >
                     <Text style={styles.tagText}>{occasion}</Text>
                   </View>
@@ -216,12 +251,16 @@ export default function ItemDetailScreen() {
               </View>
               {item.lastWorn && (
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{formatDate(item.lastWorn)}</Text>
+                  <Text style={styles.statValue}>
+                    {formatDate(item.lastWorn)}
+                  </Text>
                   <BodySmall color="secondary">Last Worn</BodySmall>
                 </View>
               )}
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{formatDate(item.createdAt)}</Text>
+                <Text style={styles.statValue}>
+                  {formatDate(item.createdAt)}
+                </Text>
                 <BodySmall color="secondary">Added</BodySmall>
               </View>
             </View>

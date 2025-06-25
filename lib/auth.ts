@@ -481,24 +481,10 @@ export class AuthService {
    */
   private async recordUserSession(userId: string) {
     try {
-      // Use the safe database function to record session
-      const { data, error } = await supabase.rpc('safe_record_user_session', {
-        p_user_id: userId,
-        p_platform: Platform.OS,
-        p_app_version: '1.0.0', // TODO: Get from app config
-      });
-
-      if (error) {
-        console.error('Error recording user session:', error);
-
-        // Fallback: try the manual approach
-        await this.recordUserSessionFallback(userId);
-      }
+      // Use the direct approach to record session
+      await this.recordUserSessionFallback(userId);
     } catch (error) {
       console.error('Record session error:', error);
-
-      // Fallback: try the manual approach
-      await this.recordUserSessionFallback(userId);
     }
   }
 

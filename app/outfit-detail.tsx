@@ -1,62 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Share,
-  Platform,
-} from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Heart, Share2, ArrowLeft, Tag, Calendar, ThermometerSun, Trash2, CreditCard as Edit2, Clock } from 'lucide-react-native';
-import { useSavedOutfits } from '../hooks/useSavedOutfits';
+import { router, useLocalSearchParams } from 'expo-router';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  CreditCard as Edit2,
+  Heart,
+  Share2,
+  Tag,
+  Trash2,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Colors } from '../constants/Colors';
-import { Typography } from '../constants/Typography';
-import { Spacing, Layout } from '../constants/Spacing';
 import { Shadows } from '../constants/Shadows';
-import { formatDate, getSeasonColor, getOccasionColor } from '../utils/wardrobeUtils';
+import { Layout, Spacing } from '../constants/Spacing';
+import { Typography } from '../constants/Typography';
+import { useSavedOutfits } from '../hooks/useSavedOutfits';
+import { Outfit } from '../types/wardrobe';
+import {
+  formatDate,
+  getOccasionColor,
+  getSeasonColor,
+} from '../utils/wardrobeUtils';
 
 export default function OutfitDetailScreen() {
   const { outfitId } = useLocalSearchParams<{ outfitId: string }>();
-  const { getOutfitById, toggleFavorite, recordOutfitWorn, deleteOutfit } = useSavedOutfits();
-  const [outfit, setOutfit] = useState(getOutfitById(outfitId as string));
-  
+  const { getOutfitById, toggleFavorite, recordOutfitWorn, deleteOutfit } =
+    useSavedOutfits();
+  const [outfit, setOutfit] = useState<Outfit | null>(null);
+
   useEffect(() => {
-    // Update outfit if it changes in the hook
+    // Initialize and update outfit
     const currentOutfit = getOutfitById(outfitId as string);
-    if (currentOutfit) {
-      setOutfit(currentOutfit);
-    }
+    setOutfit(currentOutfit || null);
   }, [outfitId, getOutfitById]);
-  
-  if (!outfit) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Outfit not found</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={20} color={Colors.white} />
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  
+
   const handleToggleFavorite = () => {
-    toggleFavorite(outfit.id);
+    if (outfit) {
+      toggleFavorite(outfit.id);
+    }
   };
-  
+
   const handleShare = async () => {
+    if (!outfit) return;
+
     try {
-      const message = `Check out my "${outfit.name}" outfit from Stylisto!\n\nIt includes:\n${
-        outfit.items.map(item => `• ${item.name} (${item.category})`).join('\n')
-      }`;
-      
+      const message = `Check out my "${outfit.name}" outfit from Stylisto!\n\nIt includes:\n${outfit.items
+        .map(item => `• ${item.name} (${item.category})`)
+        .join('\n')}`;
+
       await Share.share({
         message,
         title: `Stylisto Outfit: ${outfit.name}`,
@@ -67,43 +68,64 @@ export default function OutfitDetailScreen() {
   };
 
   const handleEdit = () => {
+    if (!outfit) return;
+
     router.push({
       pathname: '/outfit-builder',
-      params: { editOutfitId: outfit.id }
+      params: { editOutfitId: outfit.id },
     });
   };
 
   const handleDelete = () => {
+    if (!outfit) return;
+
     Alert.alert(
       'Delete Outfit',
       `Are you sure you want to delete "${outfit.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             await deleteOutfit(outfit.id);
             router.back();
-          }
+          },
         },
       ]
     );
   };
 
   const handleWearToday = () => {
+    if (!outfit) return;
+
     recordOutfitWorn(outfit.id);
-    Alert.alert(
-      'Outfit Worn',
-      'This outfit has been marked as worn today.',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Outfit Worn', 'This outfit has been marked as worn today.', [
+      { text: 'OK' },
+    ]);
   };
 
+  // Show error state if no outfit is found
+  if (!outfit) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Outfit not found</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={20} color={Colors.white} />
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   // Get primary item for display
-  const primaryItem = outfit.items.find(item => 
-    item.category === 'tops' || item.category === 'dresses'
-  ) || outfit.items[0];
+  const primaryItem =
+    outfit.items.find(
+      item => item.category === 'tops' || item.category === 'dresses'
+    ) || outfit.items[0];
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -115,53 +137,47 @@ export default function OutfitDetailScreen() {
           contentFit="cover"
         />
         <View style={styles.headerOverlay} />
-        
+
         <View style={styles.headerContent}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
             <ArrowLeft size={20} color={Colors.white} />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.headerActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={handleToggleFavorite}
             >
-              <Heart 
-                size={24} 
-                color={Colors.white} 
+              <Heart
+                size={24}
+                color={Colors.white}
                 fill={outfit.isFavorite ? Colors.white : 'transparent'}
               />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={handleShare}
-            >
+
+            <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
               <Share2 size={24} color={Colors.white} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
-      
+
       {/* Outfit Details */}
       <View style={styles.detailsContainer}>
         <View style={styles.titleContainer}>
           <Text style={styles.outfitTitle}>{outfit.name}</Text>
-          
+
           <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={handleEdit}
-            >
+            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
               <Edit2 size={16} color={Colors.text.primary} />
               <Text style={styles.editButtonText}>Edit</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.deleteButton}
               onPress={handleDelete}
             >
@@ -170,35 +186,37 @@ export default function OutfitDetailScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.wearTodayButton}
           onPress={handleWearToday}
         >
           <Clock size={18} color={Colors.white} />
           <Text style={styles.wearTodayText}>Wear Today</Text>
         </TouchableOpacity>
-        
+
         {/* Stats Section */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{outfit.timesWorn}</Text>
             <Text style={styles.statLabel}>Times Worn</Text>
           </View>
-          
+
           {outfit.lastWorn && (
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{formatDate(outfit.lastWorn)}</Text>
+              <Text style={styles.statValue}>
+                {formatDate(outfit.lastWorn)}
+              </Text>
               <Text style={styles.statLabel}>Last Worn</Text>
             </View>
           )}
-          
+
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{formatDate(outfit.createdAt)}</Text>
             <Text style={styles.statLabel}>Created</Text>
           </View>
         </View>
-        
+
         {/* Tags Section */}
         {outfit.tags.length > 0 && (
           <View style={styles.section}>
@@ -206,7 +224,7 @@ export default function OutfitDetailScreen() {
               <Tag size={18} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Tags</Text>
             </View>
-            
+
             <View style={styles.tagsContainer}>
               {outfit.tags.map((tag, index) => (
                 <View key={index} style={styles.tag}>
@@ -216,7 +234,7 @@ export default function OutfitDetailScreen() {
             </View>
           </View>
         )}
-        
+
         {/* Seasons Section */}
         {outfit.season.length > 0 && (
           <View style={styles.section}>
@@ -224,12 +242,15 @@ export default function OutfitDetailScreen() {
               <Calendar size={18} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Seasons</Text>
             </View>
-            
+
             <View style={styles.tagsContainer}>
-              {outfit.season.map((season) => (
+              {outfit.season.map(season => (
                 <View
                   key={season}
-                  style={[styles.seasonTag, { backgroundColor: getSeasonColor(season) }]}
+                  style={[
+                    styles.seasonTag,
+                    { backgroundColor: getSeasonColor(season) },
+                  ]}
                 >
                   <Text style={styles.seasonText}>{season}</Text>
                 </View>
@@ -237,7 +258,7 @@ export default function OutfitDetailScreen() {
             </View>
           </View>
         )}
-        
+
         {/* Occasions Section */}
         {outfit.occasion.length > 0 && (
           <View style={styles.section}>
@@ -245,12 +266,15 @@ export default function OutfitDetailScreen() {
               <Calendar size={18} color={Colors.text.primary} />
               <Text style={styles.sectionTitle}>Occasions</Text>
             </View>
-            
+
             <View style={styles.tagsContainer}>
-              {outfit.occasion.map((occasion) => (
+              {outfit.occasion.map(occasion => (
                 <View
                   key={occasion}
-                  style={[styles.occasionTag, { backgroundColor: getOccasionColor(occasion) }]}
+                  style={[
+                    styles.occasionTag,
+                    { backgroundColor: getOccasionColor(occasion) },
+                  ]}
                 >
                   <Text style={styles.occasionText}>{occasion}</Text>
                 </View>
@@ -258,7 +282,7 @@ export default function OutfitDetailScreen() {
             </View>
           </View>
         )}
-        
+
         {/* Notes Section */}
         {outfit.notes && (
           <View style={styles.section}>
@@ -268,29 +292,34 @@ export default function OutfitDetailScreen() {
             </View>
           </View>
         )}
-        
+
         {/* Items Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Outfit Items</Text>
-          
-          {outfit.items.map((item) => (
+
+          {outfit.items.map(item => (
             <View key={item.id} style={styles.itemCard}>
               <Image
                 source={{ uri: item.imageUrl }}
                 style={styles.itemImage}
                 contentFit="cover"
               />
-              
+
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemCategory}>{item.category}</Text>
-                
+
                 {item.brand && (
                   <Text style={styles.itemBrand}>{item.brand}</Text>
                 )}
-                
+
                 <View style={styles.itemColorContainer}>
-                  <View style={[styles.itemColorDot, { backgroundColor: item.color }]} />
+                  <View
+                    style={[
+                      styles.itemColorDot,
+                      { backgroundColor: item.color },
+                    ]}
+                  />
                   <Text style={styles.itemColorName}>{item.color}</Text>
                 </View>
               </View>

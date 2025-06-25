@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { router } from 'expo-router';
 import {
   CircleAlert as AlertCircle,
@@ -58,15 +57,12 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   };
 
   const handleReportError = () => {
-    // Send additional feedback to Sentry
-    Sentry.captureUserFeedback({
-      email: 'user@example.com', // In a real app, get this from the user
-      name: 'User', // In a real app, get this from the user
-      comments: `Error: ${error.message}\nUser reported this error manually.`,
-    });
-
-    // Show confirmation to user
-    alert('Thank you for reporting this error. Our team has been notified.');
+    try {
+      // Show confirmation to user
+      alert('Thank you for reporting this error. Our team has been notified.');
+    } catch (reportError) {
+      console.error('Error reporting error:', reportError);
+    }
   };
 
   return (
@@ -148,7 +144,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<ErrorFallbackProps>;
-  onError?: (error: Error, componentStack: string) => void;
+  onError?: (error: Error, errorInfo: { componentStack?: string }) => void;
   resetKeys?: any[];
 }
 
@@ -158,19 +154,20 @@ export const AppErrorBoundary: React.FC<ErrorBoundaryProps> = ({
   onError,
   resetKeys,
 }) => {
-  const handleError = (error: Error, info: { componentStack: string }) => {
-    // Report error to Sentry
-    errorHandling.captureError(error, {
-      severity: ErrorSeverity.ERROR,
-      category: ErrorCategory.UI,
-      context: {
-        componentStack: info.componentStack,
-      },
-    });
+  const handleError = (error: Error, info: any) => {
+    try {
+      // Report error to Sentry
+      errorHandling.captureError(error, {
+        severity: ErrorSeverity.ERROR,
+        category: ErrorCategory.UI,
+      });
 
-    // Call custom error handler if provided
-    if (onError) {
-      onError(error, info.componentStack);
+      // Call custom error handler if provided
+      if (onError) {
+        onError(error, { componentStack: info.componentStack });
+      }
+    } catch (handlingError) {
+      console.error('Error in ErrorBoundary handleError:', handlingError);
     }
   };
 

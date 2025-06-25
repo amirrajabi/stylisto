@@ -35,7 +35,7 @@ export interface Outfit {
   updatedAt: Date;
 }
 
-export enum ClothingCategory {
+export const enum ClothingCategory {
   TOPS = 'tops',
   BOTTOMS = 'bottoms',
   DRESSES = 'dresses',
@@ -45,17 +45,17 @@ export enum ClothingCategory {
   UNDERWEAR = 'underwear',
   ACTIVEWEAR = 'activewear',
   SLEEPWEAR = 'sleepwear',
-  SWIMWEAR = 'swimwear'
+  SWIMWEAR = 'swimwear',
 }
 
-export enum Season {
+export const enum Season {
   SPRING = 'spring',
   SUMMER = 'summer',
   FALL = 'fall',
-  WINTER = 'winter'
+  WINTER = 'winter',
 }
 
-export enum Occasion {
+export const enum Occasion {
   CASUAL = 'casual',
   WORK = 'work',
   FORMAL = 'formal',
@@ -63,7 +63,7 @@ export enum Occasion {
   SPORT = 'sport',
   TRAVEL = 'travel',
   DATE = 'date',
-  SPECIAL = 'special'
+  SPECIAL = 'special',
 }
 
 export interface WardrobeStats {
@@ -90,6 +90,14 @@ export interface FilterOptions {
 }
 
 export interface SortOptions {
-  field: 'name' | 'category' | 'color' | 'brand' | 'lastWorn' | 'timesWorn' | 'createdAt' | 'price';
+  field:
+    | 'name'
+    | 'category'
+    | 'color'
+    | 'brand'
+    | 'lastWorn'
+    | 'timesWorn'
+    | 'createdAt'
+    | 'price';
   direction: 'asc' | 'desc';
 }

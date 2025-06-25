@@ -1,51 +1,47 @@
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
+import {
+  ArrowLeft,
+  Calendar,
+  Heart,
+  Share2,
+  Tag,
+  ThermometerSun,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Heart, Share2, ArrowLeft, Tag, Calendar, ThermometerSun } from 'lucide-react-native';
-import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
+import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 
 export default function OutfitDetailsScreen() {
   const { outfitId } = useLocalSearchParams<{ outfitId: string }>();
   const { outfits, saveCurrentOutfit } = useOutfitRecommendation();
-  const [outfit, setOutfit] = useState(outfits[0]);
-  
+  const [outfit, setOutfit] = useState<(typeof outfits)[0] | null>(null);
+
   // Find the outfit by ID or index
   useEffect(() => {
-    if (outfitId) {
+    if (outfitId && outfits.length > 0) {
       const index = parseInt(outfitId);
       if (!isNaN(index) && index >= 0 && index < outfits.length) {
         setOutfit(outfits[index]);
+      } else {
+        setOutfit(null);
       }
+    } else if (outfits.length > 0) {
+      setOutfit(outfits[0]);
     }
   }, [outfitId, outfits]);
-  
-  if (!outfit) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Outfit not found</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={20} color={Colors.white} />
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  
+
   const handleSave = () => {
     const savedId = saveCurrentOutfit();
     if (savedId) {
@@ -56,11 +52,27 @@ export default function OutfitDetailsScreen() {
       );
     }
   };
-  
+
   const handleShare = () => {
     // Implement share functionality
     Alert.alert('Share', 'Sharing functionality would be implemented here');
   };
+
+  // Show error state if no outfit is found
+  if (!outfit) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Outfit not found</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={20} color={Colors.white} />
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -72,48 +84,42 @@ export default function OutfitDetailsScreen() {
           contentFit="cover"
         />
         <View style={styles.headerOverlay} />
-        
+
         <View style={styles.headerContent}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
             <ArrowLeft size={20} color={Colors.white} />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={handleSave}
-            >
+            <TouchableOpacity style={styles.actionButton} onPress={handleSave}>
               <Heart size={24} color={Colors.white} />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={handleShare}
-            >
+
+            <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
               <Share2 size={24} color={Colors.white} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
-      
+
       {/* Outfit Details */}
       <View style={styles.detailsContainer}>
         <Text style={styles.outfitTitle}>
           {outfit.items.map(item => item.category).join(' + ')} Outfit
         </Text>
-        
+
         <View style={styles.matchScoreContainer}>
           <Text style={styles.matchScoreLabel}>Match Score</Text>
           <Text style={styles.matchScoreValue}>
             {Math.round(outfit.score.total * 100)}%
           </Text>
-          
+
           <View style={styles.scoreBarContainer}>
-            <View 
+            <View
               style={[
                 styles.scoreBar,
                 { width: `${outfit.score.total * 100}%` },
@@ -122,68 +128,89 @@ export default function OutfitDetailsScreen() {
             />
           </View>
         </View>
-        
+
         {/* Tags Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Tag size={18} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Style Tags</Text>
           </View>
-          
+
           <View style={styles.tagsContainer}>
-            {outfit.items.flatMap(item => item.tags).slice(0, 8).map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
+            {outfit.items
+              .flatMap(item => item.tags)
+              .slice(0, 8)
+              .map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
           </View>
         </View>
-        
+
         {/* Occasions Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Calendar size={18} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Suitable Occasions</Text>
           </View>
-          
+
           <View style={styles.tagsContainer}>
-            {Array.from(new Set(outfit.items.flatMap(item => item.occasion))).map((occasion, index) => (
-              <View key={index} style={[styles.occasionTag, { backgroundColor: getOccasionColor(occasion) }]}>
+            {Array.from(
+              new Set(outfit.items.flatMap(item => item.occasion))
+            ).map((occasion, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.occasionTag,
+                  { backgroundColor: getOccasionColor(occasion) },
+                ]}
+              >
                 <Text style={styles.occasionTagText}>{occasion}</Text>
               </View>
             ))}
           </View>
         </View>
-        
+
         {/* Weather Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThermometerSun size={18} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Weather Suitability</Text>
           </View>
-          
+
           <View style={styles.weatherContainer}>
             <View style={styles.weatherItem}>
               <Text style={styles.weatherItemLabel}>Temperature</Text>
               <View style={styles.weatherRange}>
                 <Text style={styles.weatherRangeText}>Cold</Text>
                 <View style={styles.weatherRangeBar}>
-                  <View 
+                  <View
                     style={[
                       styles.weatherRangeFill,
-                      { width: `${outfit.score.breakdown.weatherSuitability * 100}%` },
+                      {
+                        width: `${outfit.score.breakdown.weatherSuitability * 100}%`,
+                      },
                     ]}
                   />
                 </View>
                 <Text style={styles.weatherRangeText}>Hot</Text>
               </View>
             </View>
-            
+
             <View style={styles.weatherItem}>
               <Text style={styles.weatherItemLabel}>Seasons</Text>
               <View style={styles.seasonsContainer}>
-                {Array.from(new Set(outfit.items.flatMap(item => item.season))).map((season, index) => (
-                  <View key={index} style={[styles.seasonTag, { backgroundColor: getSeasonColor(season) }]}>
+                {Array.from(
+                  new Set(outfit.items.flatMap(item => item.season))
+                ).map((season, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.seasonTag,
+                      { backgroundColor: getSeasonColor(season) },
+                    ]}
+                  >
                     <Text style={styles.seasonTagText}>{season}</Text>
                   </View>
                 ))}
@@ -191,11 +218,11 @@ export default function OutfitDetailsScreen() {
             </View>
           </View>
         </View>
-        
+
         {/* Items Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Outfit Items</Text>
-          
+
           {outfit.items.map((item, index) => (
             <View key={item.id} style={styles.itemCard}>
               <Image
@@ -203,28 +230,33 @@ export default function OutfitDetailsScreen() {
                 style={styles.itemImage}
                 contentFit="cover"
               />
-              
+
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemCategory}>{item.category}</Text>
-                
+
                 {item.brand && (
                   <Text style={styles.itemBrand}>{item.brand}</Text>
                 )}
-                
+
                 <View style={styles.itemColorContainer}>
-                  <View style={[styles.itemColorDot, { backgroundColor: item.color }]} />
+                  <View
+                    style={[
+                      styles.itemColorDot,
+                      { backgroundColor: item.color },
+                    ]}
+                  />
                   <Text style={styles.itemColorName}>{item.color}</Text>
                 </View>
               </View>
             </View>
           ))}
         </View>
-        
+
         {/* Score Breakdown */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Score Breakdown</Text>
-          
+
           <View style={styles.scoreBreakdown}>
             {Object.entries(outfit.score.breakdown).map(([key, value]) => (
               <View key={key} style={styles.scoreItem}>
@@ -232,7 +264,7 @@ export default function OutfitDetailsScreen() {
                   {formatScoreLabel(key)}
                 </Text>
                 <View style={styles.scoreItemBarContainer}>
-                  <View 
+                  <View
                     style={[
                       styles.scoreItemBar,
                       { width: `${value * 100}%` },
@@ -240,7 +272,9 @@ export default function OutfitDetailsScreen() {
                     ]}
                   />
                 </View>
-                <Text style={styles.scoreItemValue}>{Math.round(value * 100)}%</Text>
+                <Text style={styles.scoreItemValue}>
+                  {Math.round(value * 100)}%
+                </Text>
               </View>
             ))}
           </View>
@@ -260,35 +294,33 @@ const getScoreBarColor = (score: number) => {
 
 const getOccasionColor = (occasion: string) => {
   const colors: Record<string, string> = {
-    'casual': Colors.neutral[500],
-    'work': Colors.primary[700],
-    'formal': Colors.black,
-    'party': Colors.secondary[500],
-    'sport': Colors.success[500],
-    'travel': Colors.info[500],
-    'date': Colors.error[500],
-    'special': Colors.warning[500],
+    casual: Colors.neutral[500],
+    work: Colors.primary[700],
+    formal: Colors.black,
+    party: Colors.secondary[500],
+    sport: Colors.success[500],
+    travel: Colors.info[500],
+    date: Colors.error[500],
+    special: Colors.warning[500],
   };
-  
+
   return colors[occasion] || Colors.neutral[500];
 };
 
 const getSeasonColor = (season: string) => {
   const colors: Record<string, string> = {
-    'spring': Colors.success[400],
-    'summer': Colors.warning[400],
-    'fall': Colors.secondary[400],
-    'winter': Colors.info[400],
+    spring: Colors.success[400],
+    summer: Colors.warning[400],
+    fall: Colors.secondary[400],
+    winter: Colors.info[400],
   };
-  
+
   return colors[season] || Colors.neutral[400];
 };
 
 const formatScoreLabel = (key: string) => {
   // Convert camelCase to Title Case with spaces
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase());
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 };
 
 const styles = StyleSheet.create({
