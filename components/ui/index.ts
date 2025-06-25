@@ -19,6 +19,8 @@ export type { ModalProps } from './Modal';
 
 export { CheckBox } from './CheckBox';
 
+export { FloatingActionButton } from './FloatingActionButton';
+
 // Typography components
 export {
   BodyLarge,

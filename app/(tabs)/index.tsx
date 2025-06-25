@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import {
   Filter,
-  Plus,
   RefreshCcw,
   Search,
   ShoppingBag,
@@ -20,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { FloatingActionButton } from '../../components/ui';
 import { AddItemModal } from '../../components/wardrobe/AddItemModal';
 import { ClothingItemCard } from '../../components/wardrobe/ClothingItemCard';
 import { FilterModal } from '../../components/wardrobe/FilterModal';
@@ -335,12 +335,6 @@ export default function WardrobeScreen() {
           <TouchableOpacity style={styles.headerButton} onPress={handleSort}>
             <SortAsc size={24} color="#6b7280" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddModal(true)}
-          >
-            <Plus size={24} color="#ffffff" />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -466,6 +460,13 @@ export default function WardrobeScreen() {
         onAddItem={handleAddItem}
         editItem={editingItem}
       />
+
+      <FloatingActionButton
+        onPress={() => setShowAddModal(true)}
+        size={64}
+        iconSize={28}
+        gradientColors={['#667eea', '#764ba2']}
+      />
     </SafeAreaView>
   );
 }
@@ -500,11 +501,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f3f4f6',
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    padding: 8,
-    borderRadius: 8,
   },
   searchContainer: {
     flexDirection: 'row',
