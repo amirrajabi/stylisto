@@ -139,7 +139,7 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
       const numColumns = SCREEN_WIDTH >= 768 ? 3 : 2;
       const itemWidth =
         (SCREEN_WIDTH - gridSpacing * (numColumns + 1)) / numColumns;
-      const itemHeight = itemWidth * 1.5;
+      const itemHeight = itemWidth * 1.65; // Adjusted to accommodate image + content
       return { itemWidth, itemHeight, numColumns };
     } else {
       return {

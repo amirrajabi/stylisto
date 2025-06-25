@@ -109,11 +109,27 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
         <View style={styles.listImageContainer}>
           <OptimizedImage
             source={{ uri: item.imageUrl }}
-            style={styles.listImage}
+            style={[styles.listImage, { width: 88, height: 88 }]}
             contentFit="cover"
             transition={200}
             priority={index < 10 ? 'high' : 'normal'}
-            placeholder={{ uri: 'https://via.placeholder.com/88?text=Loading' }}
+            placeholder={{
+              uri: 'https://via.placeholder.com/88x88/e5e5e5/999999?text=Loading',
+            }}
+            onLoad={() => {
+              if (__DEV__) {
+                console.log('List image loaded successfully');
+              }
+            }}
+            onError={error => {
+              if (__DEV__) {
+                console.warn('List image failed to load:', {
+                  url: item.imageUrl?.substring(0, 50) + '...',
+                  error:
+                    error instanceof Error ? error.message : 'Unknown error',
+                });
+              }
+            }}
           />
 
           {isSelected && (
@@ -233,11 +249,29 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
       <View style={styles.gridImageContainer}>
         <OptimizedImage
           source={{ uri: item.imageUrl }}
-          style={styles.gridImage}
+          style={[
+            styles.gridImage,
+            { width: cardWidth, height: cardWidth * 1.25 },
+          ]}
           contentFit="cover"
           transition={200}
           priority={index < 10 ? 'high' : 'normal'}
-          placeholder={{ uri: 'https://via.placeholder.com/200?text=Loading' }}
+          placeholder={{
+            uri: 'https://via.placeholder.com/200x200/e5e5e5/999999?text=Loading',
+          }}
+          onLoad={() => {
+            if (__DEV__) {
+              console.log('Grid image loaded successfully');
+            }
+          }}
+          onError={error => {
+            if (__DEV__) {
+              console.warn('Grid image failed to load:', {
+                url: item.imageUrl?.substring(0, 50) + '...',
+                error: error instanceof Error ? error.message : 'Unknown error',
+              });
+            }
+          }}
         />
 
         <View style={styles.gridOverlay}>
@@ -348,14 +382,18 @@ const styles = StyleSheet.create({
   },
   gridImageContainer: {
     position: 'relative',
-    height: cardWidth * 1.2,
+    width: cardWidth,
+    height: cardWidth * 1.25, // Match the ratio from OptimizedWardrobeList
     borderTopLeftRadius: Layout.borderRadius.lg,
     borderTopRightRadius: Layout.borderRadius.lg,
     overflow: 'hidden',
+    backgroundColor: Colors.neutral[100], // Fallback background
   },
   gridImage: {
     width: '100%',
     height: '100%',
+    borderTopLeftRadius: Layout.borderRadius.lg,
+    borderTopRightRadius: Layout.borderRadius.lg,
   },
   gridOverlay: {
     position: 'absolute',
@@ -457,10 +495,12 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.md,
     overflow: 'hidden',
     marginRight: Spacing.md,
+    backgroundColor: Colors.neutral[100], // Fallback background
   },
   listImage: {
     width: '100%',
     height: '100%',
+    borderRadius: Layout.borderRadius.md,
   },
   listContent: {
     flex: 1,
