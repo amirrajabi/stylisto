@@ -68,7 +68,38 @@ export class AuthService {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error cases
+        if (
+          error.message.includes('already registered') ||
+          error.message.includes('User already registered')
+        ) {
+          throw new AuthError(
+            'This email address is already registered. Please sign in instead or reset your password.'
+          );
+        } else if (
+          error.message.includes('weak password') ||
+          error.message.includes('Password should be')
+        ) {
+          throw new AuthError(
+            'Password is too weak. Please choose a stronger password.'
+          );
+        } else if (
+          error.message.includes('invalid email') ||
+          error.message.includes('Invalid email')
+        ) {
+          throw new AuthError('Please enter a valid email address.');
+        } else if (
+          error.message.includes('rate limit') ||
+          error.message.includes('too many requests')
+        ) {
+          throw new AuthError(
+            'Too many registration attempts. Please wait a moment and try again.'
+          );
+        } else {
+          throw error;
+        }
+      }
 
       // Log successful signup
       errorHandling.captureMessage('User signed up successfully', {
@@ -312,7 +343,9 @@ export class AuthService {
         category: ErrorCategory.AUTH,
         context: {
           userId: user.id,
-          updatedFields: Object.keys(updates),
+          additionalData: {
+            updatedFields: Object.keys(updates),
+          },
         },
       });
     } catch (error) {
@@ -325,7 +358,9 @@ export class AuthService {
           category: ErrorCategory.AUTH,
           context: {
             action: 'update_profile',
-            updatedFields: Object.keys(updates),
+            additionalData: {
+              updatedFields: Object.keys(updates),
+            },
           },
         }
       );

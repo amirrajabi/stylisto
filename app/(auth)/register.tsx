@@ -94,18 +94,63 @@ export default function RegisterScreen() {
         ]
       );
     } catch (error: any) {
-      if (error.message.includes('already registered')) {
-        form.setError('email', {
-          message: 'This email is already registered',
-        });
-      } else if (error.message.includes('weak password')) {
+      if (
+        error.message.includes('already registered') ||
+        error.message.includes('User already registered')
+      ) {
+        Alert.alert(
+          'Email Already Registered',
+          'This email address is already associated with an account. Would you like to sign in instead or reset your password?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Reset Password',
+              onPress: () =>
+                router.push({
+                  pathname: '/(auth)/forgot-password',
+                  params: { email: data.email },
+                }),
+            },
+            {
+              text: 'Sign In',
+              onPress: () =>
+                router.push({
+                  pathname: '/(auth)/login',
+                  params: { email: data.email },
+                }),
+            },
+          ]
+        );
+      } else if (
+        error.message.includes('weak password') ||
+        error.message.includes('Password should be')
+      ) {
         form.setError('password', {
-          message: 'Password is too weak',
+          message: 'Password is too weak. Please choose a stronger password.',
         });
+      } else if (
+        error.message.includes('invalid email') ||
+        error.message.includes('Invalid email')
+      ) {
+        form.setError('email', {
+          message: 'Please enter a valid email address.',
+        });
+      } else if (
+        error.message.includes('rate limit') ||
+        error.message.includes('too many requests')
+      ) {
+        Alert.alert(
+          'Registration Temporarily Blocked',
+          'Too many registration attempts. Please wait a moment and try again.',
+          [{ text: 'OK' }]
+        );
       } else {
         Alert.alert(
           'Registration Error',
-          error.message || 'Failed to create account'
+          error.message || 'Failed to create account. Please try again.'
         );
       }
     }

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Key, Mail } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
@@ -28,6 +28,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginScreen() {
   const { signInWithPassword, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const params = useLocalSearchParams<{ email?: string }>();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -36,6 +37,13 @@ export default function LoginScreen() {
       password: '',
     },
   });
+
+  // Pre-fill email if provided via navigation
+  useEffect(() => {
+    if (params.email) {
+      form.setValue('email', params.email);
+    }
+  }, [params.email, form]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
