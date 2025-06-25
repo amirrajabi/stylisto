@@ -1,14 +1,8 @@
 import { Image as ExpoImage } from 'expo-image';
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { useImageCache } from '../../utils/imageCache';
-
-// Conditionally import FastImage only for native platforms
-let FastImage: any = null;
-if (Platform.OS !== 'web') {
-  FastImage = require('react-native-fast-image').default;
-}
 
 interface OptimizedImageProps {
   source: { uri: string } | number;
@@ -22,7 +16,8 @@ interface OptimizedImageProps {
   accessibilityLabel?: string;
   testID?: string;
   priority?: 'low' | 'normal' | 'high';
-  resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
+  recyclingKey?: string;
+  cachePolicy?: 'none' | 'disk' | 'memory' | 'memory-disk';
 }
 
 const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
@@ -37,7 +32,8 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
   accessibilityLabel,
   testID,
   priority = 'normal',
-  resizeMode,
+  recyclingKey,
+  cachePolicy = 'memory-disk',
 }) => {
   const { getCachedImageUri, getOptimizedUrl } = useImageCache();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -45,7 +41,6 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
   const [error, setError] = useState<Error | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  // Get image dimensions from style
   useEffect(() => {
     if (style) {
       const flatStyle = StyleSheet.flatten(style);
@@ -56,7 +51,6 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
     }
   }, [style]);
 
-  // Load and cache image
   useEffect(() => {
     let isMounted = true;
 
@@ -65,23 +59,19 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
         setLoading(true);
         setError(null);
 
-        // Handle number sources (static assets)
         if (typeof source === 'number') {
-          setImageUri(null); // Use source directly
+          setImageUri(null);
           setLoading(false);
           return;
         }
 
-        // Handle URI sources
         if (typeof source === 'object' && source.uri) {
-          // Get optimized URL based on dimensions
           const optimizedUrl = getOptimizedUrl(
             source.uri,
             dimensions.width > 0 ? dimensions.width : undefined,
             dimensions.height > 0 ? dimensions.height : undefined
           );
 
-          // Get cached URI
           const cachedUri = await getCachedImageUri(optimizedUrl, {
             prefetch: priority === 'high',
           });
@@ -99,7 +89,6 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
           );
           setLoading(false);
 
-          // Fall back to original source
           if (typeof source === 'object' && source.uri) {
             setImageUri(source.uri);
           }
@@ -136,115 +125,80 @@ const OptimizedImageComponent: React.FC<OptimizedImageProps> = ({
     [onError]
   );
 
-  // Use appropriate image component based on platform
-  if (Platform.OS === 'web') {
-    // Use Expo Image for web
-    return (
-      <View style={[styles.container, style]}>
-        {loading && placeholder && (
-          <ExpoImage
-            source={placeholder}
-            style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}
-            contentFit={contentFit}
-          />
-        )}
+  const getExpoImagePriority = () => {
+    switch (priority) {
+      case 'low':
+        return 'low' as const;
+      case 'high':
+        return 'high' as const;
+      default:
+        return 'normal' as const;
+    }
+  };
 
-        {loading && !placeholder && blurhash && (
-          <ExpoImage
-            style={StyleSheet.absoluteFill}
-            placeholder={blurhash}
-            contentFit={contentFit}
-          />
-        )}
+  const getExpoImageCachePolicy = () => {
+    switch (cachePolicy) {
+      case 'none':
+        return 'none' as const;
+      case 'disk':
+        return 'disk' as const;
+      case 'memory':
+        return 'memory' as const;
+      case 'memory-disk':
+        return 'memory-disk' as const;
+      default:
+        return 'memory-disk' as const;
+    }
+  };
 
-        {loading && !placeholder && !blurhash && (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="small" color={Colors.primary[500]} />
-          </View>
-        )}
-
+  return (
+    <View style={[styles.container, style]}>
+      {loading && placeholder && (
         <ExpoImage
-          source={
-            typeof source === 'number'
-              ? source
-              : {
-                  uri:
-                    imageUri || (typeof source === 'object' ? source.uri : ''),
-                }
-          }
-          style={StyleSheet.absoluteFill}
+          source={placeholder}
+          style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}
           contentFit={contentFit}
-          transition={transition}
-          onLoad={handleLoad}
-          onError={handleError}
-          accessible={!!accessibilityLabel}
-          accessibilityLabel={accessibilityLabel}
-          testID={testID}
+          cachePolicy={getExpoImageCachePolicy()}
         />
-      </View>
-    );
-  } else {
-    // Use FastImage for native platforms
-    const fastImageResizeMode = (() => {
-      switch (contentFit || resizeMode) {
-        case 'cover':
-          return FastImage.resizeMode.cover;
-        case 'contain':
-          return FastImage.resizeMode.contain;
-        case 'fill':
-          return FastImage.resizeMode.stretch;
-        case 'none':
-          return FastImage.resizeMode.center;
-        default:
-          return FastImage.resizeMode.cover;
-      }
-    })();
+      )}
 
-    const fastImagePriority = (() => {
-      switch (priority) {
-        case 'low':
-          return FastImage.priority.low;
-        case 'high':
-          return FastImage.priority.high;
-        default:
-          return FastImage.priority.normal;
-      }
-    })();
-
-    return (
-      <View style={[styles.container, style]}>
-        {loading && placeholder && (
-          <FastImage
-            source={placeholder}
-            style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}
-            resizeMode={fastImageResizeMode}
-          />
-        )}
-
-        {loading && !placeholder && (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="small" color={Colors.primary[500]} />
-          </View>
-        )}
-
-        <FastImage
-          source={
-            typeof source === 'number'
-              ? source
-              : {
-                  uri: imageUri || source.uri,
-                  priority: fastImagePriority,
-                  cache: FastImage.cacheControl.immutable,
-                }
-          }
+      {loading && !placeholder && blurhash && (
+        <ExpoImage
           style={StyleSheet.absoluteFill}
-          resizeMode={fastImageResizeMode}
-          onLoad={handleLoad}
-          onError={handleError}
+          placeholder={blurhash}
+          contentFit={contentFit}
+          cachePolicy={getExpoImageCachePolicy()}
         />
-      </View>
-    );
-  }
+      )}
+
+      {loading && !placeholder && !blurhash && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="small" color={Colors.primary[500]} />
+        </View>
+      )}
+
+      <ExpoImage
+        source={
+          typeof source === 'number'
+            ? source
+            : {
+                uri: imageUri || (typeof source === 'object' ? source.uri : ''),
+              }
+        }
+        style={StyleSheet.absoluteFill}
+        contentFit={contentFit}
+        transition={transition}
+        onLoad={handleLoad}
+        onError={handleError}
+        accessible={!!accessibilityLabel}
+        accessibilityLabel={accessibilityLabel}
+        testID={testID}
+        priority={getExpoImagePriority()}
+        cachePolicy={getExpoImageCachePolicy()}
+        recyclingKey={recyclingKey}
+      />
+    </View>
+  );
 };
 
 const OptimizedImage = memo(OptimizedImageComponent);

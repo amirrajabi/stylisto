@@ -8,6 +8,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
@@ -18,6 +19,7 @@ import { OfflineNotice } from '../components/error/OfflineNotice';
 import { AccessibilityProvider } from '../components/ui/AccessibilityProvider';
 import { SkipToContentLink } from '../components/ui/SkipToContentLink';
 import { Colors } from '../constants/Colors';
+
 import { analytics, ConsentStatus } from '../lib/analytics';
 import { errorHandling } from '../lib/errorHandling';
 import { store } from '../store/store';
@@ -50,6 +52,9 @@ export default function RootLayout() {
     if (fontError) {
       errorHandling.captureError(fontError);
     }
+
+    // Configure system UI for proper status bar behavior
+    SystemUI.setBackgroundColorAsync(Colors.background.primary);
   }, [fontsLoaded, fontError]);
 
   // Handle analytics consent change
@@ -142,11 +147,7 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
-            <StatusBar
-              style="light"
-              backgroundColor={Colors.background.primary}
-              translucent={false}
-            />
+            <StatusBar hidden={true} />
           </AppErrorBoundary>
         </AccessibilityProvider>
       </Provider>

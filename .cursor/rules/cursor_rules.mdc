@@ -65,6 +65,12 @@ Before executing any task, you **MUST** adhere to these operational protocols:
   - **Services**: Stripe (Payments), Resend (Emails)
   - **Project Structure**: All application code resides in directories at the project root.
   - **Environment Variables**: Managed in `.env` and never committed to Git. Accessed via `expo-constants`.
+  - **Package Selection Priority**: Always prioritize Expo-compatible packages over React Native packages. When adding new dependencies:
+      - **First Choice**: Use Expo SDK packages (e.g., `expo-camera`, `expo-image-picker`, `expo-secure-store`)
+      - **Second Choice**: Use React Native community packages that are Expo-compatible (e.g., `@react-native-community/netinfo`)
+      - **Third Choice**: Use React Native packages only if no Expo alternative exists and verify compatibility with Expo
+      - **Verification**: Check package compatibility with current Expo SDK version before installation
+      - **Documentation**: Always refer to Expo documentation first, then React Native documentation as fallback
 
 ## 4\. Directory & Code Structure
 

@@ -24,9 +24,7 @@
             "id": 2,
             "title": "Configure TypeScript Settings",
             "description": "Verify and adjust TypeScript configuration for optimal compatibility with Expo and React Native.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Check the generated `tsconfig.json` for recommended compiler options. Update paths, strictness, and module resolution as needed for your team's standards.",
             "status": "done",
             "testStrategy": ""
@@ -35,9 +33,7 @@
             "id": 3,
             "title": "Install Essential Dependencies",
             "description": "Add navigation, state management, and UI libraries required for the project.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Install packages such as `@react-navigation/native`, `@react-navigation/stack`, `react-native-reanimated`, `react-native-gesture-handler`, a state management library (e.g., Redux Toolkit or Zustand), and a UI library (e.g., NativeBase or React Native Paper) using npm or yarn.",
             "status": "done",
             "testStrategy": ""
@@ -46,9 +42,7 @@
             "id": 4,
             "title": "Set Up ESLint and Prettier",
             "description": "Configure code quality and formatting tools to enforce consistent coding standards.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Install ESLint and Prettier along with recommended plugins for React Native and TypeScript. Create `.eslintrc.js` and `.prettierrc` files with project-specific rules. Add lint and format scripts to `package.json`.",
             "status": "done",
             "testStrategy": ""
@@ -57,10 +51,7 @@
             "id": 5,
             "title": "Establish Project Structure",
             "description": "Organize the project directory into logical folders for scalability and maintainability.",
-            "dependencies": [
-              1,
-              3
-            ],
+            "dependencies": [1, 3],
             "details": "Create directories such as `/src`, `/src/components`, `/src/screens`, `/src/navigation`, `/src/store`, and `/src/utils`. Move initial files into the appropriate locations and update import paths.",
             "status": "done",
             "testStrategy": ""
@@ -69,13 +60,7 @@
             "id": 6,
             "title": "Write Setup and Contribution Documentation",
             "description": "Document the setup process, project structure, and contribution guidelines for team onboarding.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Create a `README.md` with step-by-step setup instructions, dependency explanations, project structure overview, and contribution best practices. Include commands for running, linting, and formatting the project.",
             "status": "done",
             "testStrategy": ""
@@ -98,9 +83,7 @@
         "details": "Implement a design system using React Native's StyleSheet or a styling library like styled-components. Define color constants according to the PRD's color palette (#2D3748 for primary, #4299E1 for secondary, etc.). Create typography styles for different text hierarchies using system fonts (San Francisco for iOS, Roboto for Android). Implement spacing system with consistent values. Create reusable UI components including buttons, form inputs, cards, and modals following the minimalist aesthetic described in the PRD. Ensure components are accessible with proper contrast ratios (minimum 4.5:1) and touch targets (minimum 44px). Document the design system for team reference.",
         "testStrategy": "Verify all UI components render correctly across different device sizes. Test color contrast using accessibility tools to ensure WCAG 2.1 AA compliance. Confirm typography scales appropriately on different devices. Validate touch targets meet minimum size requirements for accessibility.",
         "priority": "high",
-        "dependencies": [
-          1
-        ],
+        "dependencies": [1],
         "status": "pending",
         "subtasks": [
           {
@@ -134,11 +117,7 @@
             "id": 4,
             "title": "Build Reusable UI Components",
             "description": "Develop a library of reusable components such as buttons, inputs, cards, and modals. Ensure components are customizable and follow the defined design tokens.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Abstract common UI patterns, use prop-driven customization, and ensure components are platform-consistent. Write unit tests for each component.",
             "status": "pending",
             "testStrategy": ""
@@ -147,9 +126,7 @@
             "id": 5,
             "title": "Implement Accessibility Features",
             "description": "Ensure all components meet accessibility standards, including color contrast, touch target sizes, keyboard navigation, and screen reader support.",
-            "dependencies": [
-              4
-            ],
+            "dependencies": [4],
             "details": "Test components with accessibility tools and document compliance. Address accessibility issues early in the component development process.",
             "status": "pending",
             "testStrategy": ""
@@ -158,13 +135,7 @@
             "id": 6,
             "title": "Document the Design System",
             "description": "Create comprehensive documentation for the design system, including guidelines for color, typography, spacing, component usage, and accessibility.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Use tools like Storybook or Expo documentation to provide live examples and code snippets. Ensure documentation is clear and easy to maintain.",
             "status": "pending",
             "testStrategy": ""
@@ -173,11 +144,7 @@
             "id": 7,
             "title": "Integrate Design System with App",
             "description": "Integrate the design system into the main application codebase. Replace legacy styles and components with the new system.",
-            "dependencies": [
-              4,
-              5,
-              6
-            ],
+            "dependencies": [4, 5, 6],
             "details": "Coordinate with development teams to ensure smooth adoption. Provide migration guides and support.",
             "status": "pending",
             "testStrategy": ""
@@ -186,10 +153,7 @@
             "id": 8,
             "title": "Establish Maintenance and Contribution Workflow",
             "description": "Set up processes for maintaining, updating, and extending the design system. Define contribution guidelines and review procedures.",
-            "dependencies": [
-              6,
-              7
-            ],
+            "dependencies": [6, 7],
             "details": "Implement version control, changelogs, and CI/CD pipelines for the design system. Encourage feedback and continuous improvement.",
             "status": "pending",
             "testStrategy": ""
@@ -203,10 +167,7 @@
         "details": "Use React Navigation v6 to implement the navigation architecture. Create a bottom tab navigator with four main tabs: Wardrobe, Generate, Saved, and Profile as specified in the PRD. Implement stack navigators within each tab for hierarchical content. Set up modal presentations for focused tasks like adding items or editing preferences. Configure navigation theming to match the design system. Implement consistent back button behavior and navigation patterns. Add deep linking configuration for push notification navigation. Use React Navigation's native stack navigator for optimal performance on both iOS and Android.",
         "testStrategy": "Test navigation flow between all screens and tabs. Verify that navigation state is preserved when switching between tabs. Test deep linking functionality. Ensure back button behavior is consistent across the application. Validate navigation performance on low-end devices.",
         "priority": "high",
-        "dependencies": [
-          1,
-          2
-        ],
+        "dependencies": [1, 2],
         "status": "pending",
         "subtasks": [
           {
@@ -222,9 +183,7 @@
             "id": 2,
             "title": "Implement Stack Navigators for Each Tab",
             "description": "For each tab, create a dedicated stack navigator to manage screen transitions within that tab.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use @react-navigation/stack to define stack navigators for each tab. Organize screens logically and ensure navigation between them works as expected.",
             "status": "pending",
             "testStrategy": ""
@@ -233,9 +192,7 @@
             "id": 3,
             "title": "Configure Modal Navigation",
             "description": "Set up modal screens that can be presented from any stack or tab, following React Navigation's modal presentation patterns.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Define modal routes in a higher-level navigator or use group options for modal presentation. Ensure modals overlay correctly and handle dismissal properly.",
             "status": "pending",
             "testStrategy": ""
@@ -244,9 +201,7 @@
             "id": 4,
             "title": "Implement Theming for Navigation",
             "description": "Apply consistent theming to all navigation components, supporting both light and dark modes as per Expo and React Navigation guidelines.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use React Navigation's theming API and Expo's Appearance module to switch themes dynamically. Style tab bars, headers, and modal backgrounds accordingly.",
             "status": "pending",
             "testStrategy": ""
@@ -255,10 +210,7 @@
             "id": 5,
             "title": "Handle Back Button Logic",
             "description": "Implement custom back button behavior for Android and iOS, ensuring correct navigation stack handling and modal dismissal.",
-            "dependencies": [
-              2,
-              3
-            ],
+            "dependencies": [2, 3],
             "details": "Use React Navigation's back handling hooks and Expo's BackHandler API. Test edge cases such as nested stacks and modals to prevent unexpected exits.",
             "status": "pending",
             "testStrategy": ""
@@ -267,11 +219,7 @@
             "id": 6,
             "title": "Add Deep Linking Support",
             "description": "Configure deep linking to allow the app to open specific screens via URLs, supporting both tab and stack navigators.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Set up linking configuration in navigation container, define URL patterns for each screen, and test with Expo's linking tools. Ensure correct navigation state restoration from deep links.",
             "status": "pending",
             "testStrategy": ""
@@ -285,10 +233,7 @@
         "details": "Create UI components for email/password registration with real-time validation feedback. Implement social login buttons for Google and Apple authentication. Design password reset flow UI with email input and confirmation screens. Implement form validation with clear error messaging. Create loading states for authentication actions. Design the onboarding flow UI that follows successful authentication. Use Formik or React Hook Form for form state management and validation. Implement secure input fields for password entry with show/hide functionality. Ensure all authentication screens follow the design system guidelines.",
         "testStrategy": "Test form validation for all input fields. Verify error messages display correctly for invalid inputs. Test UI responsiveness across different device sizes. Validate accessibility of all form elements. Test navigation between authentication screens.",
         "priority": "high",
-        "dependencies": [
-          2,
-          3
-        ],
+        "dependencies": [2, 3],
         "status": "pending",
         "subtasks": [
           {
@@ -313,9 +258,7 @@
             "id": 3,
             "title": "Develop Password Reset UI and Flow",
             "description": "Implement a password reset screen that allows users to request a password reset via email or SMS, and handle the reset process.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Include input validation, feedback for success/failure, and navigation back to login. Ensure secure handling of reset tokens.",
             "status": "pending",
             "testStrategy": ""
@@ -324,10 +267,7 @@
             "id": 4,
             "title": "Integrate Social Login Buttons",
             "description": "Add social login options (e.g., Google, Facebook, Apple) to registration and login screens, using secure OAuth flows.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Use libraries like react-native-app-auth for OAuth2 with PKCE support. Ensure secure storage of tokens and proper error handling.",
             "status": "pending",
             "testStrategy": ""
@@ -336,11 +276,7 @@
             "id": 5,
             "title": "Implement Form Validation and Real-Time Feedback",
             "description": "Add client-side validation for all authentication forms, providing real-time feedback for invalid inputs and enforcing strong password policies.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Validate email format, password strength, and required fields. Display clear error messages and prevent submission of invalid forms.",
             "status": "pending",
             "testStrategy": ""
@@ -349,13 +285,7 @@
             "id": 6,
             "title": "Handle Loading and Error States Across Authentication Flows",
             "description": "Implement loading indicators and error state handling for all authentication-related screens and actions.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Show spinners during network requests, display concise error messages, and provide retry options for failed actions. Use error codes for troubleshooting.",
             "status": "pending",
             "testStrategy": ""
@@ -364,14 +294,7 @@
             "id": 7,
             "title": "Build Onboarding Flow and Accessibility Checks",
             "description": "Create an onboarding flow for new users and perform accessibility checks on all authentication screens.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
+            "dependencies": [1, 2, 3, 4, 5, 6],
             "details": "Guide users through initial setup after registration. Ensure all screens are navigable via screen readers, have proper labels, and meet accessibility standards.",
             "status": "pending",
             "testStrategy": ""
@@ -385,10 +308,7 @@
         "details": "Set up Supabase project and configure authentication providers (email/password, Google, Apple). Implement authentication service layer in the application to handle user registration, login, logout, and password reset. Configure Row Level Security (RLS) policies for user data protection. Implement token management for authentication persistence. Create error handling for authentication failures. Set up email templates for verification and password reset. Use Supabase JS client v2+ for optimal performance and type safety with TypeScript. Implement refresh token rotation for enhanced security.",
         "testStrategy": "Test complete authentication flows including registration, login, and password reset. Verify OAuth providers connect successfully. Test token persistence across app restarts. Validate error handling for various authentication failure scenarios. Verify RLS policies correctly restrict data access.",
         "priority": "high",
-        "dependencies": [
-          1,
-          4
-        ],
+        "dependencies": [1, 4],
         "status": "pending",
         "subtasks": [
           {
@@ -404,9 +324,7 @@
             "id": 2,
             "title": "Enable and Configure Authentication Providers",
             "description": "Set up and enable desired authentication providers (email/password, OAuth, magic link, etc.) in the Supabase dashboard.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Navigate to Authentication → Providers in the Supabase dashboard. Enable required providers (e.g., Google, Apple, GitHub, email/password). Configure provider-specific settings such as client IDs and secrets. Test provider login flows in the dashboard.",
             "status": "pending",
             "testStrategy": ""
@@ -415,9 +333,7 @@
             "id": 3,
             "title": "Design and Implement Auth Service Layer in React Native/Expo",
             "description": "Create a dedicated authentication service layer to abstract Supabase auth logic and expose clean methods for sign up, login, logout, and session management.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Implement a TypeScript/JavaScript service module that wraps Supabase Auth SDK methods. Expose functions for sign up, sign in, sign out, password reset, and session retrieval. Ensure all methods return consistent results and handle errors gracefully.",
             "status": "pending",
             "testStrategy": ""
@@ -426,10 +342,7 @@
             "id": 4,
             "title": "Set Up Row Level Security (RLS) Policies",
             "description": "Define and apply RLS policies in Supabase to restrict data access based on authenticated user roles and ownership.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Use the Supabase SQL Editor to write RLS policies for each relevant table. Ensure policies check for authenticated users and enforce ownership or role-based access. Test policies using the Supabase dashboard and client queries.",
             "status": "pending",
             "testStrategy": ""
@@ -438,9 +351,7 @@
             "id": 5,
             "title": "Implement Token Management and Secure Storage",
             "description": "Handle JWT access and refresh tokens securely in the React Native/Expo app, using best practices for mobile token storage.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Use secure storage libraries (e.g., expo-secure-store) to store tokens. Implement logic to retrieve, refresh, and clear tokens as needed. Ensure tokens are never exposed in logs or insecure storage.",
             "status": "pending",
             "testStrategy": ""
@@ -449,9 +360,7 @@
             "id": 6,
             "title": "Implement Robust Error Handling for Auth Flows",
             "description": "Add comprehensive error handling for all authentication flows, including user feedback and logging.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Handle and display user-friendly error messages for common auth errors (invalid credentials, network issues, etc.). Log unexpected errors for debugging. Ensure error handling is consistent across all auth service methods.",
             "status": "pending",
             "testStrategy": ""
@@ -460,9 +369,7 @@
             "id": 7,
             "title": "Set Up and Integrate Custom Email Templates",
             "description": "Configure and customize email templates for authentication-related emails (confirmation, password reset, etc.) in Supabase.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "In the Supabase dashboard, navigate to Authentication → Templates. Customize templates for sign up confirmation, password reset, and magic link emails. Test email delivery and rendering with real user flows.",
             "status": "pending",
             "testStrategy": ""
@@ -471,9 +378,7 @@
             "id": 8,
             "title": "Implement Refresh Token Rotation and Session Management",
             "description": "Set up refresh token rotation to enhance security and manage user sessions effectively.",
-            "dependencies": [
-              5
-            ],
+            "dependencies": [5],
             "details": "Configure Supabase to use refresh token rotation if supported. Update the auth service layer to handle token refresh and session renewal. Ensure the app gracefully handles expired tokens and prompts users to re-authenticate if needed.",
             "status": "pending",
             "testStrategy": ""
@@ -487,9 +392,7 @@
         "details": "Create database tables for Users, ClothingItems, SavedOutfits, UserPreferences, and AIFeedback as specified in the PRD. Implement proper relationships between tables with foreign key constraints. Set up indexes for frequently queried fields to optimize performance. Configure Row Level Security policies for each table to ensure data isolation. Implement soft delete functionality for data recovery. Create database functions and triggers for complex operations. Document the schema design with entity relationship diagrams. Use PostgreSQL's JSON capabilities for flexible attribute storage where appropriate.",
         "testStrategy": "Verify all tables are created with correct columns and relationships. Test RLS policies to ensure proper data isolation. Validate query performance for common operations. Test data integrity constraints with various input scenarios. Verify soft delete functionality works as expected.",
         "priority": "high",
-        "dependencies": [
-          5
-        ],
+        "dependencies": [5],
         "status": "pending",
         "subtasks": [
           {
@@ -505,9 +408,7 @@
             "id": 2,
             "title": "Define Table Relationships",
             "description": "Establish foreign key relationships between tables to enforce referential integrity and document associations.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Identify all one-to-many, many-to-many, and one-to-one relationships. Add foreign key constraints to relevant tables. Consider the tradeoffs of foreign keys for performance and integrity. Use join tables for many-to-many relationships and document cascade behaviors for updates/deletes.",
             "status": "pending",
             "testStrategy": ""
@@ -516,10 +417,7 @@
             "id": 3,
             "title": "Set Up Indexes for Performance",
             "description": "Create indexes on columns frequently used in queries, joins, and filters to optimize performance.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Analyze expected query patterns and identify columns for indexing (e.g., foreign keys, search fields, timestamps). Create unique indexes where necessary. Avoid over-indexing to prevent unnecessary write overhead. Document the rationale for each index.",
             "status": "pending",
             "testStrategy": ""
@@ -528,11 +426,7 @@
             "id": 4,
             "title": "Configure Row-Level Security (RLS)",
             "description": "Implement PostgreSQL RLS policies to restrict data access based on user roles and ownership.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Enable RLS on sensitive tables. Define policies for SELECT, INSERT, UPDATE, and DELETE operations based on user context. Test policies to ensure only authorized users can access or modify data. Document all RLS configurations and their intended protections.",
             "status": "pending",
             "testStrategy": ""
@@ -541,12 +435,7 @@
             "id": 5,
             "title": "Implement Soft Delete Mechanism",
             "description": "Add soft delete support to tables by introducing a 'deleted_at' timestamp column and updating queries to exclude soft-deleted records.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4
-            ],
+            "dependencies": [1, 2, 3, 4],
             "details": "Add a nullable 'deleted_at' column (type 'timestamptz') to tables requiring soft delete. Update application logic and queries to filter out rows where 'deleted_at' is not null. Consider adding partial indexes to optimize queries for non-deleted records.",
             "status": "pending",
             "testStrategy": ""
@@ -555,13 +444,7 @@
             "id": 6,
             "title": "Write Database Functions and Triggers",
             "description": "Develop PostgreSQL functions and triggers for automated behaviors such as cascading soft deletes, auditing, or enforcing business rules.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Identify scenarios requiring automation (e.g., setting 'deleted_at' on related records, logging changes). Write PL/pgSQL functions and attach triggers to relevant tables. Test all triggers for correctness and performance impact.",
             "status": "pending",
             "testStrategy": ""
@@ -570,14 +453,7 @@
             "id": 7,
             "title": "Document Schema with ER Diagrams",
             "description": "Create and maintain Entity-Relationship (ER) diagrams to visually document the schema, relationships, and key constraints.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
+            "dependencies": [1, 2, 3, 4, 5, 6],
             "details": "Use a diagramming tool to represent all tables, columns, primary/foreign keys, and relationships. Annotate diagrams with notes on RLS, soft delete, and triggers. Ensure diagrams are kept up-to-date with schema changes and are accessible to the development team.",
             "status": "pending",
             "testStrategy": ""
@@ -588,13 +464,10 @@
         "id": 7,
         "title": "Wardrobe Management UI Implementation",
         "description": "Develop the user interface for the wardrobe management feature, including clothing item grid, filtering, and search functionality.",
-        "details": "Create a grid/list view toggle for wardrobe display with responsive layouts. Implement category filtering options (tops, bottoms, shoes, etc.) with visual indicators. Design search functionality with real-time filtering. Create item detail view with tag display and editing capabilities. Implement empty state designs for new users. Add loading states and pagination for large wardrobes. Use React Native FlatList with optimizations for smooth scrolling and memory efficiency. Implement image caching using libraries like react-native-fast-image for performance optimization.",
+        "details": "Create a grid/list view toggle for wardrobe display with responsive layouts. Implement category filtering options (tops, bottoms, shoes, etc.) with visual indicators. Design search functionality with real-time filtering. Create item detail view with tag display and editing capabilities. Implement empty state designs for new users. Add loading states and pagination for large wardrobes. Use React Native FlatList with optimizations for smooth scrolling and memory efficiency. Implement image caching using expo-image for performance optimization.",
         "testStrategy": "Test grid and list views with various numbers of clothing items. Verify filtering and search functionality returns correct results. Test responsive layout on different screen sizes. Validate performance with large numbers of items. Test accessibility of all interactive elements.",
         "priority": "medium",
-        "dependencies": [
-          2,
-          3
-        ],
+        "dependencies": [2, 3],
         "status": "pending",
         "subtasks": [
           {
@@ -610,9 +483,7 @@
             "id": 2,
             "title": "Develop Filtering Functionality",
             "description": "Create a filtering system that enables users to filter items based on predefined categories or attributes.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Design filter UI (e.g., dropdowns, chips). Implement filter logic to update the displayed item list. Ensure filters work seamlessly with both grid and list views.",
             "status": "pending",
             "testStrategy": ""
@@ -621,9 +492,7 @@
             "id": 3,
             "title": "Implement Search Capability",
             "description": "Add a search bar that allows users to search items by keywords, updating the displayed list in real-time.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use a controlled TextInput for search. Debounce input to optimize performance. Integrate search logic with filtering and pagination.",
             "status": "pending",
             "testStrategy": ""
@@ -632,9 +501,7 @@
             "id": 4,
             "title": "Build Item Detail View",
             "description": "Create a detailed view for each item, accessible from the grid/list, displaying comprehensive information and images.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Implement navigation to detail view using React Navigation. Display all relevant item data and images. Ensure back navigation and deep linking support.",
             "status": "pending",
             "testStrategy": ""
@@ -643,11 +510,7 @@
             "id": 5,
             "title": "Handle Empty and Loading States",
             "description": "Design and implement UI states for when data is loading or when no items match the current filters/search.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Show activity indicators during data fetch. Display informative empty state messages with optional actions (e.g., clear filters). Ensure accessibility compliance.",
             "status": "pending",
             "testStrategy": ""
@@ -656,12 +519,7 @@
             "id": 6,
             "title": "Implement Pagination",
             "description": "Add pagination to efficiently load and display large datasets, supporting both infinite scroll and page-based navigation.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              5
-            ],
+            "dependencies": [1, 2, 3, 5],
             "details": "Use FlatList's onEndReached for infinite scroll or implement page controls. Manage loading indicators for paginated fetches. Integrate with filtering and search logic.",
             "status": "pending",
             "testStrategy": ""
@@ -670,11 +528,8 @@
             "id": 7,
             "title": "Integrate Image Caching",
             "description": "Optimize image loading and caching for performance and offline support using recommended libraries.",
-            "dependencies": [
-              1,
-              4
-            ],
-            "details": "Use react-native-fast-image for image components. Preload images where appropriate. Test cache behavior on both iOS and Android. Follow Expo compatibility guidelines.",
+            "dependencies": [1, 4],
+            "details": "Use expo-image for image components. Preload images where appropriate. Test cache behavior on both iOS and Android. Follow Expo compatibility guidelines.",
             "status": "pending",
             "testStrategy": ""
           }
@@ -687,10 +542,7 @@
         "details": "Integrate Expo Camera and Image Picker APIs for capturing new photos and selecting from gallery. Implement permission handling for camera and photo library access with clear explanations. Create image processing utilities for compression and optimization before upload. Implement batch upload functionality for multiple items. Add image cropping and basic enhancement tools using libraries like react-native-image-crop-picker. Create progress indicators for upload process. Handle device-specific camera behaviors across iOS and Android. Implement fallback options when camera permissions are denied.",
         "testStrategy": "Test camera capture on various devices. Verify gallery selection works with different image types and sizes. Test permission flows for both granted and denied scenarios. Validate image compression maintains adequate quality while reducing file size. Test upload functionality with various network conditions.",
         "priority": "high",
-        "dependencies": [
-          1,
-          7
-        ],
+        "dependencies": [1, 7],
         "status": "pending",
         "subtasks": [
           {
@@ -706,9 +558,7 @@
             "id": 2,
             "title": "Implement Permission Handling",
             "description": "Request and manage runtime permissions for camera and gallery access on both iOS and Android platforms.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Add permission keys to Info.plist (iOS) and AndroidManifest.xml (Android). Use Expo/React Native APIs to prompt users and handle permission states gracefully.",
             "status": "pending",
             "testStrategy": ""
@@ -717,9 +567,7 @@
             "id": 3,
             "title": "Build Camera Access Component",
             "description": "Create a reusable camera component that allows users to capture photos or videos, with options for camera type, flash, and error handling.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use expo-camera or similar library. Expose callbacks for successful capture and errors. Ensure UI is responsive and accessible.",
             "status": "pending",
             "testStrategy": ""
@@ -728,9 +576,7 @@
             "id": 4,
             "title": "Integrate Gallery Picker",
             "description": "Develop a gallery picker component to let users select single or multiple images from their device gallery.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use expo-image-picker or @react-native-camera-roll/camera-roll. Support batch selection and handle large galleries efficiently.",
             "status": "pending",
             "testStrategy": ""
@@ -739,10 +585,7 @@
             "id": 5,
             "title": "Implement Image Processing and Enhancement Tools",
             "description": "Add image cropping, resizing, and basic enhancement features (e.g., brightness, contrast) before upload.",
-            "dependencies": [
-              3,
-              4
-            ],
+            "dependencies": [3, 4],
             "details": "Integrate libraries like expo-image-manipulator. Provide an intuitive UI for cropping and adjustments, and ensure processed images are optimized for upload.",
             "status": "pending",
             "testStrategy": ""
@@ -751,9 +594,7 @@
             "id": 6,
             "title": "Develop Batch Upload Functionality",
             "description": "Enable users to select and upload multiple images at once, handling upload queuing and concurrency.",
-            "dependencies": [
-              5
-            ],
+            "dependencies": [5],
             "details": "Implement logic to manage upload batches, retry failed uploads, and ensure efficient network usage.",
             "status": "pending",
             "testStrategy": ""
@@ -771,14 +612,7 @@
             "id": 8,
             "title": "Implement Fallback and Error Handling",
             "description": "Handle edge cases such as denied permissions, failed uploads, unsupported file types, and device-specific issues.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5,
-              6,
-              7
-            ],
+            "dependencies": [2, 3, 4, 5, 6, 7],
             "details": "Provide user-friendly error messages, fallback flows (e.g., retry, alternative selection), and log/report errors for debugging.",
             "status": "pending",
             "testStrategy": ""
@@ -792,10 +626,7 @@
         "details": "Configure Supabase Storage buckets with appropriate access policies. Implement image upload service that securely transfers images to Supabase Storage. Create image URL generation with CDN support for optimized delivery. Implement storage path structure based on user ID and item type for organized management. Add error handling and retry logic for failed uploads. Configure image transformations for thumbnail generation. Implement cleanup procedures for deleted items. Use Supabase Storage client with proper authentication to ensure secure access.",
         "testStrategy": "Test image upload, retrieval, and deletion operations. Verify access controls prevent unauthorized access to user images. Test CDN delivery performance across different regions. Validate error handling for upload failures. Test cleanup procedures for deleted items.",
         "priority": "high",
-        "dependencies": [
-          5,
-          8
-        ],
+        "dependencies": [5, 8],
         "status": "pending",
         "subtasks": [
           {
@@ -811,9 +642,7 @@
             "id": 2,
             "title": "Implement Image Upload Service",
             "description": "Develop a service in the React Native/Expo app to handle image selection, preprocessing, and uploading to the storage bucket.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use Expo's ImagePicker for selection, optionally compress or resize images before upload, and securely upload using pre-signed URLs or authenticated API endpoints.",
             "status": "pending",
             "testStrategy": ""
@@ -822,9 +651,7 @@
             "id": 3,
             "title": "Configure CDN for Image Delivery",
             "description": "Set up a Content Delivery Network (CDN) in front of the storage bucket to serve images efficiently and securely to users.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Integrate a CDN (e.g., CloudFront, Cloudflare) with the storage bucket, configure caching rules, and restrict direct bucket access to only the CDN.",
             "status": "pending",
             "testStrategy": ""
@@ -833,9 +660,7 @@
             "id": 4,
             "title": "Design Image Path Structuring Scheme",
             "description": "Define a logical and scalable path structure for storing images in the bucket to support efficient retrieval, organization, and access control.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Implement naming conventions using user IDs, timestamps, or UUIDs to avoid collisions and support future scalability.",
             "status": "pending",
             "testStrategy": ""
@@ -844,9 +669,7 @@
             "id": 5,
             "title": "Integrate Error Handling and Retry Logic",
             "description": "Implement robust error detection and retry mechanisms in the upload service to handle network failures, timeouts, and storage errors.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use exponential backoff for retries, provide user feedback on failures, and log errors for monitoring and debugging.",
             "status": "pending",
             "testStrategy": ""
@@ -855,10 +678,7 @@
             "id": 6,
             "title": "Implement Image Transformation Pipeline",
             "description": "Set up automated image transformations (e.g., resizing, format conversion, thumbnail generation) either on upload or via CDN edge functions.",
-            "dependencies": [
-              2,
-              3
-            ],
+            "dependencies": [2, 3],
             "details": "Use serverless functions or CDN features to generate multiple image sizes and formats as needed for different device requirements.",
             "status": "pending",
             "testStrategy": ""
@@ -867,10 +687,7 @@
             "id": 7,
             "title": "Develop Cleanup and Lifecycle Management Procedures",
             "description": "Create automated processes to delete unused images and manage storage lifecycle policies for cost and security optimization.",
-            "dependencies": [
-              1,
-              4
-            ],
+            "dependencies": [1, 4],
             "details": "Implement scheduled cleanup scripts, set bucket lifecycle rules for automatic expiration, and ensure compliance with data retention policies.",
             "status": "pending",
             "testStrategy": ""
@@ -884,9 +701,7 @@
         "details": "Research and select optimal AI service for clothing analysis (Google Cloud Vision AI recommended based on PRD). Implement service integration for image analysis with proper error handling and rate limiting. Create mapping logic to transform AI responses into application-specific categories and attributes. Implement confidence scoring for AI predictions. Add fallback categorization for unrecognized items. Create batch processing capability for multiple items. Implement caching strategy to avoid redundant API calls. Use the latest version of the Vision API (v1p4beta1 or newer) for access to advanced features like product recognition.",
         "testStrategy": "Test AI analysis with diverse clothing items across different categories. Verify color detection accuracy with various lighting conditions. Test attribute recognition for different styles and patterns. Validate confidence scoring reflects actual accuracy. Test fallback mechanisms when AI service fails or returns low confidence results.",
         "priority": "high",
-        "dependencies": [
-          9
-        ],
+        "dependencies": [9],
         "status": "pending",
         "subtasks": [
           {
@@ -902,9 +717,7 @@
             "id": 2,
             "title": "Set Up API Keys and Environment Configuration",
             "description": "Securely obtain API keys for the selected AI services and configure them in the project using environment variables compatible with Expo and React Native.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Create a local .env file, add API keys, and ensure they are not committed to version control. Update app.json or other config files as needed for Expo.",
             "status": "pending",
             "testStrategy": ""
@@ -913,9 +726,7 @@
             "id": 3,
             "title": "Integrate AI Service APIs",
             "description": "Implement API integration for the selected AI services using recommended SDKs or REST endpoints, ensuring compatibility with React Native and Expo.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Install necessary SDKs (e.g., openai, google generative ai), handle polyfills for Expo, and set up API request/response logic.",
             "status": "pending",
             "testStrategy": ""
@@ -924,9 +735,7 @@
             "id": 4,
             "title": "Map AI Responses to App Logic",
             "description": "Design and implement logic to parse and map AI service responses into the app's data structures and UI components.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Define response schemas, handle edge cases, and ensure robust error handling for unpredictable or malformed responses.",
             "status": "pending",
             "testStrategy": ""
@@ -935,9 +744,7 @@
             "id": 5,
             "title": "Implement Confidence Scoring Mechanism",
             "description": "Extract and utilize confidence scores from AI responses (if available) or design a custom scoring system to assess response reliability.",
-            "dependencies": [
-              4
-            ],
+            "dependencies": [4],
             "details": "Display confidence levels in the UI and use them to inform downstream logic (e.g., fallback, user alerts).",
             "status": "pending",
             "testStrategy": ""
@@ -946,9 +753,7 @@
             "id": 6,
             "title": "Develop Fallback Logic for Unreliable Responses",
             "description": "Create fallback strategies for handling low-confidence or failed AI responses, such as retrying, switching providers, or showing user-friendly error messages.",
-            "dependencies": [
-              5
-            ],
+            "dependencies": [5],
             "details": "Implement logic to trigger fallback actions based on confidence thresholds or error types.",
             "status": "pending",
             "testStrategy": ""
@@ -980,10 +785,7 @@
         "details": "Create tag editing interface accessible from item detail view. Design UI for displaying current tags with edit functionality. Implement custom tag addition and removal capabilities. Create color selection interface with standard color palette. Add style attribute selection with predefined options (formal, casual, sporty, etc.). Implement season tagging functionality. Create feedback mechanism to improve AI model with user corrections. Use React Native's TouchableOpacity or similar components for interactive tag elements. Implement auto-complete for tag entry to maintain consistency.",
         "testStrategy": "Test tag editing functionality for adding, removing, and modifying tags. Verify changes are reflected immediately in the UI. Test color selection interface with various color options. Validate style attribute selection works correctly. Test feedback submission for AI improvement.",
         "priority": "medium",
-        "dependencies": [
-          7,
-          10
-        ],
+        "dependencies": [7, 10],
         "status": "pending",
         "subtasks": [
           {
@@ -999,9 +801,7 @@
             "id": 2,
             "title": "Enable Custom Tag Addition and Removal",
             "description": "Implement functionality to allow users to add new custom tags and remove existing ones dynamically from the UI.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Provide an input field for adding new tags and a remove button/icon for each tag. Validate input to prevent duplicates and empty tags. Update the tag list state accordingly and ensure smooth UI updates.",
             "status": "pending",
             "testStrategy": ""
@@ -1010,10 +810,7 @@
             "id": 3,
             "title": "Integrate Color Selection for Tags",
             "description": "Allow users to select a color for each tag, either during creation or editing, using a color picker or predefined palette.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Implement a color picker component or a set of selectable color swatches. Store the selected color in the tag's data and update the tag's appearance in the UI to reflect the chosen color.",
             "status": "pending",
             "testStrategy": ""
@@ -1022,10 +819,7 @@
             "id": 4,
             "title": "Implement Style Attribute Selection for Tags",
             "description": "Provide options for users to select style attributes (e.g., bold, italic, underline) for individual tags.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Add UI controls (such as toggle buttons) for style attributes. Update the tag's style state and apply the selected styles using React Native's <Text> component styling.",
             "status": "pending",
             "testStrategy": ""
@@ -1034,10 +828,7 @@
             "id": 5,
             "title": "Add Season Tagging Functionality",
             "description": "Enable users to tag items with one or more seasons (e.g., Spring, Summer, Fall, Winter) as part of the tag editing process.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Provide a set of selectable season tags, either as checkboxes or toggle buttons. Store selected seasons in the tag's data and display them alongside other tag attributes.",
             "status": "pending",
             "testStrategy": ""
@@ -1046,12 +837,7 @@
             "id": 6,
             "title": "Implement Feedback Mechanism",
             "description": "Add real-time feedback for user actions such as successful tag addition/removal, invalid input, or errors.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [2, 3, 4, 5],
             "details": "Display feedback messages using Toasts, Snackbars, or inline error messages. Ensure feedback is clear, timely, and accessible. Handle edge cases such as duplicate tags or invalid color/style selections.",
             "status": "pending",
             "testStrategy": ""
@@ -1065,10 +851,7 @@
         "details": "Implement outfit generation logic that considers clothing categories, colors, styles, and occasions. Create color coordination rules based on color theory (complementary, analogous, etc.). Implement style matching algorithms to ensure consistent outfit aesthetics. Add occasion-appropriate filtering (formal, casual, work, etc.). Create weather-appropriate recommendations using external weather data. Implement logical outfit composition to avoid incompatible combinations. Add variety mechanisms to prevent repetitive suggestions. Use efficient algorithms to ensure generation completes within 3 seconds as specified in the PRD. Consider implementing a rule-based system with weighted scoring for flexibility and performance.",
         "testStrategy": "Test outfit generation with various wardrobe compositions. Verify color coordination follows established color theory principles. Test style matching across different categories. Validate occasion-appropriate filtering returns suitable items. Test performance to ensure generation completes within specified time limits.",
         "priority": "high",
-        "dependencies": [
-          6,
-          10
-        ],
+        "dependencies": [6, 10],
         "status": "pending",
         "subtasks": [
           {
@@ -1084,9 +867,7 @@
             "id": 2,
             "title": "Develop Color Coordination Rules Engine",
             "description": "Create a rules engine to assess and score color combinations for outfit pieces.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Define color harmony rules (e.g., complementary, analogous, monochromatic) and implement logic to evaluate and score outfit color combinations. Integrate with the core logic to filter or rank outfits based on color compatibility.",
             "status": "pending",
             "testStrategy": ""
@@ -1095,9 +876,7 @@
             "id": 3,
             "title": "Implement Style Matching Logic",
             "description": "Build logic to ensure stylistic coherence among outfit components.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Define style categories (e.g., casual, formal, sporty) and implement matching rules to ensure outfit pieces align in style. Use tags or metadata on wardrobe items and integrate style checks into the recommendation pipeline.",
             "status": "pending",
             "testStrategy": ""
@@ -1106,10 +885,7 @@
             "id": 4,
             "title": "Add Occasion Filtering Mechanism",
             "description": "Enable filtering and prioritization of outfits based on the selected occasion.",
-            "dependencies": [
-              1,
-              3
-            ],
+            "dependencies": [1, 3],
             "details": "Define a set of occasions (e.g., work, party, gym) and map wardrobe items to suitable occasions. Implement filtering logic in the core algorithm to only recommend outfits appropriate for the selected occasion.",
             "status": "pending",
             "testStrategy": ""
@@ -1118,9 +894,7 @@
             "id": 5,
             "title": "Integrate Weather Data and Logic",
             "description": "Fetch and utilize weather data to influence outfit recommendations.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Integrate a weather API to retrieve current and forecasted weather. Implement logic to adjust outfit recommendations based on temperature, precipitation, and other relevant weather factors (e.g., suggest layers or waterproof items).",
             "status": "pending",
             "testStrategy": ""
@@ -1129,12 +903,7 @@
             "id": 6,
             "title": "Compose Outfit Assembly Logic",
             "description": "Develop logic to assemble complete outfits from individual wardrobe items.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [2, 3, 4, 5],
             "details": "Implement algorithms to combine tops, bottoms, shoes, and accessories into cohesive outfits, ensuring all constraints (color, style, occasion, weather) are satisfied. Optimize for modularity and extensibility.",
             "status": "pending",
             "testStrategy": ""
@@ -1152,10 +921,7 @@
             "id": 8,
             "title": "Optimize Performance and Scalability",
             "description": "Profile and optimize the recommendation engine for speed and scalability.",
-            "dependencies": [
-              6,
-              7
-            ],
+            "dependencies": [6, 7],
             "details": "Identify performance bottlenecks in the recommendation pipeline. Apply memoization, batching, or asynchronous processing as needed. Ensure the logic is efficient for large wardrobes and responsive on both iOS and Android, following React Native and Expo best practices.",
             "status": "pending",
             "testStrategy": ""
@@ -1169,10 +935,7 @@
         "details": "Create occasion selection interface with visual category representations. Design outfit display layout showing top, bottom, shoes, and accessories. Implement styling description area for AI-generated text. Add action buttons for saving, refreshing, and sharing outfits. Create loading states for generation process. Implement swipe or carousel interaction for browsing multiple recommendations. Add visual indicators for weather appropriateness. Design empty states for insufficient wardrobe items. Use React Native's Image component with proper caching for optimal performance. Consider implementing react-native-reanimated for smooth animations during outfit transitions.",
         "testStrategy": "Test occasion selection interface with all available options. Verify outfit display renders correctly with different item combinations. Test action buttons for expected functionality. Validate responsive layout on different screen sizes. Test performance with multiple recommendation options.",
         "priority": "high",
-        "dependencies": [
-          7,
-          12
-        ],
+        "dependencies": [7, 12],
         "status": "pending",
         "subtasks": [
           {
@@ -1188,9 +951,7 @@
             "id": 2,
             "title": "Implement Outfit Display Layout",
             "description": "Develop a visually appealing layout to display outfit items, including images, names, and key details, adapting to various screen sizes.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use FlatList or ScrollView for efficient rendering of outfit items. Apply responsive styling with StyleSheet or Tailwind CSS. Ensure images are optimized and use Expo's Image component for performance.",
             "status": "pending",
             "testStrategy": ""
@@ -1199,9 +960,7 @@
             "id": 3,
             "title": "Build Styling Description Area",
             "description": "Create a section that provides detailed styling descriptions, tips, or rationale for the selected outfit, supporting dynamic content updates.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use a dedicated View with Text components for descriptions. Support multiline text and dynamic updates based on selected occasion or outfit. Ensure accessibility with proper font sizes and contrast.",
             "status": "pending",
             "testStrategy": ""
@@ -1210,9 +969,7 @@
             "id": 4,
             "title": "Add Action Buttons",
             "description": "Integrate interactive action buttons (e.g., Save, Share, Refresh) with clear feedback and accessibility support.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Use React Native's Button or TouchableOpacity components. Implement onPress handlers for each action. Provide visual feedback (e.g., loading spinners, disabled states) and ensure buttons are accessible with proper labels.",
             "status": "pending",
             "testStrategy": ""
@@ -1221,9 +978,7 @@
             "id": 5,
             "title": "Handle Loading States",
             "description": "Implement loading indicators and skeleton screens for asynchronous data fetching and UI transitions.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use ActivityIndicator or custom skeleton components to indicate loading. Display placeholders while fetching outfit data, weather info, or images. Ensure smooth transitions and avoid layout shifts.",
             "status": "pending",
             "testStrategy": ""
@@ -1232,9 +987,7 @@
             "id": 6,
             "title": "Implement Carousel/Swipe Interaction",
             "description": "Enable users to swipe or scroll through multiple outfit options using a performant carousel or swipeable list.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use libraries like react-native-snap-carousel or FlatList with horizontal scrolling. Support smooth swipe gestures, snapping, and lazy loading of items for performance. Ensure accessibility for swipe actions.",
             "status": "pending",
             "testStrategy": ""
@@ -1243,9 +996,7 @@
             "id": 7,
             "title": "Integrate Weather Indicators",
             "description": "Display real-time weather indicators (e.g., temperature, icon, condition) that update based on location and time.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Fetch weather data using an API (e.g., OpenWeather). Display weather icons, temperature, and conditions using styled components. Dynamically update UI based on weather changes, following best practices for API calls and error handling.",
             "status": "pending",
             "testStrategy": ""
@@ -1259,9 +1010,7 @@
         "details": "Implement OpenAI API integration using GPT-3.5 or GPT-4 as specified in the PRD. Create prompt engineering for consistent, helpful styling advice. Implement caching for frequently generated descriptions to optimize costs. Add rate limiting and error handling for API failures. Create fallback descriptions for when API is unavailable. Implement context-aware prompts that include outfit details, occasion, and style information. Use the latest OpenAI API version with proper authentication and error handling. Consider implementing streaming responses for faster initial display.",
         "testStrategy": "Test description generation with various outfit combinations. Verify descriptions are contextually relevant to the specific outfit. Test caching mechanism reduces API calls for similar outfits. Validate fallback descriptions provide useful information when API fails. Test response time meets the 2-second requirement specified in the PRD.",
         "priority": "medium",
-        "dependencies": [
-          12
-        ],
+        "dependencies": [12],
         "status": "pending",
         "subtasks": [
           {
@@ -1277,9 +1026,7 @@
             "id": 2,
             "title": "Implement Prompt Engineering Utilities",
             "description": "Design and implement utility functions for constructing, formatting, and managing prompts sent to the OpenAI API.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Create reusable functions to build prompts, inject system/user roles, and allow for dynamic prompt customization. Ensure prompts are clear, concise, and optimized for intended AI behavior.",
             "status": "pending",
             "testStrategy": ""
@@ -1288,10 +1035,7 @@
             "id": 3,
             "title": "Add Caching Layer for API Responses",
             "description": "Implement a caching mechanism to store and retrieve recent API responses, reducing redundant calls and managing costs.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Use in-memory or persistent storage (e.g., AsyncStorage) to cache responses based on prompt hash. Set cache expiration and provide cache hit/miss logic in API request flow.",
             "status": "pending",
             "testStrategy": ""
@@ -1300,11 +1044,7 @@
             "id": 4,
             "title": "Integrate Rate Limiting and Error Handling",
             "description": "Develop robust error handling and rate limiting logic to gracefully manage API limits, network failures, and unexpected errors.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Detect rate limit errors, implement exponential backoff or retry strategies, and display user-friendly error messages. Log errors for debugging and analytics.",
             "status": "pending",
             "testStrategy": ""
@@ -1313,12 +1053,7 @@
             "id": 5,
             "title": "Implement Fallback Descriptions and Offline Handling",
             "description": "Provide fallback responses or descriptions when the API is unavailable or returns errors, ensuring a seamless user experience.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4
-            ],
+            "dependencies": [1, 2, 3, 4],
             "details": "Detect API failures and serve cached or predefined fallback messages. Optionally, allow limited offline functionality with static responses.",
             "status": "pending",
             "testStrategy": ""
@@ -1327,13 +1062,7 @@
             "id": 6,
             "title": "Enable Streaming Responses from OpenAI API",
             "description": "Integrate support for streaming responses from the OpenAI API, updating the UI in real-time as data arrives.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Use supported SDK or WebSocket/WebRTC methods to receive partial responses and update the chat or UI incrementally. Ensure smooth UX and handle stream interruptions.",
             "status": "pending",
             "testStrategy": ""
@@ -1347,10 +1076,7 @@
         "details": "Create data service for saving outfit combinations to the database. Implement 'Save' functionality with visual feedback. Design Saved Outfits gallery with grid layout. Add outfit categorization and filtering options. Implement outfit deletion with confirmation prompts. Create empty state messaging for new users. Add outfit detail view with item information. Implement data synchronization across devices. Use optimistic updates for improved user experience when saving outfits. Consider implementing offline support for viewing saved outfits without internet connection.",
         "testStrategy": "Test saving functionality with various outfit combinations. Verify saved outfits persist across app sessions. Test gallery display with different numbers of saved outfits. Validate deletion functionality removes outfits correctly. Test synchronization across multiple devices.",
         "priority": "medium",
-        "dependencies": [
-          6,
-          13
-        ],
+        "dependencies": [6, 13],
         "status": "pending",
         "subtasks": [
           {
@@ -1366,9 +1092,7 @@
             "id": 2,
             "title": "Design and Integrate Save UI with Feedback",
             "description": "Create user interface components for saving data, providing clear visual feedback (e.g., loading indicators, success/error messages) during save operations.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use React Native best practices for UI feedback. Integrate with the data service to trigger saves and display appropriate feedback based on operation status. Ensure accessibility and responsiveness.",
             "status": "pending",
             "testStrategy": ""
@@ -1377,9 +1101,7 @@
             "id": 3,
             "title": "Develop Gallery Display Component",
             "description": "Build a performant gallery view to display saved items, supporting efficient rendering and smooth scrolling for large datasets.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Utilize FlatList or SectionList for optimal performance. Fetch data from the data service and render items with thumbnails or previews. Ensure the gallery updates in real-time as data changes.",
             "status": "pending",
             "testStrategy": ""
@@ -1388,9 +1110,7 @@
             "id": 4,
             "title": "Implement Categorization and Filtering Logic",
             "description": "Enable users to categorize items and filter the gallery view based on categories or search criteria.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Add category assignment to the data model. Provide UI controls for selecting categories and entering filter/search terms. Update the gallery display in response to filter changes.",
             "status": "pending",
             "testStrategy": ""
@@ -1399,9 +1119,7 @@
             "id": 5,
             "title": "Enable Item Deletion with Confirmation",
             "description": "Allow users to delete items from the gallery, including confirmation dialogs and UI updates to reflect deletions.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Integrate deletion logic with the data service. Show confirmation prompts before deletion. Ensure the gallery updates immediately after an item is deleted.",
             "status": "pending",
             "testStrategy": ""
@@ -1410,9 +1128,7 @@
             "id": 6,
             "title": "Create Detail View for Individual Items",
             "description": "Develop a detail screen to display full information about a selected item, with options for editing or further actions.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Implement navigation from the gallery to the detail view. Fetch and display all relevant item data. Provide edit and action buttons as needed.",
             "status": "pending",
             "testStrategy": ""
@@ -1421,9 +1137,7 @@
             "id": 7,
             "title": "Add Sync and Offline Support",
             "description": "Integrate synchronization logic to keep data consistent across devices and support offline usage, using local-first architecture and sync layers.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Leverage Expo SQLite or Yjs for local-first data, and implement a sync mechanism (e.g., with a backend or peer-to-peer). Handle conflict resolution and ensure seamless offline/online transitions.",
             "status": "pending",
             "testStrategy": ""
@@ -1437,9 +1151,7 @@
         "details": "Create user profile screen with account information display. Implement settings for notification preferences, theme options, and privacy controls. Add account management options including password change and account deletion. Implement data export functionality for GDPR compliance. Create feedback and support request mechanisms. Add version information and terms of service access. Use AsyncStorage or similar for local settings persistence. Implement secure handling of sensitive user information. Consider adding biometric authentication options for enhanced security.",
         "testStrategy": "Test settings persistence across app restarts. Verify notification preference changes are applied correctly. Test account management functions including password change. Validate data export provides complete user data. Test feedback submission functionality.",
         "priority": "medium",
-        "dependencies": [
-          5
-        ],
+        "dependencies": [5],
         "status": "pending",
         "subtasks": [
           {
@@ -1455,9 +1167,7 @@
             "id": 2,
             "title": "Develop Notification Settings Module",
             "description": "Build a dedicated screen or section for notification preferences, allowing users to enable/disable push, email, and in-app notifications.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Implement toggles or switches for each notification type. Integrate with Expo Notifications API for push notifications. Persist user preferences locally and sync with backend if applicable.",
             "status": "pending",
             "testStrategy": ""
@@ -1466,9 +1176,7 @@
             "id": 3,
             "title": "Implement Theme and Privacy Controls",
             "description": "Add options for users to switch between light/dark themes and manage privacy settings such as profile visibility and data sharing.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use Expo's Appearance API for theme switching. Provide privacy toggles and explanations. Ensure changes are reflected throughout the app and persisted locally.",
             "status": "pending",
             "testStrategy": ""
@@ -1477,9 +1185,7 @@
             "id": 4,
             "title": "Account Management Features",
             "description": "Enable users to update email, password, and other account details, as well as handle account deletion and sign-out functionality.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Integrate with authentication provider (e.g., Supabase, Firebase). Validate inputs and handle errors securely. Confirm destructive actions with dialogs.",
             "status": "pending",
             "testStrategy": ""
@@ -1488,9 +1194,7 @@
             "id": 5,
             "title": "Data Export Functionality",
             "description": "Allow users to export their profile and app data in a standard format (e.g., JSON or CSV) and provide a secure download or sharing option.",
-            "dependencies": [
-              4
-            ],
+            "dependencies": [4],
             "details": "Implement data serialization and file generation using Expo FileSystem. Ensure sensitive data is handled securely and provide clear user feedback.",
             "status": "pending",
             "testStrategy": ""
@@ -1499,9 +1203,7 @@
             "id": 6,
             "title": "Feedback and Support Integration",
             "description": "Create a feedback form and support contact options within the app, enabling users to report issues or request help.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Include form validation, optional screenshot attachment, and submission to backend or email. Display confirmation and handle errors gracefully.",
             "status": "pending",
             "testStrategy": ""
@@ -1510,13 +1212,7 @@
             "id": 7,
             "title": "Implement Local Persistence for Settings and Profile",
             "description": "Ensure all user settings, preferences, and profile data are stored locally for offline access and synchronized with backend when online.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
+            "dependencies": [2, 3, 4, 5, 6],
             "details": "Use Expo SecureStore or AsyncStorage for sensitive and non-sensitive data. Implement synchronization logic to resolve conflicts and maintain data integrity.",
             "status": "pending",
             "testStrategy": ""
@@ -1530,10 +1226,7 @@
         "details": "Integrate Expo Notifications for cross-platform push delivery as specified in the PRD. Implement notification permission requesting with clear explanations. Create notification scheduling system for daily outfit suggestions. Implement user preference management for notification types and timing. Add deep linking from notifications to specific app screens. Create notification content generation for outfit suggestions. Implement Firebase Cloud Messaging as backup service where needed. Use proper error handling for notification failures. Consider implementing local notifications as fallback when push services are unavailable.",
         "testStrategy": "Test notification delivery on both iOS and Android devices. Verify deep linking navigates to correct screens. Test permission flows for both granted and denied scenarios. Validate notification preferences are respected. Test notification content displays correctly on different devices.",
         "priority": "low",
-        "dependencies": [
-          13,
-          16
-        ],
+        "dependencies": [13, 16],
         "status": "pending",
         "subtasks": [
           {
@@ -1549,9 +1242,7 @@
             "id": 2,
             "title": "Implement Permission Handling",
             "description": "Request and manage notification permissions from users, handling all possible permission states and errors.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use Expo's Notifications API to prompt users for notification permissions, handle user responses, and gracefully manage denied or restricted permissions. Store permission status for future reference.",
             "status": "pending",
             "testStrategy": ""
@@ -1560,10 +1251,7 @@
             "id": 3,
             "title": "Develop Notification Scheduling Logic",
             "description": "Enable scheduling of local and remote notifications based on user actions or app events.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Implement functions to schedule, update, and cancel notifications using Expo's Notifications API. Support both one-time and recurring notifications, and ensure correct behavior across app states (foreground, background, terminated).",
             "status": "pending",
             "testStrategy": ""
@@ -1572,10 +1260,7 @@
             "id": 4,
             "title": "Build User Preference Management",
             "description": "Create a system for users to manage their notification preferences within the app.",
-            "dependencies": [
-              2,
-              3
-            ],
+            "dependencies": [2, 3],
             "details": "Design UI components for notification settings, persist user preferences (e.g., enable/disable types of notifications, quiet hours), and ensure notification logic respects these preferences at all times.",
             "status": "pending",
             "testStrategy": ""
@@ -1584,11 +1269,7 @@
             "id": 5,
             "title": "Implement Deep Linking from Notifications",
             "description": "Configure deep linking so that tapping a notification navigates users to the appropriate screen or content within the app.",
-            "dependencies": [
-              1,
-              3,
-              4
-            ],
+            "dependencies": [1, 3, 4],
             "details": "Set up React Navigation's linking configuration, handle notification response events, and route users to the correct screens with relevant parameters when a notification is tapped.",
             "status": "pending",
             "testStrategy": ""
@@ -1597,13 +1278,7 @@
             "id": 6,
             "title": "Establish Backup and Fallback Mechanisms",
             "description": "Ensure robust notification delivery and user experience by implementing backup and fallback strategies.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Implement local notification fallbacks if remote delivery fails, handle edge cases such as permission revocation or device offline states, and provide user feedback or logs for troubleshooting.",
             "status": "pending",
             "testStrategy": ""
@@ -1617,9 +1292,7 @@
         "details": "Research and select analytics service (Mixpanel or Amplitude recommended in PRD). Implement core analytics events for key user actions (registration, item upload, outfit generation, etc.). Create custom user properties for segmentation analysis. Implement conversion funnels for critical user flows. Add performance monitoring for key operations. Create privacy-compliant data collection with proper user consent. Implement opt-out mechanisms for analytics tracking. Use batch processing for analytics events to minimize network usage. Consider implementing A/B testing framework for feature optimization.",
         "testStrategy": "Verify analytics events are triggered for all key user actions. Test user properties are correctly associated with events. Validate privacy compliance with opt-out functionality. Test analytics in offline mode with event queuing. Verify data appears correctly in analytics dashboard.",
         "priority": "low",
-        "dependencies": [
-          5
-        ],
+        "dependencies": [5],
         "status": "pending",
         "subtasks": [
           {
@@ -1635,9 +1308,7 @@
             "id": 2,
             "title": "Implement Core Event Tracking",
             "description": "Define and implement tracking for core user events using the analytics SDK. Ensure events are meaningful and aligned with business KPIs.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "List key user actions (e.g., sign up, purchase, screen view). Use the SDK's track method to log these events at appropriate points in the app. Test event delivery to the analytics dashboard.",
             "status": "pending",
             "testStrategy": ""
@@ -1646,9 +1317,7 @@
             "id": 3,
             "title": "Set Up User Properties and Identification",
             "description": "Implement user identification and property tracking to associate actions with specific users and their traits.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use the identify method to tie user IDs and traits (e.g., email, plan) to analytics data. Handle both authenticated and anonymous users. Ensure updates are sent when user properties change.",
             "status": "pending",
             "testStrategy": ""
@@ -1657,10 +1326,7 @@
             "id": 4,
             "title": "Design and Track Conversion Funnels",
             "description": "Define conversion funnels relevant to the app and ensure all funnel steps are tracked as events.",
-            "dependencies": [
-              2,
-              3
-            ],
+            "dependencies": [2, 3],
             "details": "Map out key funnels (e.g., onboarding, purchase flow). Ensure each step is tracked as a distinct event. Validate funnel data in the analytics dashboard.",
             "status": "pending",
             "testStrategy": ""
@@ -1669,9 +1335,7 @@
             "id": 5,
             "title": "Implement Privacy Compliance Measures",
             "description": "Ensure analytics implementation complies with privacy regulations (GDPR, CCPA) and provides user controls.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Add user consent dialogs, allow opt-out, and document data collection practices. Ensure sensitive data is not tracked and review SDK privacy settings.",
             "status": "pending",
             "testStrategy": ""
@@ -1680,11 +1344,7 @@
             "id": 6,
             "title": "Configure Batch Processing and Data Optimization",
             "description": "Optimize analytics data flow by enabling batch processing and minimizing performance impact.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
+            "dependencies": [1, 2, 3],
             "details": "Configure the SDK to batch events where supported. Test for performance and data delivery reliability. Adjust batch size and frequency as needed.",
             "status": "pending",
             "testStrategy": ""
@@ -1698,9 +1358,7 @@
         "details": "Integrate error tracking service (Sentry recommended in PRD) for automated error reporting. Implement global error boundary for React components. Create user-friendly error messages with recovery suggestions. Implement offline detection and appropriate messaging. Add crash reporting for native exceptions. Create logging service for important application events. Implement performance monitoring for critical operations. Use try-catch patterns consistently throughout the codebase. Consider implementing custom error types for different categories of errors.",
         "testStrategy": "Test error handling with various error scenarios. Verify user-friendly messages display correctly. Test offline detection and recovery. Validate error reports contain sufficient information for debugging. Test performance monitoring accurately measures operation times.",
         "priority": "medium",
-        "dependencies": [
-          1
-        ],
+        "dependencies": [1],
         "status": "pending",
         "subtasks": [
           {
@@ -1716,9 +1374,7 @@
             "id": 2,
             "title": "Implement Global Error Boundaries",
             "description": "Create and apply global error boundaries to catch unhandled errors at the root and critical component levels.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Develop a reusable ErrorBoundary component that logs errors to the tracking service and displays fallback UIs. Wrap the root component and other high-risk components with this boundary. Ensure error boundaries are tested for both synchronous and asynchronous errors.",
             "status": "pending",
             "testStrategy": ""
@@ -1727,9 +1383,7 @@
             "id": 3,
             "title": "Design User-Friendly Error Messages and Fallback UIs",
             "description": "Provide clear, actionable, and context-specific error messages and fallback interfaces for users when errors occur.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Create UI components for displaying error messages and fallback content. Tailor messages based on error type and context (e.g., network errors, data loading failures). Ensure messages are concise, non-technical, and guide users on possible next steps (e.g., retry, contact support).",
             "status": "pending",
             "testStrategy": ""
@@ -1738,9 +1392,7 @@
             "id": 4,
             "title": "Implement Offline Detection and Handling",
             "description": "Detect offline status and handle related errors gracefully within the app.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use Expo or React Native APIs to monitor network connectivity. Display appropriate UI when offline, such as banners or modals, and queue actions for retry when connectivity is restored. Integrate offline detection with error boundaries to differentiate between network and other errors.",
             "status": "pending",
             "testStrategy": ""
@@ -1749,9 +1401,7 @@
             "id": 5,
             "title": "Set Up Crash Reporting for Native and JS Errors",
             "description": "Ensure comprehensive crash reporting for both JavaScript and native code errors.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Configure the error tracking service to capture native crashes in addition to JavaScript errors. Test crash reporting by simulating both types of crashes and verifying reports in the dashboard. Document any platform-specific setup required for Expo or bare React Native workflows.",
             "status": "pending",
             "testStrategy": ""
@@ -1760,9 +1410,7 @@
             "id": 6,
             "title": "Integrate Centralized Logging Service",
             "description": "Implement a centralized logging solution to record errors, warnings, and key events for debugging and monitoring.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Set up a logging utility that sends logs to the error tracking service or a dedicated logging backend. Ensure logs include relevant context (user, device, app state) and are structured for easy querying. Use logging consistently across the app, especially in error boundaries and network handlers.",
             "status": "pending",
             "testStrategy": ""
@@ -1771,9 +1419,7 @@
             "id": 7,
             "title": "Implement Performance Monitoring",
             "description": "Add performance monitoring to track app responsiveness, load times, and resource usage.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Enable performance monitoring features in the error tracking or analytics service. Track metrics such as app startup time, screen transitions, and network request durations. Set up alerts for performance regressions and visualize trends in the monitoring dashboard.",
             "status": "pending",
             "testStrategy": ""
@@ -1787,12 +1433,7 @@
         "details": "Implement proper semantic markup for screen reader compatibility. Ensure all interactive elements have appropriate accessibility labels. Add support for dynamic text sizing. Implement high contrast mode for visually impaired users. Ensure color contrast meets minimum standards (4.5:1 for normal text). Add keyboard navigation support where applicable. Implement focus management for modal dialogs. Create accessibility documentation for developers. Use React Native's accessibility API consistently throughout the application. Consider implementing voice control compatibility where platform-supported.",
         "testStrategy": "Test with screen readers on both iOS and Android. Verify all interactive elements are properly labeled. Test dynamic text sizing at different scales. Validate color contrast using accessibility tools. Test keyboard navigation where applicable.",
         "priority": "medium",
-        "dependencies": [
-          2,
-          4,
-          7,
-          13
-        ],
+        "dependencies": [2, 4, 7, 13],
         "status": "pending",
         "subtasks": [
           {
@@ -1808,9 +1449,7 @@
             "id": 2,
             "title": "Add Accessibility Labels and Hints",
             "description": "Provide descriptive accessibilityLabel and accessibilityHint props for all actionable and informative UI elements to improve screen reader support.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Audit all interactive elements (buttons, links, images, etc.) and supply clear, concise labels and hints. Ensure that labels are meaningful and not redundant with visible text.",
             "status": "pending",
             "testStrategy": ""
@@ -1819,9 +1458,7 @@
             "id": 3,
             "title": "Enable Dynamic Text Sizing Support",
             "description": "Ensure all text components respond to user font size preferences by using scalable units and enabling allowFontScaling where appropriate.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Replace fixed font sizes with scalable units (e.g., using StyleSheet and PixelRatio). Set allowFontScaling={true} on all <Text> components and test with device accessibility settings.",
             "status": "pending",
             "testStrategy": ""
@@ -1830,9 +1467,7 @@
             "id": 4,
             "title": "Implement High Contrast Mode Support",
             "description": "Detect and adapt to system high contrast mode settings, updating color schemes and UI elements for optimal visibility.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use Appearance API or AccessibilityInfo to detect high contrast mode. Adjust styles and color palettes dynamically to meet high contrast requirements.",
             "status": "pending",
             "testStrategy": ""
@@ -1841,9 +1476,7 @@
             "id": 5,
             "title": "Perform Color Contrast Checks and Adjust Palette",
             "description": "Audit all color combinations for sufficient contrast and update styles to meet WCAG AA/AAA guidelines.",
-            "dependencies": [
-              4
-            ],
+            "dependencies": [4],
             "details": "Use automated tools or libraries to check color contrast ratios. Refactor color usage in stylesheets to ensure compliance, especially for text and interactive elements.",
             "status": "pending",
             "testStrategy": ""
@@ -1852,9 +1485,7 @@
             "id": 6,
             "title": "Implement Keyboard Navigation for All Interactive Elements",
             "description": "Ensure all actionable UI elements are accessible and operable via keyboard navigation, including tab order and activation.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Set accessible={true} and accessibilityRole on interactive elements. Test navigation using hardware keyboards and ensure logical tab order.",
             "status": "pending",
             "testStrategy": ""
@@ -1872,14 +1503,7 @@
             "id": 8,
             "title": "Document Accessibility Features and Usage",
             "description": "Create comprehensive documentation detailing implemented accessibility features, usage guidelines, and testing procedures for future maintainers.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5,
-              6,
-              7
-            ],
+            "dependencies": [2, 3, 4, 5, 6, 7],
             "details": "Write clear documentation covering semantic markup, labels, dynamic text, high contrast, color contrast, keyboard navigation, and focus management. Include code examples and testing instructions.",
             "status": "pending",
             "testStrategy": ""
@@ -1893,9 +1517,7 @@
         "details": "Create JSON resource files for all user-facing text strings. Implement i18n framework (i18next or similar) for content management. Remove hardcoded text from React Native components. Organize content by feature and context. Implement right-to-left (RTL) layout support for future language additions. Add language selection infrastructure (for future use). Create content versioning and update mechanisms. Document content management workflows. Consider implementing pluralization support for numeric content.",
         "testStrategy": "Verify all user-facing text comes from externalized resources. Test RTL layout support with forced RTL mode. Validate content updates can be applied without app updates. Test with pseudo-localization to identify hardcoded strings. Verify content organization is logical and maintainable.",
         "priority": "low",
-        "dependencies": [
-          1
-        ],
+        "dependencies": [1],
         "status": "pending",
         "subtasks": [
           {
@@ -1911,9 +1533,7 @@
             "id": 2,
             "title": "Set Up i18n Framework with Expo and React Native",
             "description": "Install and configure an i18n library (e.g., react-native-i18n or i18next) to load and manage translations, handle locale detection, and provide translation functions throughout the app.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Install the chosen library via npm/yarn. Configure fallback languages, load resource files, and set up locale detection using device settings. Ensure integration with Expo and React Native best practices.",
             "status": "pending",
             "testStrategy": ""
@@ -1922,9 +1542,7 @@
             "id": 3,
             "title": "Remove Hardcoded Text from Components",
             "description": "Refactor all UI components to replace hardcoded strings with calls to the i18n translation function, ensuring all user-facing text is sourced from resource files.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Systematically audit all components and screens. Replace static text with translation keys (e.g., I18n.t('greeting')). Test to confirm all text renders correctly from translations.",
             "status": "pending",
             "testStrategy": ""
@@ -1933,9 +1551,7 @@
             "id": 4,
             "title": "Implement RTL (Right-to-Left) Language Support",
             "description": "Enable and test RTL layout support for languages such as Arabic and Hebrew, ensuring UI adapts correctly and all mirrored elements function as expected.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Use React Native's I18nManager to enable RTL. Adjust styles and layouts where necessary. Test with RTL languages to verify correct alignment, mirroring, and text direction.",
             "status": "pending",
             "testStrategy": ""
@@ -1944,9 +1560,7 @@
             "id": 5,
             "title": "Build Language Selection Infrastructure",
             "description": "Create UI and logic to allow users to select their preferred language, update the app locale dynamically, and persist the selection across sessions.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Implement a language picker component. Update the i18n library's locale on selection. Store user preference using AsyncStorage or SecureStore. Ensure the app reloads translations immediately after selection.",
             "status": "pending",
             "testStrategy": ""
@@ -1955,13 +1569,7 @@
             "id": 6,
             "title": "Document i18n Implementation and Maintenance",
             "description": "Write comprehensive documentation covering resource file structure, i18n setup, translation workflow, RTL support, and language selection for future developers.",
-            "dependencies": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "dependencies": [1, 2, 3, 4, 5],
             "details": "Include code examples, best practices, and instructions for adding new languages or updating translations. Document testing procedures for different locales and RTL support.",
             "status": "pending",
             "testStrategy": ""
@@ -1972,14 +1580,10 @@
         "id": 22,
         "title": "Performance Optimization",
         "description": "Optimize application performance for image loading, list rendering, and overall responsiveness.",
-        "details": "Implement image caching and optimization using libraries like react-native-fast-image. Add lazy loading for off-screen content. Optimize list rendering with FlatList virtualization. Implement memoization for expensive computations. Add progressive loading for large datasets. Create performance monitoring for key operations. Optimize Redux state management to prevent unnecessary renders. Implement code splitting and dynamic imports where applicable. Consider using Hermes JavaScript engine for improved performance on Android.",
+        "details": "Implement image caching and optimization using expo-image. Add lazy loading for off-screen content. Optimize list rendering with FlatList virtualization. Implement memoization for expensive computations. Add progressive loading for large datasets. Create performance monitoring for key operations. Optimize Redux state management to prevent unnecessary renders. Implement code splitting and dynamic imports where applicable. Consider using Hermes JavaScript engine for improved performance on Android.",
         "testStrategy": "Measure and compare performance metrics before and after optimization. Test scrolling performance with large datasets. Verify image loading times are acceptable on various devices. Test memory usage during extended app usage. Validate app responsiveness during resource-intensive operations.",
         "priority": "medium",
-        "dependencies": [
-          7,
-          9,
-          13
-        ],
+        "dependencies": [7, 9, 13],
         "status": "pending",
         "subtasks": [
           {
@@ -1987,7 +1591,7 @@
             "title": "Implement Image Caching",
             "description": "Integrate an image caching solution to reduce redundant network requests and improve image load times in the app.",
             "dependencies": [],
-            "details": "Research and select a React Native-compatible image caching library (e.g., react-native-fast-image). Refactor image components to use the caching library, ensuring compatibility with Expo if required. Test image loading performance and fallback behavior.",
+            "details": "Refactor image components to use expo-image for caching and optimization, ensuring full Expo compatibility. Test image loading performance and fallback behavior.",
             "status": "pending",
             "testStrategy": ""
           },
@@ -1995,9 +1599,7 @@
             "id": 2,
             "title": "Enable Lazy Loading for Images and Components",
             "description": "Implement lazy loading for images and non-critical components to defer their loading until they are needed.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use React.lazy and Suspense for component-level lazy loading. For images, implement logic to load images only when they enter the viewport (e.g., using onLayout or third-party libraries). Ensure smooth user experience with loading placeholders.",
             "status": "pending",
             "testStrategy": ""
@@ -2024,10 +1626,7 @@
             "id": 5,
             "title": "Implement Progressive Loading Strategies",
             "description": "Introduce progressive loading for images and data to enhance perceived performance and user experience.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Display low-resolution image placeholders or skeleton loaders while high-resolution images/data are loading. Gradually replace placeholders with actual content as it becomes available. Ensure transitions are smooth and visually appealing.",
             "status": "pending",
             "testStrategy": ""
@@ -2045,9 +1644,7 @@
             "id": 7,
             "title": "Implement Code Splitting and Dynamic Imports",
             "description": "Split code into smaller bundles and load them dynamically to reduce initial load time and improve responsiveness.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Identify large or infrequently used modules suitable for code splitting. Use dynamic imports and React.lazy to load these modules on demand. Test the impact on bundle size and initial load performance, ensuring compatibility with Expo's bundler.",
             "status": "pending",
             "testStrategy": ""
@@ -2061,10 +1658,7 @@
         "details": "Create local storage strategy for critical application data. Implement offline detection and appropriate UI indicators. Add data synchronization when connection is restored. Create offline queue for actions performed while disconnected. Implement conflict resolution for simultaneous changes. Add local caching for frequently accessed images. Create graceful degradation for features requiring online services. Use libraries like Redux Persist or AsyncStorage for offline data persistence. Consider implementing a service worker for advanced caching strategies.",
         "testStrategy": "Test application behavior in airplane mode. Verify saved data is accessible offline. Test synchronization when connection is restored. Validate conflict resolution with various scenarios. Test performance with large offline datasets.",
         "priority": "low",
-        "dependencies": [
-          15,
-          22
-        ],
+        "dependencies": [15, 22],
         "status": "pending",
         "subtasks": [
           {
@@ -2080,9 +1674,7 @@
             "id": 2,
             "title": "Implement Offline Detection and UI Feedback",
             "description": "Integrate network status detection using Expo's NetInfo and provide clear UI indicators for offline/online states.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use NetInfo to monitor connectivity changes. Display banners, icons, or modals to inform users of offline status. Disable or adjust UI elements that require connectivity, and provide fallback messaging.",
             "status": "pending",
             "testStrategy": ""
@@ -2091,10 +1683,7 @@
             "id": 3,
             "title": "Develop Data Sync Mechanism",
             "description": "Create logic to synchronize local data with the remote server when connectivity is restored, handling both upload and download flows.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Implement background sync triggers on network reconnection. Use timestamps or versioning to determine changed data. Ensure atomic sync operations and handle partial failures gracefully.",
             "status": "pending",
             "testStrategy": ""
@@ -2103,10 +1692,7 @@
             "id": 4,
             "title": "Build Offline Queue for Mutations",
             "description": "Queue user actions (e.g., create, update, delete) performed while offline and replay them in order once online.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Design a queue structure in local storage for pending mutations. Ensure actions are idempotent and replayed in the correct order. Provide UI feedback for queued actions and their sync status.",
             "status": "pending",
             "testStrategy": ""
@@ -2115,10 +1701,7 @@
             "id": 5,
             "title": "Implement Conflict Resolution Strategy",
             "description": "Handle data conflicts that arise during sync, using strategies such as last-write-wins, user prompts, or merge logic.",
-            "dependencies": [
-              3,
-              4
-            ],
+            "dependencies": [3, 4],
             "details": "Detect conflicts based on timestamps or version numbers. Implement automated resolution for simple cases and prompt users for manual resolution when necessary. Log conflicts for debugging and analytics.",
             "status": "pending",
             "testStrategy": ""
@@ -2127,10 +1710,7 @@
             "id": 6,
             "title": "Set Up Image Caching for Offline Access",
             "description": "Cache images locally to ensure they are available offline, using Expo's FileSystem API or third-party libraries.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Intercept image requests and store them in the device's file system. Implement cache invalidation and cleanup strategies. Ensure images are loaded from cache when offline and fallback placeholders are shown if unavailable.",
             "status": "pending",
             "testStrategy": ""
@@ -2139,13 +1719,7 @@
             "id": 7,
             "title": "Ensure Graceful Degradation of Features",
             "description": "Design the app to degrade gracefully when offline, disabling or modifying features that require connectivity while maintaining core functionality.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
+            "dependencies": [2, 3, 4, 5, 6],
             "details": "Audit all app features for network dependencies. Provide alternative flows or informative messaging for features that cannot function offline. Ensure the app remains stable and user-friendly in all network conditions.",
             "status": "pending",
             "testStrategy": ""
@@ -2159,13 +1733,7 @@
         "details": "Implement unit testing framework (Jest) for component and utility testing. Add integration tests for critical user flows. Create end-to-end testing using Detox or similar framework. Implement visual regression testing for UI components. Add performance testing for critical operations. Create automated accessibility testing. Implement continuous integration with GitHub Actions. Add test coverage reporting and minimum coverage requirements. Use mock services for API-dependent tests. Consider implementing snapshot testing for UI components.",
         "testStrategy": "Verify test coverage meets minimum requirements (>80% as specified in PRD). Test critical user flows with integration tests. Validate end-to-end tests run successfully on CI environment. Test performance meets specified requirements. Verify accessibility tests identify compliance issues.",
         "priority": "medium",
-        "dependencies": [
-          1,
-          3,
-          5,
-          12,
-          15
-        ],
+        "dependencies": [1, 3, 5, 12, 15],
         "status": "pending",
         "subtasks": [
           {
@@ -2181,9 +1749,7 @@
             "id": 2,
             "title": "Implement Unit Tests for Components and Utilities",
             "description": "Write unit tests for individual components and utility functions using Jest and React Native Testing Library, focusing on user-centric scenarios.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Create test files (e.g., ComponentName.test.tsx) and use @testing-library/react-native to simulate user interactions and assert expected outcomes, avoiding implementation detail testing.",
             "status": "pending",
             "testStrategy": ""
@@ -2192,9 +1758,7 @@
             "id": 3,
             "title": "Set Up and Write Integration Tests",
             "description": "Configure and implement integration tests to verify interactions between multiple components or modules.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Identify key integration points (e.g., form submission, navigation flows), write tests that cover these scenarios, and use mocks/stubs as needed.",
             "status": "pending",
             "testStrategy": ""
@@ -2203,9 +1767,7 @@
             "id": 4,
             "title": "Configure and Implement End-to-End (E2E) Tests",
             "description": "Set up an E2E testing framework (such as Detox) and write tests that simulate real user flows through the app.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Install Detox, configure it for Expo, and write E2E tests that launch the app, perform user actions, and verify outcomes across screens.",
             "status": "pending",
             "testStrategy": ""
@@ -2214,9 +1776,7 @@
             "id": 5,
             "title": "Integrate Visual Regression Testing",
             "description": "Set up a visual regression testing tool to capture and compare UI snapshots, detecting unintended visual changes.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Choose a tool (e.g., Loki or Percy), configure it with the project, and add baseline snapshots for key screens/components.",
             "status": "pending",
             "testStrategy": ""
@@ -2225,9 +1785,7 @@
             "id": 6,
             "title": "Implement Performance Testing",
             "description": "Add performance testing to monitor and assert app performance metrics during development and CI runs.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Integrate tools or scripts to measure app startup time, render times, and memory usage, and set up thresholds for alerts.",
             "status": "pending",
             "testStrategy": ""
@@ -2236,9 +1794,7 @@
             "id": 7,
             "title": "Add Accessibility Testing",
             "description": "Integrate accessibility testing tools to ensure the app meets accessibility standards and guidelines.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Use libraries such as @testing-library/react-native's accessibility queries and/or axe-core/react-native-axe to automate accessibility checks in tests.",
             "status": "pending",
             "testStrategy": ""
@@ -2247,14 +1803,7 @@
             "id": 8,
             "title": "Integrate Testing Suite with CI and Enable Coverage Reporting",
             "description": "Configure the CI pipeline to run all tests (unit, integration, E2E, visual, performance, accessibility) and generate coverage reports.",
-            "dependencies": [
-              2,
-              3,
-              4,
-              5,
-              6,
-              7
-            ],
+            "dependencies": [2, 3, 4, 5, 6, 7],
             "details": "Update CI configuration (e.g., GitHub Actions, CircleCI) to install dependencies, run all test suites, and upload coverage reports to a service like Coveralls or Codecov.",
             "status": "pending",
             "testStrategy": ""
@@ -2268,11 +1817,7 @@
         "details": "Configure Expo Application Services (EAS) for app building and deployment as specified in the PRD. Set up GitHub Actions for automated testing and building. Create staging and production environments in Supabase. Implement automated version management and release notes generation. Add code signing for iOS and Android builds. Create App Store and Google Play Store listings with required assets. Implement staged rollout strategy for production releases. Add automated smoke testing post-deployment. Consider implementing feature flags for controlled feature rollout. Use Fastlane for additional automation of deployment processes.",
         "testStrategy": "Verify CI/CD pipeline successfully builds and tests the application. Test deployment to staging environment. Validate app builds install correctly on test devices. Test rollback procedures for failed deployments. Verify app store submission process with test submissions.",
         "priority": "medium",
-        "dependencies": [
-          1,
-          5,
-          24
-        ],
+        "dependencies": [1, 5, 24],
         "status": "pending",
         "subtasks": [
           {
@@ -2288,9 +1833,7 @@
             "id": 2,
             "title": "CI/CD Setup",
             "description": "Automate build, test, and deployment processes using a CI/CD pipeline.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Integrate with a CI/CD service (e.g., GitHub Actions, GitLab CI, or CircleCI). Set up workflows to trigger EAS builds on push/merge to main branches. Automate running tests, linting, and static analysis. Configure secrets for Expo tokens and app store credentials.",
             "status": "pending",
             "testStrategy": ""
@@ -2299,9 +1842,7 @@
             "id": 3,
             "title": "Environment Management",
             "description": "Manage environment variables and secrets for different deployment stages.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Define environment variables for development, staging, and production in app.config.js or using EAS secrets. Use EAS environment variable management to securely store and inject secrets during builds. Document all required variables and their usage.",
             "status": "pending",
             "testStrategy": ""
@@ -2310,10 +1851,7 @@
             "id": 4,
             "title": "Versioning and Release Notes",
             "description": "Implement version control and automate release note generation.",
-            "dependencies": [
-              2,
-              3
-            ],
+            "dependencies": [2, 3],
             "details": "Update version and build numbers in app.json or app.config.js as part of the release workflow. Use semantic versioning. Automate release note generation from commit messages or PR descriptions using tools like conventional-changelog. Attach release notes to builds and app store submissions.",
             "status": "pending",
             "testStrategy": ""
@@ -2322,9 +1860,7 @@
             "id": 5,
             "title": "Code Signing",
             "description": "Set up and manage code signing credentials for iOS and Android builds.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Generate or retrieve Apple certificates, provisioning profiles, and Android keystores. Use EAS CLI to upload and manage credentials securely. Automate credential usage in CI/CD workflows. Document credential rotation and backup procedures.",
             "status": "pending",
             "testStrategy": ""
@@ -2333,10 +1869,7 @@
             "id": 6,
             "title": "App Store Listing Preparation",
             "description": "Prepare and update app store metadata, assets, and compliance information.",
-            "dependencies": [
-              4,
-              5
-            ],
+            "dependencies": [4, 5],
             "details": "Gather and format app icons, screenshots, descriptions, and compliance documents. Use EAS submit or Fastlane to automate metadata uploads. Ensure all required fields are filled and assets meet store guidelines. Review and update privacy policies as needed.",
             "status": "pending",
             "testStrategy": ""

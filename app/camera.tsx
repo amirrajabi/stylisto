@@ -1,17 +1,15 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  Platform,
-  Alert,
-} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useState } from 'react';
+import { Alert, Platform, SafeAreaView, StyleSheet } from 'react-native';
+import { BatchUploadProgress } from '../components/camera/BatchUploadProgress';
 import { CameraInterface } from '../components/camera/CameraInterface';
 import { ImagePicker } from '../components/camera/ImagePicker';
-import { BatchUploadProgress } from '../components/camera/BatchUploadProgress';
-import { useImageProcessing, BatchProcessingProgress } from '../utils/imageProcessing';
+
+import {
+  BatchProcessingProgress,
+  useImageProcessing,
+} from '../utils/imageProcessing';
 
 interface UploadItem {
   id: string;
@@ -23,12 +21,12 @@ interface UploadItem {
 }
 
 export default function CameraScreen() {
-  const params = useLocalSearchParams<{ 
+  const params = useLocalSearchParams<{
     mode?: 'camera' | 'gallery';
     maxPhotos?: string;
     returnTo?: string;
   }>();
-  
+
   const mode = params.mode || 'camera';
   const maxPhotos = parseInt(params.maxPhotos || '10');
   const returnTo = params.returnTo || '/(tabs)/wardrobe';
@@ -79,7 +77,7 @@ export default function CameraScreen() {
         },
         (progress: BatchProcessingProgress) => {
           // Update upload progress
-          setUploadItems(prevItems => 
+          setUploadItems(prevItems =>
             prevItems.map((item, index) => {
               if (index < progress.completed) {
                 return { ...item, status: 'completed', progress: 100 };
@@ -94,24 +92,27 @@ export default function CameraScreen() {
 
       // Simulate upload completion
       setTimeout(() => {
-        setUploadItems(prevItems => 
-          prevItems.map(item => ({ ...item, status: 'completed', progress: 100 }))
+        setUploadItems(prevItems =>
+          prevItems.map(item => ({
+            ...item,
+            status: 'completed',
+            progress: 100,
+          }))
         );
 
         // Navigate back after successful upload
         setTimeout(() => {
-          router.replace(returnTo);
+          router.replace(returnTo as any);
         }, 1500);
       }, 1000);
-
     } catch (error) {
       console.error('Upload error:', error);
-      
+
       // Mark all as error
-      setUploadItems(prevItems => 
-        prevItems.map(item => ({ 
-          ...item, 
-          status: 'error', 
+      setUploadItems(prevItems =>
+        prevItems.map(item => ({
+          ...item,
+          status: 'error',
           progress: 0,
           error: 'Upload failed. Please try again.',
         }))
@@ -120,7 +121,10 @@ export default function CameraScreen() {
       if (Platform.OS === 'web') {
         alert('Upload failed. Please try again.');
       } else {
-        Alert.alert('Upload Error', 'Failed to upload photos. Please try again.');
+        Alert.alert(
+          'Upload Error',
+          'Failed to upload photos. Please try again.'
+        );
       }
     }
   }, [capturedPhotos, returnTo, processBatch]);
@@ -139,8 +143,8 @@ export default function CameraScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      
+      <StatusBar hidden={true} />
+
       {currentMode === 'camera' ? (
         <CameraInterface
           onCapture={handlePhotoCapture}
@@ -160,17 +164,17 @@ export default function CameraScreen() {
       <BatchUploadProgress
         visible={showUploadProgress}
         items={uploadItems}
+        canClose={uploadItems.every(
+          item => item.status === 'completed' || item.status === 'error'
+        )}
         onClose={() => {
-          const allCompleted = uploadItems.every(item => 
-            item.status === 'completed' || item.status === 'error'
+          const allCompleted = uploadItems.every(
+            item => item.status === 'completed' || item.status === 'error'
           );
           if (allCompleted) {
-            router.replace(returnTo);
+            router.replace(returnTo as any);
           }
         }}
-        canClose={uploadItems.every(item => 
-          item.status === 'completed' || item.status === 'error'
-        )}
       />
     </SafeAreaView>
   );
