@@ -1,8 +1,6 @@
 import { router } from 'expo-router';
 import {
   Filter,
-  Grid,
-  List,
   Plus,
   RefreshCcw,
   Search,
@@ -323,7 +321,8 @@ export default function WardrobeScreen() {
           >
             <RefreshCcw size={20} color={isLoading ? '#9ca3af' : '#6b7280'} />
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* View toggle button temporarily hidden */}
+          {/* <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
           >
@@ -332,7 +331,7 @@ export default function WardrobeScreen() {
             ) : (
               <Grid size={24} color="#6b7280" />
             )}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity style={styles.headerButton} onPress={handleSort}>
             <SortAsc size={24} color="#6b7280" />
           </TouchableOpacity>
