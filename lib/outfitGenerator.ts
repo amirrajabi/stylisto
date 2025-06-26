@@ -1191,8 +1191,13 @@ export const useOutfitGenerator = () => {
     return outfitGenerator.createOutfit(items, name);
   };
 
+  const calculateOutfitScore = (items: ClothingItem[]): OutfitScore => {
+    return outfitGenerator['scoreOutfit'](items, {});
+  };
+
   return {
     generateOutfits,
     createOutfit,
+    calculateOutfitScore,
   };
 };

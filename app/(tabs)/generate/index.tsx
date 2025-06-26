@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Cloud, Heart, Settings } from 'lucide-react-native';
+import { Cloud, Settings } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
@@ -9,8 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { OutfitPreview } from '../../../components/outfits/OutfitPreview';
-import { BodyMedium, Button, Card, H1, H3 } from '../../../components/ui';
+import { OutfitCard } from '../../../components/outfits/OutfitCard';
+import { OutfitDetailModal } from '../../../components/outfits/OutfitDetailModal';
+import { OutfitEditModal } from '../../../components/outfits/OutfitEditModal';
+import { BodyMedium, Button, H1, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -44,6 +46,10 @@ export default function GenerateScreen() {
   const [activeTab, setActiveTab] = useState<'quick' | 'weather' | 'occasion'>(
     'quick'
   );
+  const [selectedOutfit, setSelectedOutfit] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [outfitToEdit, setOutfitToEdit] = useState<any>(null);
 
   // Debug logging
   React.useEffect(() => {
@@ -88,6 +94,100 @@ export default function GenerateScreen() {
     router.push('/generate/weather');
   }, []);
 
+  const handleOutfitPress = useCallback(
+    (outfitIndex: number) => {
+      const outfit = outfits[outfitIndex];
+      if (outfit) {
+        const outfitWithMetadata = {
+          id: `outfit-${outfitIndex}`,
+          name: `Generated Outfit ${outfitIndex + 1}`,
+          items: outfit.items,
+          score: {
+            total: outfit.score.total,
+            color: outfit.score.breakdown.colorHarmony,
+            style: outfit.score.breakdown.styleMatching,
+            season: outfit.score.breakdown.seasonSuitability,
+            occasion: outfit.score.breakdown.occasionSuitability,
+          },
+        };
+        setSelectedOutfit(outfitWithMetadata);
+        setModalVisible(true);
+      }
+    },
+    [outfits]
+  );
+
+  const handleModalClose = useCallback(() => {
+    setModalVisible(false);
+    setSelectedOutfit(null);
+  }, []);
+
+  const handleOutfitSave = useCallback(
+    (outfitId: string) => {
+      const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+      if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
+        const savedOutfitId = saveCurrentOutfit(
+          `Generated Outfit ${outfitIndex + 1}`
+        );
+        if (savedOutfitId) {
+          router.push({
+            pathname: '/profile/saved' as any,
+            params: { highlight: savedOutfitId },
+          });
+        }
+      }
+    },
+    [outfits, saveCurrentOutfit]
+  );
+
+  const handleOutfitEdit = useCallback(
+    (outfitId: string) => {
+      const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+      const outfit = outfits[outfitIndex];
+      if (outfit) {
+        const outfitWithMetadata = {
+          id: `outfit-${outfitIndex}`,
+          name: `Generated Outfit ${outfitIndex + 1}`,
+          items: outfit.items,
+          score: {
+            total: outfit.score.total,
+            color: outfit.score.breakdown.colorHarmony,
+            style: outfit.score.breakdown.styleMatching,
+            season: outfit.score.breakdown.seasonSuitability,
+            occasion: outfit.score.breakdown.occasionSuitability,
+          },
+        };
+        setOutfitToEdit(outfitWithMetadata);
+        setEditModalVisible(true);
+      }
+    },
+    [outfits]
+  );
+
+  const handleEditModalClose = useCallback(() => {
+    setEditModalVisible(false);
+    setOutfitToEdit(null);
+  }, []);
+
+  const handleOutfitUpdate = useCallback(
+    (updatedOutfit: any) => {
+      console.log('Updated outfit:', updatedOutfit);
+      // Here you could update the outfit in the state or save it
+      // For now, we'll just save it as a new outfit
+      const outfitIndex = parseInt(updatedOutfit.id.replace('outfit-', ''), 10);
+      if (!isNaN(outfitIndex)) {
+        const savedOutfitId = saveCurrentOutfit(updatedOutfit.name);
+        if (savedOutfitId) {
+          router.push({
+            pathname: '/profile/saved' as any,
+            params: { highlight: savedOutfitId },
+          });
+        }
+      }
+    },
+    [saveCurrentOutfit]
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -99,42 +199,47 @@ export default function GenerateScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Generated Outfit Display */}
-        {outfits.length > 0 && (
-          <Card style={styles.outfitCard}>
-            <View style={styles.outfitCardHeader}>
-              <H3>Your Outfit</H3>
-              <View style={styles.outfitActions}>
-                <TouchableOpacity
-                  style={styles.outfitAction}
-                  onPress={handleSaveOutfit}
-                >
-                  <Heart size={20} color={Colors.primary[700]} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.outfitPreviewContainer}>
-              <OutfitPreview
-                outfit={outfits[selectedOutfitIndex].items}
-                onPrevious={previousOutfit}
-                onNext={nextOutfit}
-              />
-            </View>
-
-            <View style={styles.outfitCardFooter}>
-              <Text style={styles.outfitScore}>
-                Match Score:{' '}
-                {Math.round(outfits[selectedOutfitIndex].score.total * 100)}%
-              </Text>
-              <Button
-                title="Customize"
-                variant="outline"
-                onPress={() => router.push('/outfit-builder')}
-                style={styles.customizeButton}
-              />
-            </View>
-          </Card>
+        {/* Generated Outfits Display */}
+        {loading ? (
+          <View style={styles.loadingState}>
+            <Text style={styles.loadingText}>
+              Generating perfect outfits for you...
+            </Text>
+          </View>
+        ) : outfits.length > 0 ? (
+          <View style={styles.outfitsSection}>
+            <H3 style={styles.sectionTitle}>Your AI-Generated Outfits</H3>
+            <OutfitCard
+              outfits={outfits.map((outfit, index) => ({
+                id: `outfit-${index}`,
+                name: `Generated Outfit ${index + 1}`,
+                items: outfit.items,
+                score: {
+                  total: outfit.score.total,
+                  color: outfit.score.breakdown.colorHarmony,
+                  style: outfit.score.breakdown.styleMatching,
+                  season: outfit.score.breakdown.seasonSuitability,
+                  occasion: outfit.score.breakdown.occasionSuitability,
+                },
+              }))}
+              onOutfitPress={(outfitId: string) => {
+                const index = parseInt(outfitId.replace('outfit-', ''), 10);
+                handleOutfitPress(index);
+              }}
+              onSaveOutfit={handleOutfitSave}
+              onEditOutfit={handleOutfitEdit}
+            />
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>
+              Ready to Generate Outfits?
+            </Text>
+            <Text style={styles.emptyStateDescription}>
+              Choose an occasion below or set your preferences to get AI-powered
+              outfit recommendations.
+            </Text>
+          </View>
         )}
 
         {/* Options */}
@@ -261,6 +366,22 @@ export default function GenerateScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Detail Modal */}
+      <OutfitDetailModal
+        visible={modalVisible}
+        onClose={handleModalClose}
+        outfit={selectedOutfit}
+        onSave={handleOutfitSave}
+      />
+
+      {/* Edit Modal */}
+      <OutfitEditModal
+        visible={editModalVisible}
+        onClose={handleEditModalClose}
+        outfit={outfitToEdit}
+        onSave={handleOutfitUpdate}
+      />
     </SafeAreaView>
   );
 }
@@ -281,6 +402,38 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: Spacing.md,
+  },
+  outfitsSection: {
+    marginBottom: Spacing.lg,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  emptyStateTitle: {
+    ...Typography.heading.h4,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptyStateDescription: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  loadingState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  loadingText: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
   outfitCard: {
     marginBottom: Spacing.lg,
