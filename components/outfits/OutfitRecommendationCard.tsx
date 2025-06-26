@@ -1,26 +1,35 @@
+import { Image } from 'expo-image';
+import {
+  Calendar,
+  Heart,
+  RefreshCw,
+  Share2,
+  Sparkles,
+  Tag,
+  ThermometerSun,
+} from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Image } from 'expo-image';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useSharedValue,
+  runOnJS,
   useAnimatedStyle,
+  useSharedValue,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Heart, RefreshCw, Share2, Sparkles, ThermometerSun, Calendar, Tag } from 'lucide-react-native';
-import { GeneratedOutfit } from '../../lib/outfitGenerator';
 import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
+import { GeneratedOutfit } from '../../lib/outfitGenerator';
+import { ClothingCategory } from '../../types/wardrobe';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -40,9 +49,12 @@ interface OutfitRecommendationCardProps {
   occasion?: string;
 }
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
-export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> = ({
+export const OutfitRecommendationCard: React.FC<
+  OutfitRecommendationCardProps
+> = ({
   outfit,
   onSave,
   onRefresh,
@@ -58,43 +70,51 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
   const heartScale = useSharedValue(1);
   const refreshScale = useSharedValue(1);
   const shareScale = useSharedValue(1);
-  
+
   // Format score as percentage
   const matchScore = Math.round(outfit.score.total * 100);
-  
+
   // Get primary item for display
-  const primaryItem = outfit.items.find(item => 
-    item.category === 'tops' || item.category === 'dresses'
-  ) || outfit.items[0];
-  
+  const primaryItem =
+    outfit.items.find(
+      item =>
+        item.category === ClothingCategory.TOPS ||
+        item.category === ClothingCategory.DRESSES
+    ) || outfit.items[0];
+
   // Get secondary items for display
-  const secondaryItems = outfit.items.filter(item => item.id !== primaryItem.id);
-  
+  const secondaryItems = outfit.items.filter(
+    item => item.id !== primaryItem.id
+  );
+
   // Generate styling description
   const getStylingDescription = () => {
     const categories = outfit.items.map(item => item.category);
     const colors = outfit.items.map(item => item.color);
-    
+
     let description = 'This outfit combines ';
-    
-    if (categories.includes('tops') && categories.includes('bottoms')) {
+
+    if (
+      categories.includes(ClothingCategory.TOPS) &&
+      categories.includes(ClothingCategory.BOTTOMS)
+    ) {
       description += 'a top with bottoms';
-    } else if (categories.includes('dresses')) {
+    } else if (categories.includes(ClothingCategory.DRESSES)) {
       description += 'a dress';
     } else {
       description += 'multiple pieces';
     }
-    
-    if (categories.includes('outerwear')) {
+
+    if (categories.includes(ClothingCategory.OUTERWEAR)) {
       description += ' and a layered outer piece';
     }
-    
-    if (categories.includes('accessories')) {
+
+    if (categories.includes(ClothingCategory.ACCESSORIES)) {
       description += ' with complementary accessories';
     }
-    
+
     description += '. The color palette ';
-    
+
     const colorHarmony = determineColorHarmony(colors);
     switch (colorHarmony) {
       case 'monochromatic':
@@ -115,18 +135,18 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
       default:
         description += 'creates a balanced visual appeal';
     }
-    
+
     if (occasion) {
       description += `, perfect for ${occasion} occasions`;
     }
-    
+
     if (weatherData) {
       description += `. Suitable for ${weatherData.temperature}°C ${weatherData.condition} weather`;
     }
-    
+
     return description + '.';
   };
-  
+
   // Determine color harmony type (simplified version)
   const determineColorHarmony = (colors: string[]): string => {
     // This is a simplified version - the full implementation would be in colorTheory.ts
@@ -135,11 +155,11 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
 
   // Gesture handler for swipe
   const panGesture = Gesture.Pan()
-    .onUpdate((event) => {
+    .onUpdate(event => {
       translateX.value = event.translationX;
       cardRotate.value = event.translationX / 20;
     })
-    .onEnd((event) => {
+    .onEnd(event => {
       if (event.translationX > SWIPE_THRESHOLD && onSwipeRight) {
         translateX.value = withTiming(SCREEN_WIDTH, { duration: 300 }, () => {
           runOnJS(onSwipeRight)();
@@ -210,31 +230,27 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
 
   // Like indicator styles
   const likeIndicatorStyle = useAnimatedStyle(() => {
-    const opacity = translateX.value > SWIPE_THRESHOLD / 2 ? 
-      withTiming(1, { duration: 200 }) : 
-      withTiming(0, { duration: 200 });
-    
+    const opacity =
+      translateX.value > SWIPE_THRESHOLD / 2
+        ? withTiming(1, { duration: 200 })
+        : withTiming(0, { duration: 200 });
+
     return {
       opacity,
-      transform: [
-        { scale: opacity },
-        { rotate: '-30deg' },
-      ],
+      transform: [{ scale: opacity }, { rotate: '-30deg' }],
     };
   });
 
   // Skip indicator styles
   const skipIndicatorStyle = useAnimatedStyle(() => {
-    const opacity = translateX.value < -SWIPE_THRESHOLD / 2 ? 
-      withTiming(1, { duration: 200 }) : 
-      withTiming(0, { duration: 200 });
-    
+    const opacity =
+      translateX.value < -SWIPE_THRESHOLD / 2
+        ? withTiming(1, { duration: 200 })
+        : withTiming(0, { duration: 200 });
+
     return {
       opacity,
-      transform: [
-        { scale: opacity },
-        { rotate: '30deg' },
-      ],
+      transform: [{ scale: opacity }, { rotate: '30deg' }],
     };
   });
 
@@ -242,15 +258,19 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.container, cardAnimatedStyle]}>
         {/* Like Indicator */}
-        <Animated.View style={[styles.indicator, styles.likeIndicator, likeIndicatorStyle]}>
+        <Animated.View
+          style={[styles.indicator, styles.likeIndicator, likeIndicatorStyle]}
+        >
           <Text style={styles.indicatorText}>LIKE</Text>
         </Animated.View>
-        
+
         {/* Skip Indicator */}
-        <Animated.View style={[styles.indicator, styles.skipIndicator, skipIndicatorStyle]}>
+        <Animated.View
+          style={[styles.indicator, styles.skipIndicator, skipIndicatorStyle]}
+        >
           <Text style={styles.indicatorText}>SKIP</Text>
         </Animated.View>
-        
+
         <View style={styles.card}>
           {/* Header with match score and weather */}
           <View style={styles.header}>
@@ -258,7 +278,7 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
               <Sparkles size={16} color={Colors.primary[700]} />
               <Text style={styles.matchScoreText}>{matchScore}% Match</Text>
             </View>
-            
+
             {weatherData && (
               <View style={styles.weatherInfo}>
                 <ThermometerSun size={16} color={Colors.text.secondary} />
@@ -267,7 +287,7 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
                 </Text>
               </View>
             )}
-            
+
             {occasion && (
               <View style={styles.occasionTag}>
                 <Calendar size={14} color={Colors.white} />
@@ -275,7 +295,7 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
               </View>
             )}
           </View>
-          
+
           {/* Primary Item Image */}
           <View style={styles.primaryImageContainer}>
             <Image
@@ -285,7 +305,7 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
               transition={300}
             />
           </View>
-          
+
           {/* Secondary Items */}
           <View style={styles.secondaryItemsContainer}>
             {secondaryItems.slice(0, 3).map((item, index) => (
@@ -302,123 +322,113 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
                 </View>
               </View>
             ))}
-            
+
             {secondaryItems.length > 3 && (
               <View style={styles.moreItemsContainer}>
-                <Text style={styles.moreItemsText}>+{secondaryItems.length - 3} more</Text>
+                <Text style={styles.moreItemsText}>
+                  +{secondaryItems.length - 3} more
+                </Text>
               </View>
             )}
           </View>
-          
+
           {/* Styling Description */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionText}>
               {getStylingDescription()}
             </Text>
           </View>
-          
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <AnimatedTouchableOpacity 
-              style={[styles.actionButton, styles.refreshButton, refreshAnimatedStyle]}
-              onPress={handleRefreshPress}
-            >
-              <RefreshCw size={20} color={Colors.text.primary} />
-            </AnimatedTouchableOpacity>
-            
-            <AnimatedTouchableOpacity 
-              style={[styles.actionButton, styles.saveButton, heartAnimatedStyle]}
-              onPress={handleSavePress}
-            >
-              <Heart size={24} color={Colors.error[500]} fill={Colors.error[500]} />
-            </AnimatedTouchableOpacity>
-            
-            <AnimatedTouchableOpacity 
-              style={[styles.actionButton, styles.shareButton, shareAnimatedStyle]}
-              onPress={handleSharePress}
-            >
-              <Share2 size={20} color={Colors.text.primary} />
-            </AnimatedTouchableOpacity>
-          </View>
-          
+
           {/* Score Breakdown */}
           <View style={styles.scoreBreakdown}>
-            <Text style={styles.scoreBreakdownTitle}>Match Score Breakdown</Text>
-            
+            <Text style={styles.scoreBreakdownTitle}>
+              Match Score Breakdown
+            </Text>
+
             <View style={styles.scoreItem}>
               <Text style={styles.scoreItemLabel}>Color Harmony</Text>
               <View style={styles.scoreBarContainer}>
-                <View 
+                <View
                   style={[
-                    styles.scoreBar, 
+                    styles.scoreBar,
                     { width: `${outfit.score.breakdown.colorHarmony * 100}%` },
                     getScoreBarColor(outfit.score.breakdown.colorHarmony),
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.scoreItemValue}>
                 {Math.round(outfit.score.breakdown.colorHarmony * 100)}%
               </Text>
             </View>
-            
+
             <View style={styles.scoreItem}>
               <Text style={styles.scoreItemLabel}>Style Matching</Text>
               <View style={styles.scoreBarContainer}>
-                <View 
+                <View
                   style={[
-                    styles.scoreBar, 
+                    styles.scoreBar,
                     { width: `${outfit.score.breakdown.styleMatching * 100}%` },
                     getScoreBarColor(outfit.score.breakdown.styleMatching),
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.scoreItemValue}>
                 {Math.round(outfit.score.breakdown.styleMatching * 100)}%
               </Text>
             </View>
-            
+
             <View style={styles.scoreItem}>
               <Text style={styles.scoreItemLabel}>Occasion</Text>
               <View style={styles.scoreBarContainer}>
-                <View 
+                <View
                   style={[
-                    styles.scoreBar, 
-                    { width: `${outfit.score.breakdown.occasionSuitability * 100}%` },
-                    getScoreBarColor(outfit.score.breakdown.occasionSuitability),
-                  ]} 
+                    styles.scoreBar,
+                    {
+                      width: `${outfit.score.breakdown.occasionSuitability * 100}%`,
+                    },
+                    getScoreBarColor(
+                      outfit.score.breakdown.occasionSuitability
+                    ),
+                  ]}
                 />
               </View>
               <Text style={styles.scoreItemValue}>
                 {Math.round(outfit.score.breakdown.occasionSuitability * 100)}%
               </Text>
             </View>
-            
+
             <View style={styles.scoreItem}>
               <Text style={styles.scoreItemLabel}>Season</Text>
               <View style={styles.scoreBarContainer}>
-                <View 
+                <View
                   style={[
-                    styles.scoreBar, 
-                    { width: `${outfit.score.breakdown.seasonSuitability * 100}%` },
+                    styles.scoreBar,
+                    {
+                      width: `${outfit.score.breakdown.seasonSuitability * 100}%`,
+                    },
                     getScoreBarColor(outfit.score.breakdown.seasonSuitability),
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.scoreItemValue}>
                 {Math.round(outfit.score.breakdown.seasonSuitability * 100)}%
               </Text>
             </View>
-            
+
             {weatherData && (
               <View style={styles.scoreItem}>
                 <Text style={styles.scoreItemLabel}>Weather</Text>
                 <View style={styles.scoreBarContainer}>
-                  <View 
+                  <View
                     style={[
-                      styles.scoreBar, 
-                      { width: `${outfit.score.breakdown.weatherSuitability * 100}%` },
-                      getScoreBarColor(outfit.score.breakdown.weatherSuitability),
-                    ]} 
+                      styles.scoreBar,
+                      {
+                        width: `${outfit.score.breakdown.weatherSuitability * 100}%`,
+                      },
+                      getScoreBarColor(
+                        outfit.score.breakdown.weatherSuitability
+                      ),
+                    ]}
                   />
                 </View>
                 <Text style={styles.scoreItemValue}>
@@ -426,6 +436,46 @@ export const OutfitRecommendationCard: React.FC<OutfitRecommendationCardProps> =
                 </Text>
               </View>
             )}
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <AnimatedTouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.refreshButton,
+                refreshAnimatedStyle,
+              ]}
+              onPress={handleRefreshPress}
+            >
+              <RefreshCw size={20} color={Colors.text.primary} />
+            </AnimatedTouchableOpacity>
+
+            <AnimatedTouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.saveButton,
+                heartAnimatedStyle,
+              ]}
+              onPress={handleSavePress}
+            >
+              <Heart
+                size={24}
+                color={Colors.error[500]}
+                fill={Colors.error[500]}
+              />
+            </AnimatedTouchableOpacity>
+
+            <AnimatedTouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.shareButton,
+                shareAnimatedStyle,
+              ]}
+              onPress={handleSharePress}
+            >
+              <Share2 size={20} color={Colors.text.primary} />
+            </AnimatedTouchableOpacity>
           </View>
         </View>
       </Animated.View>
@@ -458,7 +508,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface.primary,
     borderRadius: Layout.borderRadius.xl,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     ...Shadows.md,
   },
   header: {
@@ -508,7 +558,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   primaryImageContainer: {
-    height: 300,
+    height: 280,
     borderRadius: Layout.borderRadius.lg,
     overflow: 'hidden',
     marginBottom: Spacing.md,
@@ -524,7 +574,7 @@ const styles = StyleSheet.create({
   },
   secondaryItemWrapper: {
     flex: 1,
-    height: 100,
+    height: 90,
     borderRadius: Layout.borderRadius.md,
     overflow: 'hidden',
     position: 'relative',
@@ -552,7 +602,7 @@ const styles = StyleSheet.create({
   },
   moreItemsContainer: {
     flex: 1,
-    height: 100,
+    height: 90,
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.surface.secondary,
     justifyContent: 'center',
@@ -571,56 +621,36 @@ const styles = StyleSheet.create({
   descriptionText: {
     ...Typography.body.medium,
     color: Colors.text.secondary,
-    lineHeight: 22,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: Spacing.md,
-  },
-  actionButton: {
-    width: 60,
-    height: 60,
-    borderRadius: Layout.borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  refreshButton: {
-    backgroundColor: Colors.surface.secondary,
-  },
-  saveButton: {
-    backgroundColor: Colors.white,
-    width: 70,
-    height: 70,
-  },
-  shareButton: {
-    backgroundColor: Colors.surface.secondary,
+    lineHeight: 20,
   },
   scoreBreakdown: {
     backgroundColor: Colors.surface.secondary,
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
   scoreBreakdownTitle: {
     ...Typography.body.medium,
     color: Colors.text.primary,
     fontWeight: '600',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   scoreItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
   },
   scoreItemLabel: {
     ...Typography.caption.medium,
     color: Colors.text.secondary,
-    width: 100,
+    flex: 1,
+    minWidth: 80,
   },
   scoreBarContainer: {
-    flex: 1,
-    height: 6,
+    flex: 2,
+    height: 8,
     backgroundColor: Colors.neutral[200],
     borderRadius: Layout.borderRadius.full,
     marginHorizontal: Spacing.sm,
@@ -632,9 +662,36 @@ const styles = StyleSheet.create({
   },
   scoreItemValue: {
     ...Typography.caption.medium,
-    color: Colors.text.secondary,
-    width: 40,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    minWidth: 45,
     textAlign: 'right',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  actionButton: {
+    width: 56,
+    height: 56,
+    borderRadius: Layout.borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  refreshButton: {
+    backgroundColor: Colors.surface.secondary,
+  },
+  saveButton: {
+    backgroundColor: Colors.white,
+    width: 64,
+    height: 64,
+  },
+  shareButton: {
+    backgroundColor: Colors.surface.secondary,
   },
   indicator: {
     position: 'absolute',

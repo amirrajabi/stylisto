@@ -52,18 +52,38 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         onPress={() => onOutfitPress(outfit.id)}
         activeOpacity={0.8}
       >
-        {/* Header with name and score */}
+        {/* Header with name and action buttons */}
         <View style={styles.cardHeader}>
           <Text style={styles.outfitName} numberOfLines={1}>
             {outfit.name}
           </Text>
-          <View style={styles.scoreContainer}>
-            <Star
-              size={14}
-              color={Colors.warning[500]}
-              fill={Colors.warning[500]}
-            />
-            <Text style={styles.scoreText}>{totalScore}%</Text>
+          <View style={styles.headerActions}>
+            <View style={styles.scoreContainer}>
+              <Star
+                size={14}
+                color={Colors.warning[500]}
+                fill={Colors.warning[500]}
+              />
+              <Text style={styles.scoreText}>{totalScore}%</Text>
+            </View>
+            <View style={styles.actionButtons}>
+              {onEditOutfit && (
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => onEditOutfit(outfit.id)}
+                >
+                  <Edit3 size={16} color={Colors.primary[500]} />
+                </TouchableOpacity>
+              )}
+              {onSaveOutfit && (
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={() => onSaveOutfit(outfit.id)}
+                >
+                  <Heart size={16} color={Colors.error[500]} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
 
@@ -129,26 +149,6 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             </Text>
           </View>
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          {onEditOutfit && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => onEditOutfit(outfit.id)}
-            >
-              <Edit3 size={16} color={Colors.primary[500]} />
-            </TouchableOpacity>
-          )}
-          {onSaveOutfit && (
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => onSaveOutfit(outfit.id)}
-            >
-              <Heart size={16} color={Colors.error[500]} />
-            </TouchableOpacity>
-          )}
-        </View>
       </TouchableOpacity>
     );
   };
@@ -172,7 +172,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 280,
+    height: 200,
   },
   listContainer: {
     paddingHorizontal: Spacing.md,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   outfitName: {
     ...Typography.heading.h5,
@@ -198,6 +198,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -205,6 +209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Layout.borderRadius.md,
+    marginRight: Spacing.xs,
   },
   scoreText: {
     ...Typography.body.small,
@@ -215,16 +220,16 @@ const styles = StyleSheet.create({
   itemsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    height: 80,
+    marginBottom: Spacing.sm,
+    height: 70,
   },
   itemWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   itemImageContainer: {
-    width: 60,
-    height: 60,
+    width: 55,
+    height: 55,
     borderRadius: Layout.borderRadius.md,
     overflow: 'hidden',
     backgroundColor: Colors.surface.secondary,
@@ -242,8 +247,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.xs,
   },
   moreItemsIndicator: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: Layout.borderRadius.full,
     backgroundColor: Colors.primary[100],
     justifyContent: 'center',
@@ -251,14 +256,13 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   moreItemsText: {
-    ...Typography.caption.medium,
+    ...Typography.caption.small,
     color: Colors.primary[700],
     fontWeight: '600',
   },
   scoreBreakdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
   },
   scoreItem: {
     alignItems: 'center',
@@ -281,27 +285,25 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   actionButtons: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
     flexDirection: 'row',
-    zIndex: 1,
+    alignItems: 'center',
   },
   editButton: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: Layout.borderRadius.full,
     backgroundColor: Colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
   saveButton: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: Layout.borderRadius.full,
     backgroundColor: Colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: Spacing.xs,
   },
 });

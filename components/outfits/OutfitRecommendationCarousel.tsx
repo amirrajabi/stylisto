@@ -212,18 +212,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   cardContainer: {
     width: SCREEN_WIDTH,
     paddingHorizontal: Spacing.lg,
+    justifyContent: 'center',
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
     height: 16,
   },
   paginationDot: {
