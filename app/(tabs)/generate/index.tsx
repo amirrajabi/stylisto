@@ -12,7 +12,13 @@ import {
 import { OutfitCard } from '../../../components/outfits/OutfitCard';
 import { OutfitDetailModal } from '../../../components/outfits/OutfitDetailModal';
 import { OutfitEditModal } from '../../../components/outfits/OutfitEditModal';
+import { OutfitFiltersBar } from '../../../components/outfits/OutfitFiltersBar';
+import {
+  OutfitFilters,
+  OutfitFiltersModal,
+} from '../../../components/outfits/OutfitFiltersModal';
 import { OutfitStatsDisplay } from '../../../components/outfits/OutfitStatsDisplay';
+import { QuickFilters } from '../../../components/outfits/QuickFilters';
 import { BodyMedium, Button, H1, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
@@ -44,13 +50,33 @@ export default function GenerateScreen() {
     getOccasionBasedRecommendation,
   } = useOutfitRecommendation();
 
-  const [activeTab, setActiveTab] = useState<'quick' | 'weather' | 'occasion'>(
-    'quick'
-  );
   const [selectedOutfit, setSelectedOutfit] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [outfitToEdit, setOutfitToEdit] = useState<any>(null);
+  const [filtersModalVisible, setFiltersModalVisible] = useState(false);
+  const [showQuickFilters, setShowQuickFilters] = useState(true);
+
+  const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({
+    occasion: null,
+    style: null,
+    weatherConditions: null,
+    formality: null,
+    colors: [],
+    includeWeather: false,
+    stylePreferences: {
+      bodyType: undefined,
+      preferredFit: undefined,
+      avoidPatterns: [],
+      prioritizeComfort: false,
+    },
+    weatherIntegration: {
+      enabled: false,
+      autoUpdate: false,
+      temperatureRange: undefined,
+      considerHumidity: false,
+    },
+  });
 
   // Debug logging
   React.useEffect(() => {
@@ -64,18 +90,124 @@ export default function GenerateScreen() {
     }
   }, [filteredItems.length, outfits.length]);
 
-  const handleWeatherOutfit = useCallback(async () => {
-    setActiveTab('weather');
-    await getWeatherBasedRecommendation(MOCK_WEATHER);
-  }, [getWeatherBasedRecommendation]);
+  const handleFiltersApply = useCallback(
+    async (filters: OutfitFilters) => {
+      setCurrentFilters(filters);
+      setShowQuickFilters(false);
 
-  const handleOccasionOutfit = useCallback(
-    async (occasion: Occasion) => {
-      setActiveTab('occasion');
-      await getOccasionBasedRecommendation(occasion);
+      if (filters.includeWeather) {
+        await getWeatherBasedRecommendation(MOCK_WEATHER);
+      } else if (filters.occasion) {
+        await getOccasionBasedRecommendation(filters.occasion);
+      } else {
+        console.log('Generating outfit with filters:', filters);
+      }
     },
-    [getOccasionBasedRecommendation]
+    [getWeatherBasedRecommendation, getOccasionBasedRecommendation]
   );
+
+  const handleQuickOccasionSelect = useCallback(
+    async (occasion: Occasion) => {
+      const newFilters = { ...currentFilters, occasion };
+      setCurrentFilters(newFilters);
+      await getOccasionBasedRecommendation(occasion);
+      setShowQuickFilters(false);
+    },
+    [currentFilters, getOccasionBasedRecommendation]
+  );
+
+  const handleQuickStyleSelect = useCallback(
+    (style: string) => {
+      const newFilters = { ...currentFilters, style };
+      setCurrentFilters(newFilters);
+      setShowQuickFilters(false);
+    },
+    [currentFilters]
+  );
+
+  const handleClearFilter = useCallback(
+    (filterType: keyof OutfitFilters, value?: string) => {
+      setCurrentFilters(prev => {
+        const newFilters = { ...prev };
+
+        if (filterType === 'colors' && value) {
+          newFilters.colors = prev.colors.filter(c => c !== value);
+        } else if (filterType === 'stylePreferences' && value) {
+          if (value === 'bodyType') {
+            newFilters.stylePreferences.bodyType = undefined;
+          } else if (value === 'preferredFit') {
+            newFilters.stylePreferences.preferredFit = undefined;
+          } else if (value === 'prioritizeComfort') {
+            newFilters.stylePreferences.prioritizeComfort = false;
+          } else {
+            newFilters.stylePreferences.avoidPatterns =
+              prev.stylePreferences.avoidPatterns?.filter(p => p !== value) ||
+              [];
+          }
+        } else if (filterType === 'weatherIntegration' && value === 'enabled') {
+          newFilters.weatherIntegration.enabled = false;
+        } else {
+          (newFilters as any)[filterType] =
+            filterType === 'colors'
+              ? []
+              : filterType === 'includeWeather'
+                ? false
+                : null;
+
+          if (filterType === 'includeWeather') {
+            newFilters.weatherConditions = null;
+          }
+        }
+
+        const hasActiveFilters =
+          newFilters.occasion ||
+          newFilters.style ||
+          newFilters.formality ||
+          newFilters.colors.length > 0 ||
+          newFilters.includeWeather ||
+          newFilters.stylePreferences.bodyType ||
+          newFilters.stylePreferences.preferredFit ||
+          (newFilters.stylePreferences.avoidPatterns?.length || 0) > 0 ||
+          newFilters.stylePreferences.prioritizeComfort ||
+          newFilters.weatherIntegration.enabled;
+
+        if (!hasActiveFilters) {
+          setShowQuickFilters(true);
+        }
+
+        return newFilters;
+      });
+    },
+    []
+  );
+
+  const handleClearAllFilters = useCallback(() => {
+    setCurrentFilters({
+      occasion: null,
+      style: null,
+      weatherConditions: null,
+      formality: null,
+      colors: [],
+      includeWeather: false,
+      stylePreferences: {
+        bodyType: undefined,
+        preferredFit: undefined,
+        avoidPatterns: [],
+        prioritizeComfort: false,
+      },
+      weatherIntegration: {
+        enabled: false,
+        autoUpdate: false,
+        temperatureRange: undefined,
+        considerHumidity: false,
+      },
+    });
+    setShowQuickFilters(true);
+  }, []);
+
+  const handleGenerateOutfit = useCallback(async () => {
+    await handleFiltersApply(currentFilters);
+  }, [currentFilters, handleFiltersApply]);
 
   const handleSaveOutfit = useCallback(() => {
     const outfitId = saveCurrentOutfit();
@@ -173,8 +305,6 @@ export default function GenerateScreen() {
   const handleOutfitUpdate = useCallback(
     (updatedOutfit: any) => {
       console.log('Updated outfit:', updatedOutfit);
-      // Here you could update the outfit in the state or save it
-      // For now, we'll just save it as a new outfit
       const outfitIndex = parseInt(updatedOutfit.id.replace('outfit-', ''), 10);
       if (!isNaN(outfitIndex)) {
         const savedOutfitId = saveCurrentOutfit(updatedOutfit.name);
@@ -193,6 +323,18 @@ export default function GenerateScreen() {
     router.push('/outfit-builder');
   }, []);
 
+  const hasActiveFilters =
+    currentFilters.occasion ||
+    currentFilters.style ||
+    currentFilters.formality ||
+    currentFilters.colors.length > 0 ||
+    currentFilters.includeWeather ||
+    currentFilters.stylePreferences.bodyType ||
+    currentFilters.stylePreferences.preferredFit ||
+    (currentFilters.stylePreferences.avoidPatterns?.length || 0) > 0 ||
+    currentFilters.stylePreferences.prioritizeComfort ||
+    currentFilters.weatherIntegration.enabled;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -203,7 +345,37 @@ export default function GenerateScreen() {
         </BodyMedium>
       </View>
 
+      {/* Conditional Filters Display */}
+      {showQuickFilters && !hasActiveFilters ? (
+        <QuickFilters
+          onOccasionSelect={handleQuickOccasionSelect}
+          onStyleSelect={handleQuickStyleSelect}
+          onOpenAdvancedFilters={() => setFiltersModalVisible(true)}
+          selectedOccasion={currentFilters.occasion}
+          selectedStyle={currentFilters.style}
+        />
+      ) : (
+        <OutfitFiltersBar
+          filters={currentFilters}
+          onOpenFilters={() => setFiltersModalVisible(true)}
+          onClearFilter={handleClearFilter}
+          onClearAllFilters={handleClearAllFilters}
+        />
+      )}
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Generate Button - Only show if filters are applied */}
+        {hasActiveFilters && (
+          <View style={styles.generateSection}>
+            <Button
+              title="Generate Outfit"
+              onPress={handleGenerateOutfit}
+              loading={loading}
+              style={styles.generateButton}
+            />
+          </View>
+        )}
+
         {/* Outfit Generation Statistics */}
         <OutfitStatsDisplay
           totalItems={filteredItems.length}
@@ -263,14 +435,22 @@ export default function GenerateScreen() {
               onEditOutfit={handleOutfitEdit}
             />
           </View>
+        ) : showQuickFilters && !hasActiveFilters ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>Choose Your Style</Text>
+            <Text style={styles.emptyStateDescription}>
+              Select an occasion and style above to get started with AI-powered
+              outfit recommendations.
+            </Text>
+          </View>
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>
               Ready to Generate Outfits?
             </Text>
             <Text style={styles.emptyStateDescription}>
-              Choose an occasion below or set your preferences to get AI-powered
-              outfit recommendations.
+              Click Generate Outfit to get AI-powered outfit recommendations
+              based on your selected filters.
             </Text>
           </View>
         )}
@@ -338,90 +518,16 @@ export default function GenerateScreen() {
             </View>
           </TouchableOpacity>
         </View>
-
-        {/* Occasion-based Generation */}
-        <View style={styles.occasionContainer}>
-          <H3 style={styles.sectionTitle}>Occasion-based Outfits</H3>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.occasionScroll}
-            contentContainerStyle={styles.occasionScrollContent}
-          >
-            <TouchableOpacity
-              style={styles.occasionCard}
-              onPress={() => handleOccasionOutfit(Occasion.CASUAL)}
-            >
-              <Text style={styles.occasionTitle}>Casual</Text>
-              <Text style={styles.occasionDescription}>Everyday comfort</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.occasionCard}
-              onPress={() => handleOccasionOutfit(Occasion.WORK)}
-            >
-              <Text style={styles.occasionTitle}>Work</Text>
-              <Text style={styles.occasionDescription}>
-                Professional attire
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.occasionCard}
-              onPress={() => handleOccasionOutfit(Occasion.FORMAL)}
-            >
-              <Text style={styles.occasionTitle}>Formal</Text>
-              <Text style={styles.occasionDescription}>Special events</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.occasionCard}
-              onPress={() => handleOccasionOutfit(Occasion.DATE)}
-            >
-              <Text style={styles.occasionTitle}>Date</Text>
-              <Text style={styles.occasionDescription}>Romantic occasions</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.occasionCard}
-              onPress={() => handleOccasionOutfit(Occasion.SPORT)}
-            >
-              <Text style={styles.occasionTitle}>Sport</Text>
-              <Text style={styles.occasionDescription}>Active wear</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        {/* Weather-based Generation */}
-        <View style={styles.weatherContainer}>
-          <H3 style={styles.sectionTitle}>Weather-based Outfit</H3>
-
-          <TouchableOpacity
-            style={styles.weatherCard}
-            onPress={handleWeatherOutfit}
-          >
-            <View style={styles.weatherInfo}>
-              <View style={styles.weatherIconContainer}>
-                <Cloud size={32} color={Colors.info[500]} />
-              </View>
-              <View style={styles.weatherDetails}>
-                <Text style={styles.weatherLocation}>New York, NY</Text>
-                <Text style={styles.weatherTemp}>22°C</Text>
-                <Text style={styles.weatherCondition}>Sunny</Text>
-              </View>
-            </View>
-            <Button
-              title="Generate for Weather"
-              variant="outline"
-              size="small"
-              loading={loading && activeTab === 'weather'}
-              style={styles.weatherButton}
-              onPress={handleWeatherOutfit}
-            />
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      {/* Filters Modal */}
+      <OutfitFiltersModal
+        visible={filtersModalVisible}
+        onClose={() => setFiltersModalVisible(false)}
+        onApplyFilters={handleFiltersApply}
+        currentFilters={currentFilters}
+        weatherData={MOCK_WEATHER}
+      />
 
       {/* Detail Modal */}
       <OutfitDetailModal
@@ -459,6 +565,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.md,
   },
+  generateSection: {
+    marginBottom: Spacing.lg,
+  },
+  generateButton: {
+    marginHorizontal: 0,
+  },
   outfitsSection: {
     marginBottom: Spacing.lg,
   },
@@ -490,47 +602,6 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     color: Colors.text.secondary,
     textAlign: 'center',
-  },
-  outfitCard: {
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    overflow: 'hidden',
-  },
-  outfitCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-  },
-  outfitActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  outfitAction: {
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.surface.secondary,
-  },
-  outfitPreviewContainer: {
-    height: 400,
-  },
-  outfitCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border.primary,
-  },
-  outfitScore: {
-    ...Typography.body.medium,
-    color: Colors.text.primary,
-    fontWeight: '500',
-  },
-  customizeButton: {
-    paddingHorizontal: Spacing.md,
   },
   optionsContainer: {
     marginBottom: Spacing.lg,
@@ -576,76 +647,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.text.tertiary,
     fontWeight: '300',
-  },
-  occasionContainer: {
-    marginBottom: Spacing.lg,
-  },
-  occasionScroll: {
-    marginHorizontal: -Spacing.md,
-  },
-  occasionScrollContent: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.md,
-  },
-  occasionCard: {
-    width: 140,
-    height: 100,
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
-    justifyContent: 'space-between',
-    ...Shadows.sm,
-  },
-  occasionTitle: {
-    ...Typography.heading.h5,
-    color: Colors.text.primary,
-  },
-  occasionDescription: {
-    ...Typography.caption.medium,
-    color: Colors.text.secondary,
-  },
-  weatherContainer: {
-    marginBottom: Spacing.lg,
-  },
-  weatherCard: {
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
-    ...Shadows.sm,
-  },
-  weatherInfo: {
-    flexDirection: 'row',
-    marginBottom: Spacing.md,
-  },
-  weatherIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.info[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  weatherDetails: {
-    justifyContent: 'center',
-  },
-  weatherLocation: {
-    ...Typography.body.medium,
-    color: Colors.text.primary,
-    fontWeight: '500',
-    marginBottom: Spacing.xs,
-  },
-  weatherTemp: {
-    ...Typography.heading.h4,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  weatherCondition: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-  },
-  weatherButton: {
-    alignSelf: 'flex-end',
   },
   manualBuilderContainer: {
     marginBottom: Spacing.lg,
