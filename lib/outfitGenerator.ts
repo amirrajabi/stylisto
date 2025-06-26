@@ -679,138 +679,199 @@ class OutfitGenerator {
         return;
       }
 
-      // If all essential categories are satisfied
+      // If all essential categories are satisfied, proceed to completing categories
       if (remainingEssential.size === 0) {
-        // Add completing categories (like shoes and accessories - MANDATORY)
-        if (remainingCompleting.size > 0) {
-          const nextCategory = Array.from(remainingCompleting)[0];
+        console.log(
+          `✅ Essential categories complete. Working on completing categories: ${Array.from(remainingCompleting).join(', ')}`
+        );
 
-          if (!forcedCategories.has(nextCategory)) {
-            const categoryItems = itemsByCategory[nextCategory] || [];
+        // If no more completing categories, finalize the outfit
+        if (remainingCompleting.size === 0) {
+          // Add coordinated undergarments
+          const outfitWithUndergarments = this.addCoordinatedUndergarments(
+            currentOutfit,
+            remainingUndergarments,
+            itemsByCategory,
+            forcedCategories
+          );
 
-            for (const item of categoryItems) {
-              if (this.isItemCompatible(item, currentOutfit)) {
-                const newOutfit = [...currentOutfit, item];
-                const newCompleting = new Set(remainingCompleting);
-                newCompleting.delete(nextCategory);
+          // Add additional coordinating accessories (beyond the mandatory one)
+          const finalOutfit = this.addCoordinatingAccessories(
+            outfitWithUndergarments,
+            coordinatingCategories,
+            itemsByCategory,
+            forcedCategories
+          );
 
-                buildCompleteOutfit(
-                  newOutfit,
-                  remainingEssential,
-                  newCompleting,
-                  remainingUndergarments,
-                  depth + 1
-                );
-              }
+          // Validate outfit completeness
+          const hasTop = finalOutfit.some(
+            item =>
+              item.category === ClothingCategory.TOPS ||
+              item.category === ClothingCategory.DRESSES
+          );
+          const hasBottom = finalOutfit.some(
+            item =>
+              item.category === ClothingCategory.BOTTOMS ||
+              item.category === ClothingCategory.DRESSES
+          );
+          const hasShoes = finalOutfit.some(
+            item => item.category === ClothingCategory.SHOES
+          );
+          const hasAccessory = finalOutfit.some(
+            item =>
+              item.category === ClothingCategory.ACCESSORIES ||
+              item.category === ClothingCategory.JEWELRY ||
+              item.category === ClothingCategory.BAGS ||
+              item.category === ClothingCategory.BELTS ||
+              item.category === ClothingCategory.HATS ||
+              item.category === ClothingCategory.SCARVES
+          );
+
+          // Check if shoes and accessories are available in wardrobe
+          const shoesAvailable =
+            (itemsByCategory[ClothingCategory.SHOES] || []).length > 0;
+          const accessoriesAvailable =
+            (itemsByCategory[ClothingCategory.ACCESSORIES] || []).length > 0 ||
+            (itemsByCategory[ClothingCategory.JEWELRY] || []).length > 0 ||
+            (itemsByCategory[ClothingCategory.BAGS] || []).length > 0 ||
+            (itemsByCategory[ClothingCategory.BELTS] || []).length > 0 ||
+            (itemsByCategory[ClothingCategory.HATS] || []).length > 0 ||
+            (itemsByCategory[ClothingCategory.SCARVES] || []).length > 0;
+
+          // Essential requirements: TOP and BOTTOM always required
+          // Shoes: required only if available in wardrobe
+          // Accessories: required only if available in wardrobe
+          const meetsRequirements =
+            hasTop &&
+            hasBottom &&
+            (!shoesAvailable || hasShoes) &&
+            (!accessoriesAvailable || hasAccessory);
+
+          // Only add outfit if it meets the flexible requirements
+          if (meetsRequirements) {
+            // Check for uniqueness
+            const outfitKey = this.getOutfitKey(finalOutfit);
+            if (
+              !outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)
+            ) {
+              outfits.push(finalOutfit);
+
+              // Enhanced logging to show what was included
+              const components = [];
+              if (hasTop) components.push('TOP');
+              if (hasBottom) components.push('BOTTOM');
+              if (hasShoes) components.push('SHOES');
+              if (hasAccessory) components.push('ACCESSORY');
+
+              console.log(
+                `✅ Complete outfit created with: ${components.join(' + ')} (${finalOutfit.length} items total)`
+              );
+              console.log(
+                `   Items: ${finalOutfit.map(item => `${item.name} (${item.category})`).join(', ')}`
+              );
             }
           } else {
-            const newCompleting = new Set(remainingCompleting);
-            newCompleting.delete(nextCategory);
-            buildCompleteOutfit(
-              currentOutfit,
-              remainingEssential,
-              newCompleting,
-              remainingUndergarments,
-              depth + 1
+            console.log(
+              `❌ Outfit rejected - Top:${hasTop}, Bottom:${hasBottom}, Shoes:${hasShoes}${shoesAvailable ? '(required)' : '(optional)'}, Accessory:${hasAccessory}${accessoriesAvailable ? '(required)' : '(optional)'}`
             );
           }
           return;
         }
 
-        // Add coordinated undergarments
-        const outfitWithUndergarments = this.addCoordinatedUndergarments(
-          currentOutfit,
-          remainingUndergarments,
-          itemsByCategory,
-          forcedCategories
+        // Process next completing category (SHOES, ACCESSORIES)
+        const nextCategory = Array.from(remainingCompleting)[0];
+        console.log(`🔧 Processing completing category: ${nextCategory}`);
+
+        // If this category is forced (item already selected), skip it
+        if (forcedCategories.has(nextCategory)) {
+          const newCompleting = new Set(remainingCompleting);
+          newCompleting.delete(nextCategory);
+          buildCompleteOutfit(
+            currentOutfit,
+            remainingEssential,
+            newCompleting,
+            remainingUndergarments,
+            depth + 1
+          );
+          return;
+        }
+
+        const categoryItems = itemsByCategory[nextCategory] || [];
+        console.log(
+          `   Available items in ${nextCategory}: ${categoryItems.length}`
         );
 
-        // Add additional coordinating accessories (beyond the mandatory one)
-        const finalOutfit = this.addCoordinatingAccessories(
-          outfitWithUndergarments,
-          coordinatingCategories,
-          itemsByCategory,
-          forcedCategories
-        );
+        // If no items available in this category, skip it but continue
+        if (categoryItems.length === 0) {
+          console.log(`   ⚠️ No items available in ${nextCategory}, skipping`);
+          const newCompleting = new Set(remainingCompleting);
+          newCompleting.delete(nextCategory);
+          buildCompleteOutfit(
+            currentOutfit,
+            remainingEssential,
+            newCompleting,
+            remainingUndergarments,
+            depth + 1
+          );
+          return;
+        }
 
-        // Validate outfit completeness
-        const hasTop = finalOutfit.some(
-          item =>
-            item.category === ClothingCategory.TOPS ||
-            item.category === ClothingCategory.DRESSES
-        );
-        const hasBottom = finalOutfit.some(
-          item =>
-            item.category === ClothingCategory.BOTTOMS ||
-            item.category === ClothingCategory.DRESSES
-        );
-        const hasShoes = finalOutfit.some(
-          item => item.category === ClothingCategory.SHOES
-        );
-        const hasAccessory = finalOutfit.some(
-          item =>
-            item.category === ClothingCategory.ACCESSORIES ||
-            item.category === ClothingCategory.JEWELRY ||
-            item.category === ClothingCategory.BAGS ||
-            item.category === ClothingCategory.BELTS ||
-            item.category === ClothingCategory.HATS ||
-            item.category === ClothingCategory.SCARVES
-        );
+        // Try each item in this category
+        let foundCompatibleItem = false;
+        for (const item of categoryItems) {
+          if (this.isItemCompatible(item, currentOutfit)) {
+            foundCompatibleItem = true;
+            const newOutfit = [...currentOutfit, item];
+            const newCompleting = new Set(remainingCompleting);
+            newCompleting.delete(nextCategory);
 
-        // Check if shoes and accessories are available in wardrobe
-        const shoesAvailable =
-          (itemsByCategory[ClothingCategory.SHOES] || []).length > 0;
-        const accessoriesAvailable =
-          (itemsByCategory[ClothingCategory.ACCESSORIES] || []).length > 0 ||
-          (itemsByCategory[ClothingCategory.JEWELRY] || []).length > 0 ||
-          (itemsByCategory[ClothingCategory.BAGS] || []).length > 0 ||
-          (itemsByCategory[ClothingCategory.BELTS] || []).length > 0 ||
-          (itemsByCategory[ClothingCategory.HATS] || []).length > 0 ||
-          (itemsByCategory[ClothingCategory.SCARVES] || []).length > 0;
+            console.log(`   ✅ Added compatible ${nextCategory}: ${item.name}`);
 
-        // Essential requirements: TOP and BOTTOM always required
-        // Shoes: required only if available in wardrobe
-        // Accessories: required only if available in wardrobe
-        const meetsRequirements =
-          hasTop &&
-          hasBottom &&
-          (!shoesAvailable || hasShoes) &&
-          (!accessoriesAvailable || hasAccessory);
-
-        // Only add outfit if it meets the flexible requirements
-        if (meetsRequirements) {
-          // Check for uniqueness
-          const outfitKey = this.getOutfitKey(finalOutfit);
-          if (
-            !outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)
-          ) {
-            outfits.push(finalOutfit);
-
-            // Enhanced logging to show what was included
-            const components = [];
-            if (hasTop) components.push('TOP');
-            if (hasBottom) components.push('BOTTOM');
-            if (hasShoes) components.push('SHOES');
-            if (hasAccessory) components.push('ACCESSORY');
-
-            console.log(
-              `✅ Complete outfit created with: ${components.join(' + ')} (${finalOutfit.length} items total)`
+            buildCompleteOutfit(
+              newOutfit,
+              remainingEssential,
+              newCompleting,
+              remainingUndergarments,
+              depth + 1
             );
-            console.log(
-              `   Items: ${finalOutfit.map(item => `${item.name} (${item.category})`).join(', ')}`
-            );
+
+            // Limit for performance
+            if (outfits.length >= 1000) {
+              console.log('🛑 Maximum outfit limit reached');
+              return;
+            }
+          } else {
+            console.log(`   ❌ ${item.name} not compatible`);
           }
-        } else {
+        }
+
+        // If no compatible items found, continue without this category
+        if (!foundCompatibleItem) {
           console.log(
-            `❌ Outfit rejected - Top:${hasTop}, Bottom:${hasBottom}, Shoes:${hasShoes}${shoesAvailable ? '(required)' : '(optional)'}, Accessory:${hasAccessory}${accessoriesAvailable ? '(required)' : '(optional)'}`
+            `   ⚠️ No compatible items found in ${nextCategory}, continuing without it`
+          );
+          const newCompleting = new Set(remainingCompleting);
+          newCompleting.delete(nextCategory);
+          buildCompleteOutfit(
+            currentOutfit,
+            remainingEssential,
+            newCompleting,
+            remainingUndergarments,
+            depth + 1
           );
         }
+
         return;
       }
 
-      // Process next essential category
+      // Process next essential category (TOP, BOTTOM)
       const nextCategory = Array.from(remainingEssential)[0];
+      console.log(`🔧 Processing essential category: ${nextCategory}`);
+
       const categoryItems = itemsByCategory[nextCategory] || [];
+      console.log(
+        `   Available items in ${nextCategory}: ${categoryItems.length}`
+      );
 
       if (forcedCategories.has(nextCategory)) {
         const newRemaining = new Set(remainingEssential);
@@ -831,6 +892,8 @@ class OutfitGenerator {
           const newOutfit = [...currentOutfit, item];
           const newRemaining = new Set(remainingEssential);
           newRemaining.delete(nextCategory);
+
+          console.log(`   ✅ Added essential ${nextCategory}: ${item.name}`);
 
           buildCompleteOutfit(
             newOutfit,
@@ -1292,6 +1355,9 @@ class OutfitGenerator {
         outfitItem => outfitItem.category === item.category
       );
       if (hasConflictingCategory) {
+        console.log(
+          `      ❌ ${item.name} conflicts with existing ${item.category} in outfit`
+        );
         return false;
       }
     }
@@ -1302,10 +1368,14 @@ class OutfitGenerator {
         outfitItem => outfitItem.category === item.category
       );
       if (sameCategories.length >= 3) {
+        console.log(
+          `      ❌ ${item.name} would exceed limit of 3 items for ${item.category}`
+        );
         return false;
       }
     }
 
+    console.log(`      ✅ ${item.name} is compatible with current outfit`);
     return true;
   }
 
