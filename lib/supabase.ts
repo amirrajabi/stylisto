@@ -202,112 +202,438 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Database types for better TypeScript support
-export interface Database {
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type Database = {
   public: {
     Tables: {
-      users: {
+      ai_feedback: {
         Row: {
-          id: string;
-          email: string;
-          first_name: string | null;
-          last_name: string | null;
-          avatar_url: string | null;
+          ai_response: Json | null;
+          context_data: Json | null;
           created_at: string;
+          feedback_type: Database['public']['Enums']['feedback_type'];
+          id: string;
+          is_helpful: boolean | null;
           updated_at: string;
-          deleted_at: string | null;
+          user_feedback: string | null;
+          user_id: string;
+          user_rating: number | null;
         };
         Insert: {
-          id: string;
-          email: string;
-          first_name?: string | null;
-          last_name?: string | null;
-          avatar_url?: string | null;
+          ai_response?: Json | null;
+          context_data?: Json | null;
           created_at?: string;
+          feedback_type: Database['public']['Enums']['feedback_type'];
+          id?: string;
+          is_helpful?: boolean | null;
           updated_at?: string;
-          deleted_at?: string | null;
+          user_feedback?: string | null;
+          user_id: string;
+          user_rating?: number | null;
         };
         Update: {
-          id?: string;
-          email?: string;
-          first_name?: string | null;
-          last_name?: string | null;
-          avatar_url?: string | null;
+          ai_response?: Json | null;
+          context_data?: Json | null;
           created_at?: string;
+          feedback_type?: Database['public']['Enums']['feedback_type'];
+          id?: string;
+          is_helpful?: boolean | null;
           updated_at?: string;
-          deleted_at?: string | null;
+          user_feedback?: string | null;
+          user_id?: string;
+          user_rating?: number | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'ai_feedback_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'analytics_dashboard';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'ai_feedback_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_wardrobe_summary';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'ai_feedback_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      analytics_events: {
+        Row: {
+          created_at: string;
+          device_info: Json | null;
+          event_name: string;
+          event_properties: Json | null;
+          event_type: Database['public']['Enums']['event_type'];
+          id: string;
+          ip_address: unknown | null;
+          page_url: string | null;
+          referrer: string | null;
+          session_id: string | null;
+          timestamp: string;
+          user_agent: string | null;
+          user_id: string | null;
+          user_properties: Json | null;
+          utm_campaign: string | null;
+          utm_content: string | null;
+          utm_medium: string | null;
+          utm_source: string | null;
+          utm_term: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          device_info?: Json | null;
+          event_name: string;
+          event_properties?: Json | null;
+          event_type: Database['public']['Enums']['event_type'];
+          id?: string;
+          ip_address?: unknown | null;
+          page_url?: string | null;
+          referrer?: string | null;
+          session_id?: string | null;
+          timestamp?: string;
+          user_agent?: string | null;
+          user_id?: string | null;
+          user_properties?: Json | null;
+          utm_campaign?: string | null;
+          utm_content?: string | null;
+          utm_medium?: string | null;
+          utm_source?: string | null;
+          utm_term?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          device_info?: Json | null;
+          event_name?: string;
+          event_properties?: Json | null;
+          event_type?: Database['public']['Enums']['event_type'];
+          id?: string;
+          ip_address?: unknown | null;
+          page_url?: string | null;
+          referrer?: string | null;
+          session_id?: string | null;
+          timestamp?: string;
+          user_agent?: string | null;
+          user_id?: string | null;
+          user_properties?: Json | null;
+          utm_campaign?: string | null;
+          utm_content?: string | null;
+          utm_medium?: string | null;
+          utm_source?: string | null;
+          utm_term?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'analytics_dashboard';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'analytics_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_wardrobe_summary';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'analytics_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      analytics_funnel_steps: {
+        Row: {
+          created_at: string;
+          event_criteria: Json;
+          funnel_id: string;
+          id: string;
+          step_config: Json | null;
+          step_name: string;
+          step_order: number;
+          step_type: Database['public']['Enums']['funnel_step_type'];
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          event_criteria: Json;
+          funnel_id: string;
+          id?: string;
+          step_config?: Json | null;
+          step_name: string;
+          step_order: number;
+          step_type: Database['public']['Enums']['funnel_step_type'];
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          event_criteria?: Json;
+          funnel_id?: string;
+          id?: string;
+          step_config?: Json | null;
+          step_name?: string;
+          step_order?: number;
+          step_type?: Database['public']['Enums']['funnel_step_type'];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_funnel_steps_funnel_id_fkey';
+            columns: ['funnel_id'];
+            isOneToOne: false;
+            referencedRelation: 'analytics_funnels';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'analytics_funnel_steps_funnel_id_fkey';
+            columns: ['funnel_id'];
+            isOneToOne: false;
+            referencedRelation: 'funnel_analysis';
+            referencedColumns: ['funnel_id'];
+          },
+        ];
+      };
+      analytics_funnels: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          funnel_config: Json | null;
+          id: string;
+          is_active: boolean | null;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          funnel_config?: Json | null;
+          id?: string;
+          is_active?: boolean | null;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          funnel_config?: Json | null;
+          id?: string;
+          is_active?: boolean | null;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_funnels_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'analytics_dashboard';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'analytics_funnels_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_wardrobe_summary';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'analytics_funnels_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      analytics_user_properties: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_system_property: boolean | null;
+          property_name: string;
+          property_type: string | null;
+          property_value: Json;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_system_property?: boolean | null;
+          property_name: string;
+          property_type?: string | null;
+          property_value: Json;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_system_property?: boolean | null;
+          property_name?: string;
+          property_type?: string | null;
+          property_value?: Json;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_user_properties_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'analytics_dashboard';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'analytics_user_properties_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_wardrobe_summary';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'analytics_user_properties_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       clothing_items: {
         Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          category: string;
-          subcategory: string | null;
-          color: string;
           brand: string | null;
-          size: string | null;
-          seasons: string[];
-          occasions: string[];
-          image_url: string;
-          tags: string[];
-          is_favorite: boolean;
-          last_worn: string | null;
-          times_worn: number;
-          purchase_date: string | null;
-          price: number | null;
-          notes: string | null;
+          category: Database['public']['Enums']['clothing_category'];
+          color: string;
+          condition: Database['public']['Enums']['item_condition'] | null;
           created_at: string;
-          updated_at: string;
+          current_value: number | null;
           deleted_at: string | null;
+          id: string;
+          image_url: string;
+          is_favorite: boolean | null;
+          is_for_sale: boolean | null;
+          last_worn: string | null;
+          name: string;
+          notes: string | null;
+          occasions: Database['public']['Enums']['occasion_type'][] | null;
+          original_price: number | null;
+          price: number | null;
+          purchase_date: string | null;
+          sale_listing: Json | null;
+          seasons: Database['public']['Enums']['season_type'][] | null;
+          selling_price: number | null;
+          size: string | null;
+          subcategory: string | null;
+          tags: string[] | null;
+          times_worn: number | null;
+          updated_at: string;
+          user_id: string;
         };
         Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          category: string;
-          subcategory?: string | null;
-          color: string;
           brand?: string | null;
-          size?: string | null;
-          seasons?: string[];
-          occasions?: string[];
-          image_url: string;
-          tags?: string[];
-          is_favorite?: boolean;
-          last_worn?: string | null;
-          times_worn?: number;
-          purchase_date?: string | null;
-          price?: number | null;
-          notes?: string | null;
+          category: Database['public']['Enums']['clothing_category'];
+          color: string;
+          condition?: Database['public']['Enums']['item_condition'] | null;
           created_at?: string;
-          updated_at?: string;
+          current_value?: number | null;
           deleted_at?: string | null;
+          id?: string;
+          image_url: string;
+          is_favorite?: boolean | null;
+          is_for_sale?: boolean | null;
+          last_worn?: string | null;
+          name: string;
+          notes?: string | null;
+          occasions?: Database['public']['Enums']['occasion_type'][] | null;
+          original_price?: number | null;
+          price?: number | null;
+          purchase_date?: string | null;
+          sale_listing?: Json | null;
+          seasons?: Database['public']['Enums']['season_type'][] | null;
+          selling_price?: number | null;
+          size?: string | null;
+          subcategory?: string | null;
+          tags?: string[] | null;
+          times_worn?: number | null;
+          updated_at?: string;
+          user_id: string;
         };
         Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          category?: string;
-          subcategory?: string | null;
-          color?: string;
           brand?: string | null;
-          size?: string | null;
-          seasons?: string[];
-          occasions?: string[];
-          image_url?: string;
-          tags?: string[];
-          is_favorite?: boolean;
-          last_worn?: string | null;
-          times_worn?: number;
-          purchase_date?: string | null;
-          price?: number | null;
-          notes?: string | null;
+          category?: Database['public']['Enums']['clothing_category'];
+          color?: string;
+          condition?: Database['public']['Enums']['item_condition'] | null;
           created_at?: string;
-          updated_at?: string;
+          current_value?: number | null;
           deleted_at?: string | null;
+          id?: string;
+          image_url?: string;
+          is_favorite?: boolean | null;
+          is_for_sale?: boolean | null;
+          last_worn?: string | null;
+          name?: string;
+          notes?: string | null;
+          occasions?: Database['public']['Enums']['occasion_type'][] | null;
+          original_price?: number | null;
+          price?: number | null;
+          purchase_date?: string | null;
+          sale_listing?: Json | null;
+          seasons?: Database['public']['Enums']['season_type'][] | null;
+          selling_price?: number | null;
+          size?: string | null;
+          subcategory?: string | null;
+          tags?: string[] | null;
+          times_worn?: number | null;
+          updated_at?: string;
+          user_id?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'clothing_items_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'analytics_dashboard';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'clothing_items_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_wardrobe_summary';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'clothing_items_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       error_logs: {
         Row: {
@@ -367,7 +693,6 @@ export interface Database {
           created_at?: string;
         };
       };
-      // Add other table types as needed
     };
     Views: {
       user_wardrobe_summary: {
@@ -409,5 +734,67 @@ export interface Database {
         Returns: void;
       };
     };
+    Enums: {
+      clothing_category:
+        | 'tops'
+        | 'bottoms'
+        | 'dresses'
+        | 'outerwear'
+        | 'shoes'
+        | 'accessories'
+        | 'underwear'
+        | 'activewear'
+        | 'sleepwear'
+        | 'swimwear';
+      event_type:
+        | 'page_view'
+        | 'button_click'
+        | 'form_submit'
+        | 'purchase'
+        | 'signup'
+        | 'login'
+        | 'logout'
+        | 'item_view'
+        | 'item_add'
+        | 'item_remove'
+        | 'outfit_create'
+        | 'outfit_save'
+        | 'outfit_share'
+        | 'search'
+        | 'filter_apply'
+        | 'image_upload'
+        | 'ai_interaction'
+        | 'custom';
+      feedback_type:
+        | 'outfit_suggestion'
+        | 'style_recommendation'
+        | 'color_matching'
+        | 'weather_outfit'
+        | 'occasion_outfit'
+        | 'item_categorization'
+        | 'tag_editing';
+      funnel_step_type: 'entry' | 'intermediate' | 'conversion' | 'exit';
+      item_condition:
+        | 'excellent'
+        | 'very_good'
+        | 'good'
+        | 'fair'
+        | 'poor'
+        | 'damaged';
+      occasion_type:
+        | 'casual'
+        | 'work'
+        | 'formal'
+        | 'party'
+        | 'sport'
+        | 'travel'
+        | 'date'
+        | 'special';
+      season_type: 'spring' | 'summer' | 'fall' | 'winter';
+      user_role: 'user' | 'admin' | 'super_admin';
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
-}
+};
