@@ -10,9 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SaleItemCard } from '../../components/wardrobe/SaleItemCard';
-import { useWardrobe } from '../../hooks/useWardrobe';
-import { ClothingItem } from '../../types/wardrobe';
+import { SaleItemCard } from '../../../components/wardrobe/SaleItemCard';
+import { useWardrobe } from '../../../hooks/useWardrobe';
+import { ClothingItem } from '../../../types/wardrobe';
 
 export default function SellingScreen() {
   const { items, isLoading, actions } = useWardrobe();

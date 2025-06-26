@@ -6,6 +6,7 @@ import {
   Bell,
   Camera,
   ChevronRight,
+  DollarSign,
   Download,
   Heart,
   CircleHelp as HelpCircle,
@@ -597,6 +598,12 @@ export default function ProfileScreen() {
             title="Saved Outfits"
             subtitle="Browse and manage your saved outfits"
             onPress={() => router.push('/profile/saved')}
+          />
+          <MenuItem
+            icon={<DollarSign size={20} color={colors.text.secondary} />}
+            title="Items for Sale"
+            subtitle="Manage your items that are for sale"
+            onPress={() => router.push('/profile/selling')}
           />
         </MenuSection>
 
