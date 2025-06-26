@@ -17,6 +17,9 @@ import { Typography } from '../../constants/Typography';
 import { Spacing, Layout } from '../../constants/Spacing';
 import { Shadows } from '../../constants/Shadows';
 
+// Import Alert
+import { Alert } from 'react-native';
+
 interface SavedOutfitsListProps {
   onOutfitPress?: (outfit: Outfit) => void;
   showHeader?: boolean;
@@ -317,9 +320,6 @@ export const SavedOutfitsList: React.FC<SavedOutfitsListProps> = ({
     </View>
   );
 };
-
-// Import Alert
-import { Alert } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {

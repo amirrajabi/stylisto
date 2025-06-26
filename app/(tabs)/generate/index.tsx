@@ -56,6 +56,7 @@ export default function GenerateScreen() {
   const [outfitToEdit, setOutfitToEdit] = useState<any>(null);
   const [filtersModalVisible, setFiltersModalVisible] = useState(false);
   const [showQuickFilters, setShowQuickFilters] = useState(true);
+  const [currentOutfitIndex, setCurrentOutfitIndex] = useState(0);
 
   const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({
     occasion: null,
@@ -92,6 +93,11 @@ export default function GenerateScreen() {
       );
     }
   }, [filteredItems.length, outfits.length]);
+
+  // Reset current outfit index when outfits change
+  React.useEffect(() => {
+    setCurrentOutfitIndex(0);
+  }, [outfits.length]);
 
   const handleFiltersApply = useCallback(
     async (filters: OutfitFilters) => {
@@ -421,7 +427,10 @@ export default function GenerateScreen() {
           </View>
         ) : outfits.length > 0 ? (
           <View style={styles.outfitsSection}>
-            <H3 style={styles.sectionTitle}>Your AI-Generated Outfits</H3>
+            <View style={styles.sectionHeader}>
+              <H3 style={styles.sectionTitle}>Your AI-Generated Outfits</H3>
+              <Text style={styles.outfitCount}>({outfits.length})</Text>
+            </View>
             <OutfitCard
               outfits={outfits.map((outfit, index) => ({
                 id: `outfit-${index}`,
@@ -441,7 +450,26 @@ export default function GenerateScreen() {
               }}
               onSaveOutfit={handleOutfitSave}
               onEditOutfit={handleOutfitEdit}
+              onCurrentIndexChange={setCurrentOutfitIndex}
             />
+
+            {/* Current Outfit Indicator */}
+            <View style={styles.outfitIndicatorContainer}>
+              <Text style={styles.currentOutfitText}>
+                {currentOutfitIndex + 1} of {outfits.length}
+              </Text>
+              <View style={styles.dotsContainer}>
+                {outfits.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.dot,
+                      index === currentOutfitIndex && styles.activeDot,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
           </View>
         ) : showQuickFilters && !hasActiveFilters ? (
           <View style={styles.emptyState}>
@@ -539,7 +567,44 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   outfitsSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  outfitCount: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.sm,
+    fontWeight: '500',
+  },
+  outfitIndicatorContainer: {
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  currentOutfitText: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary[200],
+    marginHorizontal: Spacing.xs / 2,
+  },
+  activeDot: {
+    backgroundColor: Colors.primary[500],
+    transform: [{ scale: 1.2 }],
   },
   emptyState: {
     alignItems: 'center',

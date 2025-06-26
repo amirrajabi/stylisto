@@ -44,6 +44,7 @@ Before executing any task, you **MUST** adhere to these operational protocols:
   - **Environment**:
       - Connect only to the cloud-hosted Supabase instance using the provided credentials.
       - Do not use a local Supabase instance or emulator.
+  - **icon**: Never use emoji, just use flat and modern icon.
   - **Terminal Usage**:
       - Terminal use is restricted. Do not run servers, tests, or deployments.
       - Permitted commands: `npm install`, `npx expo start`, `npx expo run:ios`, `npx expo run:android`, `supabase gen types`, and other commands explicitly requested by the user.

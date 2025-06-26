@@ -528,15 +528,6 @@ export function OutfitFiltersModal({
                       },
                     ]}
                   />
-                  <Text
-                    style={[
-                      styles.colorLabel,
-                      filters.colors.includes(option.id) &&
-                        styles.colorLabelSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -1030,7 +1021,7 @@ const styles = StyleSheet.create({
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    justifyContent: 'space-between',
   },
   colorCard: {
     alignItems: 'center',
@@ -1039,7 +1030,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border.primary,
-    minWidth: '22%',
+    width: '23%',
+    marginBottom: Spacing.sm,
   },
   colorCardSelected: {
     backgroundColor: Colors.primary[50],

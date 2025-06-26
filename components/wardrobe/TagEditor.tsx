@@ -12,6 +12,9 @@ import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Spacing, Layout } from '../../constants/Spacing';
 
+// Import Alert
+import { Alert } from 'react-native';
+
 interface TagEditorProps {
   tags: string[];
   onTagsChange: (tags: string[]) => void;
@@ -174,9 +177,6 @@ export const TagEditor: React.FC<TagEditorProps> = ({
     </View>
   );
 };
-
-// Import Alert
-import { Alert } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {

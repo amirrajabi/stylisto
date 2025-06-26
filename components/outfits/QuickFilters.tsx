@@ -1,4 +1,18 @@
-import { Filter } from 'lucide-react-native';
+import {
+  Book,
+  Briefcase,
+  Circle,
+  Coffee,
+  Dumbbell,
+  Filter,
+  Flower2,
+  Heart,
+  Move,
+  ShoppingBag,
+  Sparkles,
+  TrendingUp,
+  Zap,
+} from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import {
   ScrollView,
@@ -21,21 +35,69 @@ interface QuickFiltersProps {
 }
 
 const OCCASIONS = [
-  { value: Occasion.CASUAL, label: 'Casual', emoji: '👕' },
-  { value: Occasion.WORK, label: 'Work', emoji: '💼' },
-  { value: Occasion.FORMAL, label: 'Formal', emoji: '🎩' },
-  { value: Occasion.DATE, label: 'Date', emoji: '💕' },
-  { value: Occasion.SPORT, label: 'Sport', emoji: '👟' },
-  { value: Occasion.PARTY, label: 'Party', emoji: '🎉' },
+  {
+    value: Occasion.CASUAL,
+    label: 'Casual',
+    icon: <Coffee size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: Occasion.WORK,
+    label: 'Work',
+    icon: <Briefcase size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: Occasion.FORMAL,
+    label: 'Formal',
+    icon: <ShoppingBag size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: Occasion.DATE,
+    label: 'Date',
+    icon: <Heart size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: Occasion.SPORT,
+    label: 'Sport',
+    icon: <Dumbbell size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: Occasion.PARTY,
+    label: 'Party',
+    icon: <Sparkles size={16} color={Colors.primary[500]} />,
+  },
 ];
 
 const STYLES = [
-  { value: 'minimalist', label: 'Minimalist', emoji: '⚪' },
-  { value: 'classic', label: 'Classic', emoji: '📚' },
-  { value: 'trendy', label: 'Trendy', emoji: '✨' },
-  { value: 'edgy', label: 'Edgy', emoji: '🖤' },
-  { value: 'romantic', label: 'Romantic', emoji: '🌸' },
-  { value: 'sporty', label: 'Sporty', emoji: '⚡' },
+  {
+    value: 'minimalist',
+    label: 'Minimalist',
+    icon: <Circle size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: 'classic',
+    label: 'Classic',
+    icon: <Book size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: 'trendy',
+    label: 'Trendy',
+    icon: <TrendingUp size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: 'edgy',
+    label: 'Edgy',
+    icon: <Zap size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: 'romantic',
+    label: 'Romantic',
+    icon: <Flower2 size={16} color={Colors.primary[500]} />,
+  },
+  {
+    value: 'sporty',
+    label: 'Sporty',
+    icon: <Move size={16} color={Colors.primary[500]} />,
+  },
 ];
 
 export function QuickFilters({
@@ -78,7 +140,14 @@ export function QuickFilters({
               ]}
               onPress={() => handleOccasionPress(occasion.value)}
             >
-              <Text style={styles.emoji}>{occasion.emoji}</Text>
+              <View style={styles.iconContainer}>
+                {React.cloneElement(occasion.icon, {
+                  color:
+                    selectedOccasion === occasion.value
+                      ? Colors.primary[700]
+                      : Colors.primary[500],
+                })}
+              </View>
               <Text
                 style={[
                   styles.chipText,
@@ -110,7 +179,14 @@ export function QuickFilters({
               ]}
               onPress={() => handleStylePress(style.value)}
             >
-              <Text style={styles.emoji}>{style.emoji}</Text>
+              <View style={styles.iconContainer}>
+                {React.cloneElement(style.icon, {
+                  color:
+                    selectedStyle === style.value
+                      ? Colors.primary[700]
+                      : Colors.primary[500],
+                })}
+              </View>
               <Text
                 style={[
                   styles.chipText,
@@ -173,8 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary[100],
     borderColor: Colors.primary[500],
   },
-  emoji: {
-    fontSize: 16,
+  iconContainer: {
     marginRight: Spacing.xs,
   },
   chipText: {

@@ -31,6 +31,7 @@ interface OutfitCardProps {
   onOutfitPress: (outfitId: string) => void;
   onSaveOutfit?: (outfitId: string) => void;
   onEditOutfit?: (outfitId: string) => void;
+  onCurrentIndexChange?: (index: number) => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -41,6 +42,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   onOutfitPress,
   onSaveOutfit,
   onEditOutfit,
+  onCurrentIndexChange,
 }) => {
   const renderOutfitItem = ({ item: outfit }: { item: any }) => {
     const displayItems = outfit.items.slice(0, 3);
@@ -153,6 +155,14 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     );
   };
 
+  const handleScroll = (event: any) => {
+    if (onCurrentIndexChange) {
+      const offsetX = event.nativeEvent.contentOffset.x;
+      const currentIndex = Math.round(offsetX / (cardWidth + Spacing.md));
+      onCurrentIndexChange(currentIndex);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -165,6 +175,8 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         contentContainerStyle={styles.listContainer}
         ItemSeparatorComponent={() => <View style={{ width: Spacing.md }} />}
         keyExtractor={item => item.id}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
     </View>
   );
@@ -172,7 +184,9 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 200,
+    height: 230,
+    // paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   listContainer: {
     paddingHorizontal: Spacing.md,
@@ -184,6 +198,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     ...Shadows.md,
     position: 'relative',
+    marginBottom: Spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',

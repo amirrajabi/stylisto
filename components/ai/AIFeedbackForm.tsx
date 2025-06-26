@@ -13,6 +13,9 @@ import { Typography } from '../../constants/Typography';
 import { Spacing, Layout } from '../../constants/Spacing';
 import { supabase } from '../../lib/supabase';
 
+// Import Alert
+import { Alert } from 'react-native';
+
 interface AIFeedbackFormProps {
   userId: string;
   itemId: string;
@@ -179,9 +182,6 @@ export const AIFeedbackForm: React.FC<AIFeedbackFormProps> = ({
     </View>
   );
 };
-
-// Import Alert
-import { Alert } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {

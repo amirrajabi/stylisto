@@ -19,6 +19,9 @@ import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
 import { H1 } from '../../../components/ui';
 
+// Import ChevronRight
+import { ChevronRight } from 'lucide-react-native';
+
 interface AppSettings {
   theme: 'light' | 'dark' | 'system';
   fontSize: 'small' | 'medium' | 'large';
@@ -450,9 +453,6 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
-
-// Import ChevronRight
-import { ChevronRight } from 'lucide-react-native';
 
 const styles = StyleSheet.create({
   container: {
