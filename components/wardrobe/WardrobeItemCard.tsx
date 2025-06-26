@@ -1,4 +1,5 @@
 import {
+  DollarSign,
   Heart,
   MoveVertical as MoreVertical,
   Trash2,
@@ -136,6 +137,13 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
           {isSelected && (
             <View style={styles.selectionOverlay}>
               <View style={styles.checkmark} />
+            </View>
+          )}
+
+          {item.isForSale && (
+            <View style={styles.forSaleBadge}>
+              <DollarSign size={10} color="#ffffff" />
+              <Text style={styles.forSaleText}>For Sale</Text>
             </View>
           )}
         </View>
@@ -320,6 +328,13 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
         {isSelected && (
           <View style={styles.selectionOverlay}>
             <View style={styles.checkmark} />
+          </View>
+        )}
+
+        {item.isForSale && (
+          <View style={styles.forSaleBadge}>
+            <DollarSign size={10} color="#ffffff" />
+            <Text style={styles.forSaleText}>For Sale</Text>
           </View>
         )}
       </View>
@@ -597,6 +612,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.8)', // Red background for delete
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  forSaleBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.success[600],
+    borderRadius: Layout.borderRadius.full,
+    padding: Spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  forSaleText: {
+    ...Typography.caption.small,
+    color: Colors.white,
+    fontWeight: '500',
   },
 });
 

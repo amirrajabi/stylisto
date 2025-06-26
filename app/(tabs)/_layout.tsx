@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
+import { DollarSign, Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
@@ -67,6 +67,21 @@ export default function TabLayout() {
             />
           ),
           tabBarAccessibilityLabel: 'Generate outfits tab',
+        }}
+      />
+      <Tabs.Screen
+        name="selling"
+        options={{
+          title: 'Selling',
+          tabBarIcon: ({ color, size, focused }) => (
+            <DollarSign
+              size={size}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+              accessibilityLabel=""
+            />
+          ),
+          tabBarAccessibilityLabel: 'Items for sale tab',
         }}
       />
       <Tabs.Screen

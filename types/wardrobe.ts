@@ -16,6 +16,12 @@ export interface ClothingItem {
   purchaseDate?: string;
   price?: number;
   notes?: string;
+  originalPrice?: number;
+  currentValue?: number;
+  sellingPrice?: number;
+  condition?: ItemCondition;
+  isForSale?: boolean;
+  saleListing?: SaleListingDetails;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,6 +70,28 @@ export enum Occasion {
   TRAVEL = 'travel',
   DATE = 'date',
   SPECIAL = 'special',
+}
+
+export enum ItemCondition {
+  EXCELLENT = 'excellent',
+  VERY_GOOD = 'very_good',
+  GOOD = 'good',
+  FAIR = 'fair',
+  POOR = 'poor',
+  DAMAGED = 'damaged',
+}
+
+export interface SaleListingDetails {
+  listedDate?: string;
+  platform?: string;
+  description?: string;
+  negotiable?: boolean;
+  reasonForSelling?: string;
+  measurements?: {
+    [key: string]: string;
+  };
+  defects?: string[];
+  careInstructions?: string;
 }
 
 export interface WardrobeStats {

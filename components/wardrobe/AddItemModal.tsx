@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon, Plus, X } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -17,6 +17,7 @@ import { useWardrobe } from '../../hooks/useWardrobe';
 import {
   ClothingCategory,
   ClothingItem,
+  ItemCondition,
   Occasion,
   Season,
 } from '../../types/wardrobe';
@@ -62,23 +63,89 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 }) => {
   const { actions, isLoading } = useWardrobe();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [formData, setFormData] = useState<Partial<ClothingItem>>({
-    name: editItem?.name || '',
-    category: editItem?.category || ('tops' as ClothingCategory),
-    subcategory: editItem?.subcategory || '',
-    color: editItem?.color || '#000000',
-    brand: editItem?.brand || '',
-    size: editItem?.size || '',
-    season: editItem?.season || [],
-    occasion: editItem?.occasion || [],
-    imageUrl: editItem?.imageUrl || SAMPLE_IMAGES[0],
-    tags: editItem?.tags || [],
-    notes: editItem?.notes || '',
-    price: editItem?.price || undefined,
-    purchaseDate: editItem?.purchaseDate,
-  });
-
+  const [formData, setFormData] = useState<Partial<ClothingItem>>({});
   const [newTag, setNewTag] = useState('');
+  const [showSellingFields, setShowSellingFields] = useState(false);
+
+  // Initialize selling fields visibility and form data when editItem changes
+  useEffect(() => {
+    if (editItem) {
+      // Show selling fields if item has any selling-related data
+      const hasSellingData = !!(
+        editItem.originalPrice ||
+        editItem.currentValue ||
+        editItem.sellingPrice ||
+        editItem.isForSale ||
+        editItem.condition !== undefined ||
+        (editItem.saleListing && Object.keys(editItem.saleListing).length > 0)
+      );
+
+      setShowSellingFields(hasSellingData);
+
+      // Update form data with edit item data
+      setFormData({
+        name: editItem.name || '',
+        category: editItem.category || ('tops' as ClothingCategory),
+        subcategory: editItem.subcategory || '',
+        color: editItem.color || '#000000',
+        brand: editItem.brand || '',
+        size: editItem.size || '',
+        season: editItem.season || [],
+        occasion: editItem.occasion || [],
+        imageUrl: editItem.imageUrl || SAMPLE_IMAGES[0],
+        tags: editItem.tags || [],
+        notes: editItem.notes || '',
+        price: editItem.price || undefined,
+        purchaseDate: editItem.purchaseDate || undefined,
+        originalPrice: editItem.originalPrice || undefined,
+        currentValue: editItem.currentValue || undefined,
+        sellingPrice: editItem.sellingPrice || undefined,
+        condition: editItem.condition || ItemCondition.GOOD,
+        isForSale: editItem.isForSale || false,
+        saleListing: editItem.saleListing || {
+          platform: '',
+          description: '',
+          negotiable: false,
+          reasonForSelling: '',
+          measurements: {},
+          defects: [],
+          careInstructions: '',
+        },
+      });
+    } else {
+      // Reset for new item
+      setShowSellingFields(false);
+      setFormData({
+        name: '',
+        category: 'tops' as ClothingCategory,
+        subcategory: '',
+        color: '#000000',
+        brand: '',
+        size: '',
+        season: [],
+        occasion: [],
+        imageUrl: SAMPLE_IMAGES[0],
+        tags: [],
+        notes: '',
+        price: undefined,
+        purchaseDate: undefined,
+        originalPrice: undefined,
+        currentValue: undefined,
+        sellingPrice: undefined,
+        condition: ItemCondition.GOOD,
+        isForSale: false,
+        saleListing: {
+          platform: '',
+          description: '',
+          negotiable: false,
+          reasonForSelling: '',
+          measurements: {},
+          defects: [],
+          careInstructions: '',
+        },
+      });
+    }
+  }, [editItem]);
 
   // Smooth scroll to input section
   const scrollToInput = (sectionIndex: number) => {
@@ -120,7 +187,19 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         price: formData.price
           ? parseFloat(formData.price.toString())
           : undefined,
-        purchaseDate: formData.purchaseDate?.toISOString().split('T')[0],
+        purchaseDate: formData.purchaseDate || undefined,
+        originalPrice: formData.originalPrice
+          ? parseFloat(formData.originalPrice.toString())
+          : undefined,
+        currentValue: formData.currentValue
+          ? parseFloat(formData.currentValue.toString())
+          : undefined,
+        sellingPrice: formData.sellingPrice
+          ? parseFloat(formData.sellingPrice.toString())
+          : undefined,
+        condition: formData.condition,
+        isForSale: formData.isForSale,
+        saleListing: formData.saleListing,
       };
 
       let result;
@@ -528,6 +607,234 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             </View>
           </View>
 
+          {/* Selling Information */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.toggleHeader}
+              onPress={() => setShowSellingFields(!showSellingFields)}
+            >
+              <Text style={styles.sectionTitle}>
+                Selling Information (Optional)
+              </Text>
+              <Text style={styles.toggleIcon}>
+                {showSellingFields ? '−' : '+'}
+              </Text>
+            </TouchableOpacity>
+
+            {showSellingFields && (
+              <>
+                {/* For Sale Toggle */}
+                <View style={styles.inputGroup}>
+                  <TouchableOpacity
+                    style={styles.checkboxContainer}
+                    onPress={() =>
+                      setFormData({
+                        ...formData,
+                        isForSale: !formData.isForSale,
+                      })
+                    }
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        formData.isForSale && styles.checkboxChecked,
+                      ]}
+                    >
+                      {formData.isForSale && (
+                        <Text style={styles.checkboxText}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Currently for sale</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Price Information */}
+                <View style={styles.priceRow}>
+                  <View style={styles.priceInput}>
+                    <Text style={styles.label}>Original Price (AUD)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={formData.originalPrice?.toString() || ''}
+                      onChangeText={value =>
+                        setFormData({
+                          ...formData,
+                          originalPrice: value ? parseFloat(value) : undefined,
+                        })
+                      }
+                      placeholder="0.00"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                    />
+                  </View>
+                  <View style={styles.priceInput}>
+                    <Text style={styles.label}>Current Value (AUD)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={formData.currentValue?.toString() || ''}
+                      onChangeText={value =>
+                        setFormData({
+                          ...formData,
+                          currentValue: value ? parseFloat(value) : undefined,
+                        })
+                      }
+                      placeholder="0.00"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                    />
+                  </View>
+                </View>
+
+                {formData.isForSale && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Selling Price (AUD)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={formData.sellingPrice?.toString() || ''}
+                      onChangeText={value =>
+                        setFormData({
+                          ...formData,
+                          sellingPrice: value ? parseFloat(value) : undefined,
+                        })
+                      }
+                      placeholder="0.00"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                    />
+                  </View>
+                )}
+
+                {/* Condition */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Condition</Text>
+                  <View style={styles.chipContainer}>
+                    {Object.values(ItemCondition).map(condition => (
+                      <TouchableOpacity
+                        key={condition}
+                        style={[
+                          styles.chip,
+                          formData.condition === condition &&
+                            styles.selectedChip,
+                        ]}
+                        onPress={() => setFormData({ ...formData, condition })}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            formData.condition === condition &&
+                              styles.selectedChipText,
+                          ]}
+                        >
+                          {condition.replace('_', ' ')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Sale Details */}
+                {formData.isForSale && (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Platform</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={formData.saleListing?.platform || ''}
+                        onChangeText={platform =>
+                          setFormData({
+                            ...formData,
+                            saleListing: {
+                              ...formData.saleListing,
+                              platform,
+                            } as any,
+                          })
+                        }
+                        placeholder="e.g., Vinted, Facebook Marketplace, eBay"
+                        placeholderTextColor="#9ca3af"
+                        returnKeyType="done"
+                      />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Reason for Selling</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={formData.saleListing?.reasonForSelling || ''}
+                        onChangeText={reasonForSelling =>
+                          setFormData({
+                            ...formData,
+                            saleListing: {
+                              ...formData.saleListing,
+                              reasonForSelling,
+                            } as any,
+                          })
+                        }
+                        placeholder="e.g., Doesn't fit, Style change"
+                        placeholderTextColor="#9ca3af"
+                        returnKeyType="done"
+                      />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <TouchableOpacity
+                        style={styles.checkboxContainer}
+                        onPress={() =>
+                          setFormData({
+                            ...formData,
+                            saleListing: {
+                              ...formData.saleListing,
+                              negotiable: !formData.saleListing?.negotiable,
+                            } as any,
+                          })
+                        }
+                      >
+                        <View
+                          style={[
+                            styles.checkbox,
+                            formData.saleListing?.negotiable &&
+                              styles.checkboxChecked,
+                          ]}
+                        >
+                          {formData.saleListing?.negotiable && (
+                            <Text style={styles.checkboxText}>✓</Text>
+                          )}
+                        </View>
+                        <Text style={styles.checkboxLabel}>
+                          Price is negotiable
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Sale Description</Text>
+                      <TextInput
+                        style={styles.textArea}
+                        value={formData.saleListing?.description || ''}
+                        onChangeText={description =>
+                          setFormData({
+                            ...formData,
+                            saleListing: {
+                              ...formData.saleListing,
+                              description,
+                            } as any,
+                          })
+                        }
+                        placeholder="Describe the item for potential buyers..."
+                        placeholderTextColor="#9ca3af"
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                        returnKeyType="done"
+                      />
+                    </View>
+                  </>
+                )}
+              </>
+            )}
+          </View>
+
           {/* Notes */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Notes</Text>
@@ -771,5 +1078,57 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     backgroundColor: '#9ca3af',
+  },
+  toggleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+  },
+  toggleIcon: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#3b82f6',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkboxText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priceInput: {
+    flex: 1,
   },
 });

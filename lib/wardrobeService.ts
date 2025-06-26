@@ -1,6 +1,10 @@
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
-import { ClothingItem } from '../types/wardrobe';
+import {
+  ClothingItem,
+  ItemCondition,
+  SaleListingDetails,
+} from '../types/wardrobe';
 import { storageService } from './storage';
 import { supabase } from './supabase';
 
@@ -18,6 +22,13 @@ export interface CreateClothingItemData {
   notes?: string;
   price?: number;
   purchaseDate?: string;
+  // Selling-related fields
+  originalPrice?: number;
+  currentValue?: number;
+  sellingPrice?: number;
+  condition?: ItemCondition;
+  isForSale?: boolean;
+  saleListing?: SaleListingDetails;
 }
 
 export interface UpdateClothingItemData
@@ -135,6 +146,13 @@ class WardrobeService {
         is_favorite: false,
         times_worn: 0,
         last_worn: null,
+        // Selling-related fields
+        original_price: itemData.originalPrice || null,
+        current_value: itemData.currentValue || null,
+        selling_price: itemData.sellingPrice || null,
+        condition: itemData.condition || 'good',
+        is_for_sale: itemData.isForSale || false,
+        sale_listing: itemData.saleListing || {},
       };
 
       console.log('Inserting clothing item with payload:', {
@@ -191,6 +209,13 @@ class WardrobeService {
           : undefined,
         price: data.price || undefined,
         notes: data.notes || '',
+        // Selling-related fields
+        originalPrice: data.original_price || undefined,
+        currentValue: data.current_value || undefined,
+        sellingPrice: data.selling_price || undefined,
+        condition: data.condition || undefined,
+        isForSale: data.is_for_sale || false,
+        saleListing: data.sale_listing || undefined,
         createdAt: new Date(data.created_at).toISOString(),
         updatedAt: new Date(data.updated_at).toISOString(),
       };
@@ -255,6 +280,19 @@ class WardrobeService {
       if (itemData.price !== undefined) updatePayload.price = itemData.price;
       if (itemData.purchaseDate !== undefined)
         updatePayload.purchase_date = itemData.purchaseDate;
+      // Selling-related fields
+      if (itemData.originalPrice !== undefined)
+        updatePayload.original_price = itemData.originalPrice;
+      if (itemData.currentValue !== undefined)
+        updatePayload.current_value = itemData.currentValue;
+      if (itemData.sellingPrice !== undefined)
+        updatePayload.selling_price = itemData.sellingPrice;
+      if (itemData.condition !== undefined)
+        updatePayload.condition = itemData.condition;
+      if (itemData.isForSale !== undefined)
+        updatePayload.is_for_sale = itemData.isForSale;
+      if (itemData.saleListing !== undefined)
+        updatePayload.sale_listing = itemData.saleListing;
 
       const { data, error } = await supabase
         .from('clothing_items')
@@ -290,6 +328,13 @@ class WardrobeService {
           : undefined,
         price: data.price || undefined,
         notes: data.notes || '',
+        // Selling-related fields
+        originalPrice: data.original_price || undefined,
+        currentValue: data.current_value || undefined,
+        sellingPrice: data.selling_price || undefined,
+        condition: data.condition || undefined,
+        isForSale: data.is_for_sale || false,
+        saleListing: data.sale_listing || undefined,
         createdAt: new Date(data.created_at).toISOString(),
         updatedAt: new Date(data.updated_at).toISOString(),
       };
@@ -346,6 +391,13 @@ class WardrobeService {
           : undefined,
         price: item.price || undefined,
         notes: item.notes || '',
+        // Selling-related fields
+        originalPrice: item.original_price || undefined,
+        currentValue: item.current_value || undefined,
+        sellingPrice: item.selling_price || undefined,
+        condition: item.condition || undefined,
+        isForSale: item.is_for_sale || false,
+        saleListing: item.sale_listing || undefined,
         createdAt: new Date(item.created_at).toISOString(),
         updatedAt: new Date(item.updated_at).toISOString(),
       }));
