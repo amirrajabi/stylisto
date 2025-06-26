@@ -88,10 +88,13 @@ export function OutfitFiltersBar({
     filters.formality ||
     filters.colors.length > 0 ||
     filters.includeWeather ||
-    filters.stylePreferences.bodyType ||
-    filters.stylePreferences.preferredFit ||
-    (filters.stylePreferences.avoidPatterns?.length || 0) > 0 ||
-    filters.stylePreferences.prioritizeComfort ||
+    filters.stylePreferences.formality !== 0.5 ||
+    filters.stylePreferences.boldness !== 0.5 ||
+    filters.stylePreferences.layering !== 0.5 ||
+    filters.stylePreferences.colorfulness !== 0.5 ||
+    !filters.stylePreferences.autoWeather ||
+    !filters.stylePreferences.saveHistory ||
+    !filters.stylePreferences.useColorTheory ||
     filters.weatherIntegration.enabled;
 
   const activeFilterCount =
@@ -100,13 +103,15 @@ export function OutfitFiltersBar({
       filters.style,
       filters.formality,
       filters.includeWeather,
-      filters.stylePreferences.bodyType,
-      filters.stylePreferences.preferredFit,
-      filters.stylePreferences.prioritizeComfort,
+      filters.stylePreferences.formality !== 0.5,
+      filters.stylePreferences.boldness !== 0.5,
+      filters.stylePreferences.layering !== 0.5,
+      filters.stylePreferences.colorfulness !== 0.5,
+      !filters.stylePreferences.autoWeather,
+      !filters.stylePreferences.saveHistory,
+      !filters.stylePreferences.useColorTheory,
       filters.weatherIntegration.enabled,
-    ].filter(Boolean).length +
-    filters.colors.length +
-    (filters.stylePreferences.avoidPatterns?.length || 0);
+    ].filter(Boolean).length + filters.colors.length;
 
   return (
     <View style={styles.container}>
@@ -201,14 +206,18 @@ export function OutfitFiltersBar({
             </View>
           )}
 
-          {filters.stylePreferences.bodyType && (
+          {filters.stylePreferences.formality !== 0.5 && (
             <View style={styles.filterChip}>
               <Text style={styles.filterChipText}>
-                {filters.stylePreferences.bodyType.charAt(0).toUpperCase() +
-                  filters.stylePreferences.bodyType.slice(1)}
+                Formality:{' '}
+                {filters.stylePreferences.formality < 0.33
+                  ? 'Casual'
+                  : filters.stylePreferences.formality > 0.66
+                    ? 'Formal'
+                    : 'Balanced'}
               </Text>
               <TouchableOpacity
-                onPress={() => onClearFilter('stylePreferences', 'bodyType')}
+                onPress={() => onClearFilter('stylePreferences', 'formality')}
                 style={styles.filterChipRemove}
               >
                 <X size={14} color={Colors.text.secondary} />
@@ -216,16 +225,57 @@ export function OutfitFiltersBar({
             </View>
           )}
 
-          {filters.stylePreferences.preferredFit && (
+          {filters.stylePreferences.boldness !== 0.5 && (
             <View style={styles.filterChip}>
               <Text style={styles.filterChipText}>
-                {filters.stylePreferences.preferredFit.charAt(0).toUpperCase() +
-                  filters.stylePreferences.preferredFit.slice(1)}{' '}
-                Fit
+                Boldness:{' '}
+                {filters.stylePreferences.boldness < 0.33
+                  ? 'Conservative'
+                  : filters.stylePreferences.boldness > 0.66
+                    ? 'Bold'
+                    : 'Balanced'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => onClearFilter('stylePreferences', 'boldness')}
+                style={styles.filterChipRemove}
+              >
+                <X size={14} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {filters.stylePreferences.layering !== 0.5 && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>
+                Layering:{' '}
+                {filters.stylePreferences.layering < 0.33
+                  ? 'Minimal'
+                  : filters.stylePreferences.layering > 0.66
+                    ? 'Maximal'
+                    : 'Balanced'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => onClearFilter('stylePreferences', 'layering')}
+                style={styles.filterChipRemove}
+              >
+                <X size={14} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {filters.stylePreferences.colorfulness !== 0.5 && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>
+                Colors:{' '}
+                {filters.stylePreferences.colorfulness < 0.33
+                  ? 'Monochrome'
+                  : filters.stylePreferences.colorfulness > 0.66
+                    ? 'Colorful'
+                    : 'Balanced'}
               </Text>
               <TouchableOpacity
                 onPress={() =>
-                  onClearFilter('stylePreferences', 'preferredFit')
+                  onClearFilter('stylePreferences', 'colorfulness')
                 }
                 style={styles.filterChipRemove}
               >
@@ -234,13 +284,11 @@ export function OutfitFiltersBar({
             </View>
           )}
 
-          {filters.stylePreferences.prioritizeComfort && (
+          {!filters.stylePreferences.autoWeather && (
             <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Comfort Priority</Text>
+              <Text style={styles.filterChipText}>Manual Weather</Text>
               <TouchableOpacity
-                onPress={() =>
-                  onClearFilter('stylePreferences', 'prioritizeComfort')
-                }
+                onPress={() => onClearFilter('stylePreferences', 'autoWeather')}
                 style={styles.filterChipRemove}
               >
                 <X size={14} color={Colors.text.secondary} />
@@ -248,19 +296,31 @@ export function OutfitFiltersBar({
             </View>
           )}
 
-          {filters.stylePreferences.avoidPatterns?.map(pattern => (
-            <View key={`avoid-${pattern}`} style={styles.filterChip}>
-              <Text style={styles.filterChipText}>
-                Avoid {pattern.charAt(0).toUpperCase() + pattern.slice(1)}
-              </Text>
+          {!filters.stylePreferences.saveHistory && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>No History</Text>
               <TouchableOpacity
-                onPress={() => onClearFilter('stylePreferences', pattern)}
+                onPress={() => onClearFilter('stylePreferences', 'saveHistory')}
                 style={styles.filterChipRemove}
               >
                 <X size={14} color={Colors.text.secondary} />
               </TouchableOpacity>
             </View>
-          ))}
+          )}
+
+          {!filters.stylePreferences.useColorTheory && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>No Color Theory</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  onClearFilter('stylePreferences', 'useColorTheory')
+                }
+                style={styles.filterChipRemove}
+              >
+                <X size={14} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {filters.weatherIntegration.enabled && (
             <View style={styles.filterChip}>

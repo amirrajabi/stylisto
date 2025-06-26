@@ -1,10 +1,13 @@
+import Slider from '@react-native-community/slider';
 import { Filter, X } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   Modal,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -24,16 +27,19 @@ export interface OutfitFilters {
   colors: string[];
   includeWeather: boolean;
   stylePreferences: {
-    bodyType?: string;
-    preferredFit?: string;
-    avoidPatterns?: string[];
-    prioritizeComfort?: boolean;
+    formality: number;
+    boldness: number;
+    layering: number;
+    colorfulness: number;
+    autoWeather: boolean;
+    saveHistory: boolean;
+    useColorTheory: boolean;
   };
   weatherIntegration: {
     enabled: boolean;
-    autoUpdate?: boolean;
-    temperatureRange?: [number, number];
-    considerHumidity?: boolean;
+    useCurrentLocation: boolean;
+    location?: string;
+    apiKey?: string;
   };
 }
 
@@ -153,6 +159,23 @@ const PATTERN_OPTIONS = [
   { id: 'paisley', label: 'Paisley' },
 ];
 
+const getStyleLabel = (
+  key: keyof OutfitFilters['stylePreferences'],
+  value: number
+): string => {
+  if (typeof value !== 'number') return 'Unknown';
+
+  const labels: Record<string, [string, string]> = {
+    formality: ['Casual', 'Formal'],
+    boldness: ['Conservative', 'Bold'],
+    layering: ['Minimal', 'Maximal'],
+    colorfulness: ['Monochrome', 'Colorful'],
+  };
+
+  const [min, max] = labels[key] || ['Low', 'High'];
+  return value < 0.33 ? min : value > 0.66 ? max : 'Balanced';
+};
+
 export function OutfitFiltersModal({
   visible,
   onClose,
@@ -195,50 +218,35 @@ export function OutfitFiltersModal({
     }));
   }, [weatherData]);
 
-  const handleBodyTypeSelect = useCallback((bodyType: string | undefined) => {
-    setFilters(prev => ({
-      ...prev,
-      stylePreferences: {
-        ...prev.stylePreferences,
-        bodyType,
-      },
-    }));
-  }, []);
-
-  const handleFitPreferenceSelect = useCallback(
-    (preferredFit: string | undefined) => {
-      setFilters(prev => ({
-        ...prev,
-        stylePreferences: {
-          ...prev.stylePreferences,
-          preferredFit,
-        },
-      }));
+  const handleSliderChange = useCallback(
+    (key: keyof OutfitFilters['stylePreferences'], value: number) => {
+      if (typeof value === 'number') {
+        setFilters(prev => ({
+          ...prev,
+          stylePreferences: {
+            ...prev.stylePreferences,
+            [key]: value,
+          },
+        }));
+      }
     },
     []
   );
 
-  const handlePatternToggle = useCallback((patternId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      stylePreferences: {
-        ...prev.stylePreferences,
-        avoidPatterns: prev.stylePreferences.avoidPatterns?.includes(patternId)
-          ? prev.stylePreferences.avoidPatterns.filter(p => p !== patternId)
-          : [...(prev.stylePreferences.avoidPatterns || []), patternId],
-      },
-    }));
-  }, []);
-
-  const handleComfortToggle = useCallback(() => {
-    setFilters(prev => ({
-      ...prev,
-      stylePreferences: {
-        ...prev.stylePreferences,
-        prioritizeComfort: !prev.stylePreferences.prioritizeComfort,
-      },
-    }));
-  }, []);
+  const handleStyleToggle = useCallback(
+    (key: keyof OutfitFilters['stylePreferences']) => {
+      if (typeof filters.stylePreferences[key] === 'boolean') {
+        setFilters(prev => ({
+          ...prev,
+          stylePreferences: {
+            ...prev.stylePreferences,
+            [key]: !prev.stylePreferences[key],
+          },
+        }));
+      }
+    },
+    [filters.stylePreferences]
+  );
 
   const handleWeatherIntegrationToggle = useCallback(() => {
     setFilters(prev => ({
@@ -250,25 +258,48 @@ export function OutfitFiltersModal({
     }));
   }, []);
 
-  const handleAutoUpdateToggle = useCallback(() => {
+  const handleLocationToggle = useCallback(() => {
     setFilters(prev => ({
       ...prev,
       weatherIntegration: {
         ...prev.weatherIntegration,
-        autoUpdate: !prev.weatherIntegration.autoUpdate,
+        useCurrentLocation: !prev.weatherIntegration.useCurrentLocation,
       },
     }));
   }, []);
 
-  const handleHumidityToggle = useCallback(() => {
+  const handleLocationChange = useCallback((location: string) => {
     setFilters(prev => ({
       ...prev,
       weatherIntegration: {
         ...prev.weatherIntegration,
-        considerHumidity: !prev.weatherIntegration.considerHumidity,
+        location,
       },
     }));
   }, []);
+
+  const handleApiKeyChange = useCallback((apiKey: string) => {
+    setFilters(prev => ({
+      ...prev,
+      weatherIntegration: {
+        ...prev.weatherIntegration,
+        apiKey,
+      },
+    }));
+  }, []);
+
+  const handleStylePreferenceChange = useCallback(
+    (key: keyof OutfitFilters['stylePreferences'], value: number | boolean) => {
+      setFilters(prev => ({
+        ...prev,
+        stylePreferences: {
+          ...prev.stylePreferences,
+          [key]: value,
+        },
+      }));
+    },
+    []
+  );
 
   const handleReset = useCallback(() => {
     setFilters({
@@ -279,16 +310,19 @@ export function OutfitFiltersModal({
       colors: [],
       includeWeather: false,
       stylePreferences: {
-        bodyType: undefined,
-        preferredFit: undefined,
-        avoidPatterns: [],
-        prioritizeComfort: false,
+        formality: 0.5,
+        boldness: 0.5,
+        layering: 0.5,
+        colorfulness: 0.5,
+        autoWeather: true,
+        saveHistory: true,
+        useColorTheory: true,
       },
       weatherIntegration: {
         enabled: false,
-        autoUpdate: false,
-        temperatureRange: undefined,
-        considerHumidity: false,
+        useCurrentLocation: true,
+        location: undefined,
+        apiKey: undefined,
       },
     });
   }, []);
@@ -304,10 +338,13 @@ export function OutfitFiltersModal({
     filters.formality ||
     filters.colors.length > 0 ||
     filters.includeWeather ||
-    filters.stylePreferences.bodyType ||
-    filters.stylePreferences.preferredFit ||
-    (filters.stylePreferences.avoidPatterns?.length || 0) > 0 ||
-    filters.stylePreferences.prioritizeComfort ||
+    filters.stylePreferences.formality !== 0.5 ||
+    filters.stylePreferences.boldness !== 0.5 ||
+    filters.stylePreferences.layering !== 0.5 ||
+    filters.stylePreferences.colorfulness !== 0.5 ||
+    !filters.stylePreferences.autoWeather ||
+    !filters.stylePreferences.saveHistory ||
+    !filters.stylePreferences.useColorTheory ||
     filters.weatherIntegration.enabled;
 
   return (
@@ -509,170 +546,180 @@ export function OutfitFiltersModal({
           <View style={styles.section}>
             <H3 style={styles.sectionTitle}>Style Preferences</H3>
             <Text style={styles.sectionDescription}>
-              Customize recommendations based on your body type and preferences
+              Adjust these sliders to customize the style of your generated
+              outfits
             </Text>
 
-            {/* Body Type */}
-            <View style={styles.subsection}>
-              <Text style={styles.subsectionTitle}>Body Type</Text>
-              <View style={styles.optionsGrid}>
-                {BODY_TYPE_OPTIONS.map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.optionCard,
-                      filters.stylePreferences.bodyType === option.value &&
-                        styles.optionCardSelected,
-                    ]}
-                    onPress={() =>
-                      handleBodyTypeSelect(
-                        filters.stylePreferences.bodyType === option.value
-                          ? undefined
-                          : option.value
-                      )
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.optionLabel,
-                        filters.stylePreferences.bodyType === option.value &&
-                          styles.optionLabelSelected,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.optionDescription,
-                        filters.stylePreferences.bodyType === option.value &&
-                          styles.optionDescriptionSelected,
-                      ]}
-                    >
-                      {option.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Preferred Fit */}
-            <View style={styles.subsection}>
-              <Text style={styles.subsectionTitle}>Preferred Fit</Text>
-              <View style={styles.optionsGrid}>
-                {FIT_PREFERENCE_OPTIONS.map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.optionCard,
-                      filters.stylePreferences.preferredFit === option.value &&
-                        styles.optionCardSelected,
-                    ]}
-                    onPress={() =>
-                      handleFitPreferenceSelect(
-                        filters.stylePreferences.preferredFit === option.value
-                          ? undefined
-                          : option.value
-                      )
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.optionLabel,
-                        filters.stylePreferences.preferredFit ===
-                          option.value && styles.optionLabelSelected,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.optionDescription,
-                        filters.stylePreferences.preferredFit ===
-                          option.value && styles.optionDescriptionSelected,
-                      ]}
-                    >
-                      {option.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Patterns to Avoid */}
-            <View style={styles.subsection}>
-              <Text style={styles.subsectionTitle}>Patterns to Avoid</Text>
-              <Text style={styles.subsectionDescription}>
-                Select patterns you prefer to avoid in your outfits
-              </Text>
-              <View style={styles.patternGrid}>
-                {PATTERN_OPTIONS.map(pattern => (
-                  <TouchableOpacity
-                    key={pattern.id}
-                    style={[
-                      styles.patternChip,
-                      filters.stylePreferences.avoidPatterns?.includes(
-                        pattern.id
-                      ) && styles.patternChipSelected,
-                    ]}
-                    onPress={() => handlePatternToggle(pattern.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.patternLabel,
-                        filters.stylePreferences.avoidPatterns?.includes(
-                          pattern.id
-                        ) && styles.patternLabelSelected,
-                      ]}
-                    >
-                      {pattern.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Comfort Priority */}
-            <View style={styles.subsection}>
-              <TouchableOpacity
-                style={[
-                  styles.toggleOption,
-                  filters.stylePreferences.prioritizeComfort &&
-                    styles.toggleOptionSelected,
-                ]}
-                onPress={handleComfortToggle}
-              >
-                <View style={styles.toggleContent}>
-                  <Text
-                    style={[
-                      styles.toggleLabel,
-                      filters.stylePreferences.prioritizeComfort &&
-                        styles.toggleLabelSelected,
-                    ]}
-                  >
-                    Prioritize Comfort
-                  </Text>
-                  <Text
-                    style={[
-                      styles.toggleDescription,
-                      filters.stylePreferences.prioritizeComfort &&
-                        styles.toggleDescriptionSelected,
-                    ]}
-                  >
-                    Favor comfortable, breathable fabrics and relaxed fits
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.checkmark,
-                    filters.stylePreferences.prioritizeComfort &&
-                      styles.checkmarkSelected,
-                  ]}
-                >
-                  {filters.stylePreferences.prioritizeComfort && (
-                    <Text style={styles.checkmarkText}>✓</Text>
+            {/* Formality Slider */}
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>Formality</Text>
+                <Text style={styles.sliderValue}>
+                  {getStyleLabel(
+                    'formality',
+                    filters.stylePreferences.formality
                   )}
+                </Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.05}
+                value={filters.stylePreferences.formality}
+                onValueChange={value => handleSliderChange('formality', value)}
+                minimumTrackTintColor={Colors.primary[700]}
+                maximumTrackTintColor={Colors.neutral[300]}
+                thumbTintColor={Colors.primary[700]}
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderMinLabel}>Casual</Text>
+                <Text style={styles.sliderMaxLabel}>Formal</Text>
+              </View>
+            </View>
+
+            {/* Boldness Slider */}
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>Boldness</Text>
+                <Text style={styles.sliderValue}>
+                  {getStyleLabel('boldness', filters.stylePreferences.boldness)}
+                </Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.05}
+                value={filters.stylePreferences.boldness}
+                onValueChange={value => handleSliderChange('boldness', value)}
+                minimumTrackTintColor={Colors.primary[700]}
+                maximumTrackTintColor={Colors.neutral[300]}
+                thumbTintColor={Colors.primary[700]}
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderMinLabel}>Conservative</Text>
+                <Text style={styles.sliderMaxLabel}>Bold</Text>
+              </View>
+            </View>
+
+            {/* Layering Slider */}
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>Layering</Text>
+                <Text style={styles.sliderValue}>
+                  {getStyleLabel('layering', filters.stylePreferences.layering)}
+                </Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.05}
+                value={filters.stylePreferences.layering}
+                onValueChange={value => handleSliderChange('layering', value)}
+                minimumTrackTintColor={Colors.primary[700]}
+                maximumTrackTintColor={Colors.neutral[300]}
+                thumbTintColor={Colors.primary[700]}
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderMinLabel}>Minimal</Text>
+                <Text style={styles.sliderMaxLabel}>Maximal</Text>
+              </View>
+            </View>
+
+            {/* Colorfulness Slider */}
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>Colorfulness</Text>
+                <Text style={styles.sliderValue}>
+                  {getStyleLabel(
+                    'colorfulness',
+                    filters.stylePreferences.colorfulness
+                  )}
+                </Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.05}
+                value={filters.stylePreferences.colorfulness}
+                onValueChange={value =>
+                  handleSliderChange('colorfulness', value)
+                }
+                minimumTrackTintColor={Colors.primary[700]}
+                maximumTrackTintColor={Colors.neutral[300]}
+                thumbTintColor={Colors.primary[700]}
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderMinLabel}>Monochrome</Text>
+                <Text style={styles.sliderMaxLabel}>Colorful</Text>
+              </View>
+            </View>
+
+            {/* Algorithm Settings */}
+            <View style={styles.subsection}>
+              <Text style={styles.subsectionTitle}>Algorithm Settings</Text>
+              <Text style={styles.subsectionDescription}>
+                Configure how the outfit generation algorithm works
+              </Text>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Use Weather Data</Text>
+                  <Text style={styles.settingDescription}>
+                    Automatically consider weather when generating outfits
+                  </Text>
                 </View>
-              </TouchableOpacity>
+                <Switch
+                  value={filters.stylePreferences.autoWeather}
+                  onValueChange={() => handleStyleToggle('autoWeather')}
+                  trackColor={{
+                    false: Colors.neutral[300],
+                    true: Colors.primary[500],
+                  }}
+                  thumbColor={Colors.white}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>
+                    Save Generation History
+                  </Text>
+                  <Text style={styles.settingDescription}>
+                    Remember previously generated outfits to ensure variety
+                  </Text>
+                </View>
+                <Switch
+                  value={filters.stylePreferences.saveHistory}
+                  onValueChange={() => handleStyleToggle('saveHistory')}
+                  trackColor={{
+                    false: Colors.neutral[300],
+                    true: Colors.primary[500],
+                  }}
+                  thumbColor={Colors.white}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Use Color Theory</Text>
+                  <Text style={styles.settingDescription}>
+                    Apply color harmony principles when generating outfits
+                  </Text>
+                </View>
+                <Switch
+                  value={filters.stylePreferences.useColorTheory}
+                  onValueChange={() => handleStyleToggle('useColorTheory')}
+                  trackColor={{
+                    false: Colors.neutral[300],
+                    true: Colors.primary[500],
+                  }}
+                  thumbColor={Colors.white}
+                />
+              </View>
             </View>
           </View>
 
@@ -731,89 +778,64 @@ export function OutfitFiltersModal({
             {filters.weatherIntegration.enabled && (
               <>
                 <View style={styles.subsection}>
-                  <TouchableOpacity
-                    style={[
-                      styles.toggleOption,
-                      filters.weatherIntegration.autoUpdate &&
-                        styles.toggleOptionSelected,
-                    ]}
-                    onPress={handleAutoUpdateToggle}
-                  >
-                    <View style={styles.toggleContent}>
-                      <Text
-                        style={[
-                          styles.toggleLabel,
-                          filters.weatherIntegration.autoUpdate &&
-                            styles.toggleLabelSelected,
-                        ]}
-                      >
-                        Auto-Update Weather
+                  <Text style={styles.subsectionTitle}>Location Settings</Text>
+
+                  <View style={styles.settingRow}>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        Use Current Location
                       </Text>
-                      <Text
-                        style={[
-                          styles.toggleDescription,
-                          filters.weatherIntegration.autoUpdate &&
-                            styles.toggleDescriptionSelected,
-                        ]}
-                      >
-                        Automatically refresh weather data for recommendations
+                      <Text style={styles.settingDescription}>
+                        Automatically detect your location
                       </Text>
                     </View>
-                    <View
-                      style={[
-                        styles.checkmark,
-                        filters.weatherIntegration.autoUpdate &&
-                          styles.checkmarkSelected,
-                      ]}
-                    >
-                      {filters.weatherIntegration.autoUpdate && (
-                        <Text style={styles.checkmarkText}>✓</Text>
-                      )}
+                    <Switch
+                      value={filters.weatherIntegration.useCurrentLocation}
+                      onValueChange={handleLocationToggle}
+                      trackColor={{
+                        false: Colors.neutral[300],
+                        true: Colors.primary[500],
+                      }}
+                      thumbColor={Colors.white}
+                    />
+                  </View>
+
+                  {!filters.weatherIntegration.useCurrentLocation && (
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Location</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={filters.weatherIntegration.location || ''}
+                        onChangeText={handleLocationChange}
+                        placeholder="Enter city name"
+                        placeholderTextColor={Colors.text.tertiary}
+                      />
                     </View>
-                  </TouchableOpacity>
+                  )}
                 </View>
 
                 <View style={styles.subsection}>
-                  <TouchableOpacity
-                    style={[
-                      styles.toggleOption,
-                      filters.weatherIntegration.considerHumidity &&
-                        styles.toggleOptionSelected,
-                    ]}
-                    onPress={handleHumidityToggle}
-                  >
-                    <View style={styles.toggleContent}>
-                      <Text
-                        style={[
-                          styles.toggleLabel,
-                          filters.weatherIntegration.considerHumidity &&
-                            styles.toggleLabelSelected,
-                        ]}
-                      >
-                        Consider Humidity
-                      </Text>
-                      <Text
-                        style={[
-                          styles.toggleDescription,
-                          filters.weatherIntegration.considerHumidity &&
-                            styles.toggleDescriptionSelected,
-                        ]}
-                      >
-                        Factor in humidity levels for fabric selection
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.checkmark,
-                        filters.weatherIntegration.considerHumidity &&
-                          styles.checkmarkSelected,
-                      ]}
-                    >
-                      {filters.weatherIntegration.considerHumidity && (
-                        <Text style={styles.checkmarkText}>✓</Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
+                  <Text style={styles.subsectionTitle}>API Settings</Text>
+                  <Text style={styles.subsectionDescription}>
+                    Enter your weather API key to enable real-time weather data
+                  </Text>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>API Key (Optional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={filters.weatherIntegration.apiKey || ''}
+                      onChangeText={handleApiKeyChange}
+                      placeholder="Enter weather API key"
+                      placeholderTextColor={Colors.text.tertiary}
+                      secureTextEntry
+                    />
+                  </View>
+
+                  <Text style={styles.apiNote}>
+                    We support OpenWeatherMap and WeatherAPI. Your API key is
+                    stored securely on your device.
+                  </Text>
                 </View>
 
                 {/* Current Weather Display */}
@@ -1226,5 +1248,86 @@ const styles = StyleSheet.create({
     ...Typography.caption.small,
     color: Colors.text.secondary,
     textAlign: 'center',
+  },
+  sliderContainer: {
+    marginBottom: Spacing.lg,
+  },
+  sliderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  sliderLabel: {
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    fontWeight: '500',
+  },
+  sliderValue: {
+    ...Typography.body.small,
+    color: Colors.primary[700],
+    fontWeight: '500',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -Spacing.sm,
+  },
+  sliderMinLabel: {
+    ...Typography.caption.medium,
+    color: Colors.text.tertiary,
+  },
+  sliderMaxLabel: {
+    ...Typography.caption.medium,
+    color: Colors.text.tertiary,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.primary,
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  settingTitle: {
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    fontWeight: '500',
+    marginBottom: Spacing.xs,
+  },
+  settingDescription: {
+    ...Typography.caption.medium,
+    color: Colors.text.secondary,
+  },
+  inputContainer: {
+    marginTop: Spacing.md,
+  },
+  inputLabel: {
+    ...Typography.body.small,
+    color: Colors.text.primary,
+    fontWeight: '500',
+    marginBottom: Spacing.xs,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+  },
+  apiNote: {
+    ...Typography.caption.medium,
+    color: Colors.text.tertiary,
+    marginTop: Spacing.sm,
   },
 });

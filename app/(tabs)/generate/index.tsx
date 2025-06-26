@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Cloud, Plus, Settings } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
@@ -65,16 +65,19 @@ export default function GenerateScreen() {
     colors: [],
     includeWeather: false,
     stylePreferences: {
-      bodyType: undefined,
-      preferredFit: undefined,
-      avoidPatterns: [],
-      prioritizeComfort: false,
+      formality: 0.5,
+      boldness: 0.5,
+      layering: 0.5,
+      colorfulness: 0.5,
+      autoWeather: true,
+      saveHistory: true,
+      useColorTheory: true,
     },
     weatherIntegration: {
       enabled: false,
-      autoUpdate: false,
-      temperatureRange: undefined,
-      considerHumidity: false,
+      useCurrentLocation: true,
+      location: undefined,
+      apiKey: undefined,
     },
   });
 
@@ -133,16 +136,20 @@ export default function GenerateScreen() {
         if (filterType === 'colors' && value) {
           newFilters.colors = prev.colors.filter(c => c !== value);
         } else if (filterType === 'stylePreferences' && value) {
-          if (value === 'bodyType') {
-            newFilters.stylePreferences.bodyType = undefined;
-          } else if (value === 'preferredFit') {
-            newFilters.stylePreferences.preferredFit = undefined;
-          } else if (value === 'prioritizeComfort') {
-            newFilters.stylePreferences.prioritizeComfort = false;
-          } else {
-            newFilters.stylePreferences.avoidPatterns =
-              prev.stylePreferences.avoidPatterns?.filter(p => p !== value) ||
-              [];
+          if (value === 'formality') {
+            newFilters.stylePreferences.formality = 0.5;
+          } else if (value === 'boldness') {
+            newFilters.stylePreferences.boldness = 0.5;
+          } else if (value === 'layering') {
+            newFilters.stylePreferences.layering = 0.5;
+          } else if (value === 'colorfulness') {
+            newFilters.stylePreferences.colorfulness = 0.5;
+          } else if (value === 'autoWeather') {
+            newFilters.stylePreferences.autoWeather = true;
+          } else if (value === 'saveHistory') {
+            newFilters.stylePreferences.saveHistory = true;
+          } else if (value === 'useColorTheory') {
+            newFilters.stylePreferences.useColorTheory = true;
           }
         } else if (filterType === 'weatherIntegration' && value === 'enabled') {
           newFilters.weatherIntegration.enabled = false;
@@ -165,10 +172,13 @@ export default function GenerateScreen() {
           newFilters.formality ||
           newFilters.colors.length > 0 ||
           newFilters.includeWeather ||
-          newFilters.stylePreferences.bodyType ||
-          newFilters.stylePreferences.preferredFit ||
-          (newFilters.stylePreferences.avoidPatterns?.length || 0) > 0 ||
-          newFilters.stylePreferences.prioritizeComfort ||
+          newFilters.stylePreferences.formality !== 0.5 ||
+          newFilters.stylePreferences.boldness !== 0.5 ||
+          newFilters.stylePreferences.layering !== 0.5 ||
+          newFilters.stylePreferences.colorfulness !== 0.5 ||
+          !newFilters.stylePreferences.autoWeather ||
+          !newFilters.stylePreferences.saveHistory ||
+          !newFilters.stylePreferences.useColorTheory ||
           newFilters.weatherIntegration.enabled;
 
         if (!hasActiveFilters) {
@@ -190,16 +200,19 @@ export default function GenerateScreen() {
       colors: [],
       includeWeather: false,
       stylePreferences: {
-        bodyType: undefined,
-        preferredFit: undefined,
-        avoidPatterns: [],
-        prioritizeComfort: false,
+        formality: 0.5,
+        boldness: 0.5,
+        layering: 0.5,
+        colorfulness: 0.5,
+        autoWeather: true,
+        saveHistory: true,
+        useColorTheory: true,
       },
       weatherIntegration: {
         enabled: false,
-        autoUpdate: false,
-        temperatureRange: undefined,
-        considerHumidity: false,
+        useCurrentLocation: true,
+        location: undefined,
+        apiKey: undefined,
       },
     });
     setShowQuickFilters(true);
@@ -218,14 +231,6 @@ export default function GenerateScreen() {
       });
     }
   }, [saveCurrentOutfit]);
-
-  const handlePreferences = useCallback(() => {
-    router.push('/generate/preferences');
-  }, []);
-
-  const handleWeatherSettings = useCallback(() => {
-    router.push('/generate/weather');
-  }, []);
 
   const handleOutfitPress = useCallback(
     (outfitIndex: number) => {
@@ -329,10 +334,13 @@ export default function GenerateScreen() {
     currentFilters.formality ||
     currentFilters.colors.length > 0 ||
     currentFilters.includeWeather ||
-    currentFilters.stylePreferences.bodyType ||
-    currentFilters.stylePreferences.preferredFit ||
-    (currentFilters.stylePreferences.avoidPatterns?.length || 0) > 0 ||
-    currentFilters.stylePreferences.prioritizeComfort ||
+    currentFilters.stylePreferences.formality !== 0.5 ||
+    currentFilters.stylePreferences.boldness !== 0.5 ||
+    currentFilters.stylePreferences.layering !== 0.5 ||
+    currentFilters.stylePreferences.colorfulness !== 0.5 ||
+    !currentFilters.stylePreferences.autoWeather ||
+    !currentFilters.stylePreferences.saveHistory ||
+    !currentFilters.stylePreferences.useColorTheory ||
     currentFilters.weatherIntegration.enabled;
 
   return (
@@ -470,47 +478,6 @@ export default function GenerateScreen() {
               </Text>
               <Text style={styles.manualBuilderDescription}>
                 Build your own outfit combinations to train our AI
-              </Text>
-            </View>
-            <View style={styles.optionArrow}>
-              <Text style={styles.arrow}>›</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Options */}
-        <View style={styles.optionsContainer}>
-          <H3 style={styles.sectionTitle}>Customize Generation</H3>
-
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={handlePreferences}
-          >
-            <View style={styles.optionIcon}>
-              <Settings size={24} color={Colors.secondary[400]} />
-            </View>
-            <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Style Preferences</Text>
-              <Text style={styles.optionDescription}>
-                Set your style preferences and occasion settings
-              </Text>
-            </View>
-            <View style={styles.optionArrow}>
-              <Text style={styles.arrow}>›</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={handleWeatherSettings}
-          >
-            <View style={styles.optionIcon}>
-              <Cloud size={24} color={Colors.info[500]} />
-            </View>
-            <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Weather Integration</Text>
-              <Text style={styles.optionDescription}>
-                Configure weather-based outfit recommendations
               </Text>
             </View>
             <View style={styles.optionArrow}>
