@@ -87,12 +87,14 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
       } catch (error) {
         console.warn('Error calculating outfit score:', error);
       }
+    } else {
+      setUpdatedScore(null);
     }
   }, [editedItems, calculateOutfitScore]);
 
   useEffect(() => {
     recalculateScore();
-  }, [recalculateScore]);
+  }, [editedItems]);
 
   const handleSave = useCallback(() => {
     if (!outfit) return;
@@ -544,7 +546,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   itemCategory: {
-    ...Typography.body.xsmall,
+    ...Typography.body.small,
     color: Colors.text.secondary,
     textAlign: 'center',
   },
@@ -593,7 +595,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   selectableItemCategory: {
-    ...Typography.body.xsmall,
+    ...Typography.body.small,
     color: Colors.text.secondary,
     textAlign: 'center',
   },
