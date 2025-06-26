@@ -622,9 +622,9 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             </TouchableOpacity>
 
             {showSellingFields && (
-              <>
+              <View style={styles.sellingContent}>
                 {/* For Sale Toggle */}
-                <View style={styles.inputGroup}>
+                <View style={styles.sellingInputGroup}>
                   <TouchableOpacity
                     style={styles.checkboxContainer}
                     onPress={() =>
@@ -687,7 +687,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 </View>
 
                 {formData.isForSale && (
-                  <View style={styles.inputGroup}>
+                  <View style={styles.sellingInputGroup}>
                     <Text style={styles.label}>Selling Price (AUD)</Text>
                     <TextInput
                       style={styles.input}
@@ -707,7 +707,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 )}
 
                 {/* Condition */}
-                <View style={styles.inputGroup}>
+                <View style={styles.sellingInputGroup}>
                   <Text style={styles.label}>Condition</Text>
                   <View style={styles.chipContainer}>
                     {Object.values(ItemCondition).map(condition => (
@@ -733,11 +733,10 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                     ))}
                   </View>
                 </View>
-
                 {/* Sale Details */}
                 {formData.isForSale && (
                   <>
-                    <View style={styles.inputGroup}>
+                    <View style={styles.sellingInputGroup}>
                       <Text style={styles.label}>Platform</Text>
                       <TextInput
                         style={styles.input}
@@ -757,7 +756,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                       />
                     </View>
 
-                    <View style={styles.inputGroup}>
+                    <View style={styles.sellingInputGroup}>
                       <Text style={styles.label}>Reason for Selling</Text>
                       <TextInput
                         style={styles.input}
@@ -777,7 +776,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                       />
                     </View>
 
-                    <View style={styles.inputGroup}>
+                    <View style={styles.sellingInputGroup}>
                       <TouchableOpacity
                         style={styles.checkboxContainer}
                         onPress={() =>
@@ -807,7 +806,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                       </TouchableOpacity>
                     </View>
 
-                    <View style={styles.inputGroup}>
+                    <View style={styles.sellingInputGroup}>
                       <Text style={styles.label}>Sale Description</Text>
                       <TextInput
                         style={styles.textArea}
@@ -831,7 +830,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                     </View>
                   </>
                 )}
-              </>
+              </View>
             )}
           </View>
 
@@ -897,7 +896,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   section: {
-    marginVertical: 16,
+    marginVertical: 20,
   },
   sectionTitle: {
     fontSize: 16,
@@ -971,7 +970,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   label: {
     fontSize: 14,
@@ -1087,6 +1086,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
+    marginBottom: 4,
   },
   toggleIcon: {
     fontSize: 16,
@@ -1126,9 +1126,17 @@ const styles = StyleSheet.create({
   },
   priceRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
+    marginBottom: 16,
   },
   priceInput: {
     flex: 1,
+  },
+  sellingContent: {
+    paddingTop: 12,
+    paddingHorizontal: 4,
+  },
+  sellingInputGroup: {
+    marginBottom: 16,
   },
 });
