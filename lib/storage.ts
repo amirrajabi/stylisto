@@ -557,7 +557,7 @@ class StorageService {
     return mimeTypes[extension.toLowerCase()] || 'image/jpeg';
   }
 
-  private extractPathFromUrl(url: string): string | null {
+  extractPathFromUrl(url: string): string | null {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split('/');

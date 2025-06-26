@@ -447,6 +447,167 @@ class WardrobeService {
     }
   }
 
+  async permanentlyDeleteClothingItem(
+    itemId: string
+  ): Promise<{ error: string | null }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { error: 'User not authenticated' };
+      }
+
+      console.log(
+        'Permanent delete attempt - User ID:',
+        user.id,
+        'Item ID:',
+        itemId
+      );
+
+      // First, get the item to find the image path
+      const { data: item, error: fetchError } = await supabase
+        .from('clothing_items')
+        .select('image_url')
+        .eq('id', itemId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching item for deletion:', fetchError);
+        return { error: `Failed to fetch item: ${fetchError.message}` };
+      }
+
+      if (!item) {
+        return {
+          error: 'Item not found or you do not have permission to delete it',
+        };
+      }
+
+      // Extract the storage path from the image URL
+      let imagePath: string | null = null;
+      if (item.image_url) {
+        console.log('Original image URL:', item.image_url);
+
+        // Use the storage service's extractPathFromUrl method for more reliable extraction
+        imagePath = storageService.extractPathFromUrl(item.image_url);
+
+        // If that doesn't work, try manual extraction with multiple URL patterns
+        if (!imagePath) {
+          // Try different URL patterns
+          const patterns = [
+            '/storage/v1/object/public/wardrobe-images/',
+            '/storage/v1/render/image/public/wardrobe-images/',
+            '/object/public/wardrobe-images/',
+            '/render/image/public/wardrobe-images/',
+          ];
+
+          for (const pattern of patterns) {
+            const urlParts = item.image_url.split(pattern);
+            if (urlParts.length > 1) {
+              imagePath = urlParts[1].split('?')[0]; // Remove any query parameters
+              console.log(
+                `Extracted path using pattern ${pattern}:`,
+                imagePath
+              );
+              break;
+            }
+          }
+        }
+
+        console.log('Final extracted image path:', imagePath);
+      }
+
+      // Delete the database record first
+      const { error: deleteError } = await supabase
+        .from('clothing_items')
+        .delete()
+        .eq('id', itemId)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('Error deleting item from database:', deleteError);
+        return { error: `Failed to delete item: ${deleteError.message}` };
+      }
+
+      // Delete the image from storage if it exists
+      if (imagePath) {
+        console.log('Attempting to delete image from storage:', imagePath);
+
+        // First, check if the file exists
+        try {
+          const { data: fileInfo, error: infoError } =
+            await storageService.getFileInfo(imagePath);
+          console.log('File info before deletion:', { fileInfo, infoError });
+        } catch (infoException) {
+          console.log('Could not get file info:', infoException);
+        }
+
+        try {
+          // Try the main deletion method
+          const { error: storageError } =
+            await storageService.deleteImage(imagePath);
+
+          if (storageError) {
+            console.error('Storage deletion failed:', {
+              path: imagePath,
+              error: storageError.message,
+              errorCode: storageError.name || 'Unknown',
+            });
+
+            // Try with explicit bucket parameter
+            console.log('Trying deletion with explicit bucket parameter...');
+            const { error: altError } = await storageService.deleteImage(
+              imagePath,
+              'wardrobe-images'
+            );
+
+            if (altError) {
+              console.error(
+                'Alternative deletion also failed:',
+                altError.message
+              );
+
+              // Try using Supabase storage directly as last resort
+              console.log('Trying direct Supabase storage deletion...');
+              const { error: directError } = await supabase.storage
+                .from('wardrobe-images')
+                .remove([imagePath]);
+
+              if (directError) {
+                console.error(
+                  'Direct deletion also failed:',
+                  directError.message
+                );
+              } else {
+                console.log('Successfully deleted image using direct method');
+              }
+            } else {
+              console.log(
+                'Successfully deleted image using alternative method'
+              );
+            }
+          } else {
+            console.log('Successfully deleted image from storage');
+          }
+        } catch (storageException) {
+          console.error('Exception during image deletion:', storageException);
+        }
+      } else {
+        console.warn(
+          'No image path found to delete. Original URL:',
+          item.image_url
+        );
+      }
+
+      console.log('Permanent delete successful');
+      return { error: null };
+    } catch (error) {
+      console.error('Error permanently deleting clothing item:', error);
+      return { error: (error as Error).message };
+    }
+  }
+
   async toggleFavorite(itemId: string): Promise<{ error: string | null }> {
     try {
       const {
@@ -608,6 +769,88 @@ class WardrobeService {
     } catch (error) {
       console.error('Error creating sample items:', error);
       return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async debugImagePaths(userId?: string): Promise<void> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const targetUserId = userId || user?.id;
+      if (!targetUserId) {
+        console.log('No user ID provided for debugging');
+        return;
+      }
+
+      console.log('=== DEBUG: Image Paths Analysis ===');
+
+      // Get all clothing items with their image URLs
+      const { data: items, error } = await supabase
+        .from('clothing_items')
+        .select('id, name, image_url')
+        .eq('user_id', targetUserId)
+        .is('deleted_at', null)
+        .limit(5);
+
+      if (error) {
+        console.error('Error fetching items for debugging:', error);
+        return;
+      }
+
+      if (!items || items.length === 0) {
+        console.log('No items found for debugging');
+        return;
+      }
+
+      for (const item of items) {
+        console.log(`\n--- Item: ${item.name} (${item.id}) ---`);
+        console.log('Original URL:', item.image_url);
+
+        if (item.image_url) {
+          // Test path extraction
+          const extractedPath = storageService.extractPathFromUrl(
+            item.image_url
+          );
+          console.log('Extracted path:', extractedPath);
+
+          // Test manual extraction patterns
+          const patterns = [
+            '/storage/v1/object/public/wardrobe-images/',
+            '/storage/v1/render/image/public/wardrobe-images/',
+            '/object/public/wardrobe-images/',
+            '/render/image/public/wardrobe-images/',
+          ];
+
+          for (const pattern of patterns) {
+            const urlParts = item.image_url.split(pattern);
+            if (urlParts.length > 1) {
+              const manualPath = urlParts[1].split('?')[0];
+              console.log(`  Pattern ${pattern} -> ${manualPath}`);
+            }
+          }
+
+          // Test if file exists in storage
+          if (extractedPath) {
+            try {
+              const { data: fileInfo, error: fileError } =
+                await storageService.getFileInfo(extractedPath);
+              console.log('File exists check:', {
+                exists: !fileError,
+                fileInfo,
+                error: fileError?.message,
+              });
+            } catch (e) {
+              console.log('File exists check failed:', e);
+            }
+          }
+        }
+      }
+
+      console.log('=== END DEBUG ===\n');
+    } catch (error) {
+      console.error('Debug method error:', error);
     }
   }
 }

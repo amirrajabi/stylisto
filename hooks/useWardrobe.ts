@@ -152,6 +152,30 @@ export const useWardrobe = () => {
     }
   };
 
+  const permanentlyDeleteItem = async (itemId: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result =
+        await wardrobeService.permanentlyDeleteClothingItem(itemId);
+      if (result.error) {
+        setError(result.error);
+        return { success: false, error: result.error };
+      } else {
+        dispatch(wardrobeActions.deleteItem(itemId));
+        return { success: true };
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const toggleFavorite = async (itemId: string) => {
     setIsLoading(true);
     setError(null);
@@ -172,6 +196,14 @@ export const useWardrobe = () => {
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const debugImagePaths = async () => {
+    try {
+      await wardrobeService.debugImagePaths();
+    } catch (error) {
+      console.error('Debug error:', error);
     }
   };
 
@@ -324,9 +356,11 @@ export const useWardrobe = () => {
       addItem,
       updateItem,
       deleteItem,
+      permanentlyDeleteItem,
       toggleFavorite,
       loadClothingItems,
       refreshData: loadClothingItems, // Alias for manual refresh
+      debugImagePaths,
       // Legacy Redux actions for outfits and UI state
       addOutfit: (outfit: Outfit) =>
         dispatch(wardrobeActions.addOutfit(outfit)),
