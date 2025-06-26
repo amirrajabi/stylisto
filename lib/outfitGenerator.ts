@@ -816,40 +816,36 @@ class OutfitGenerator {
           return;
         }
 
-        // Try each item in this category
-        let foundCompatibleItem = false;
-        for (const item of categoryItems) {
-          if (this.isItemCompatible(item, currentOutfit)) {
-            foundCompatibleItem = true;
-            const newOutfit = [...currentOutfit, item];
-            const newCompleting = new Set(remainingCompleting);
-            newCompleting.delete(nextCategory);
+        // Find the best item in this category (even if not perfect match)
+        const bestItem = this.findBestItemInCategory(
+          categoryItems,
+          currentOutfit,
+          nextCategory
+        );
 
-            console.log(`   ✅ Added compatible ${nextCategory}: ${item.name}`);
+        if (bestItem) {
+          const newOutfit = [...currentOutfit, bestItem];
+          const newCompleting = new Set(remainingCompleting);
+          newCompleting.delete(nextCategory);
 
-            buildCompleteOutfit(
-              newOutfit,
-              remainingEssential,
-              newCompleting,
-              remainingUndergarments,
-              depth + 1
-            );
+          console.log(`   ✅ Added best ${nextCategory}: ${bestItem.name}`);
 
-            // Limit for performance
-            if (outfits.length >= 1000) {
-              console.log('🛑 Maximum outfit limit reached');
-              return;
-            }
-          } else {
-            console.log(`   ❌ ${item.name} not compatible`);
-          }
-        }
-
-        // If no compatible items found, continue without this category
-        if (!foundCompatibleItem) {
-          console.log(
-            `   ⚠️ No compatible items found in ${nextCategory}, continuing without it`
+          buildCompleteOutfit(
+            newOutfit,
+            remainingEssential,
+            newCompleting,
+            remainingUndergarments,
+            depth + 1
           );
+
+          // Limit for performance
+          if (outfits.length >= 1000) {
+            console.log('🛑 Maximum outfit limit reached');
+            return;
+          }
+        } else {
+          // Only skip if truly no items available
+          console.log(`   ⚠️ No items available in ${nextCategory}, skipping`);
           const newCompleting = new Set(remainingCompleting);
           newCompleting.delete(nextCategory);
           buildCompleteOutfit(
@@ -2112,6 +2108,89 @@ class OutfitGenerator {
     }
 
     return common;
+  }
+
+  /**
+   * Find the best matching item in a category, even if no perfect compatibility exists
+   */
+  private findBestItemInCategory(
+    categoryItems: ClothingItem[],
+    currentOutfit: ClothingItem[],
+    category: ClothingCategory
+  ): ClothingItem | null {
+    if (categoryItems.length === 0) {
+      return null;
+    }
+
+    // First, try to find perfectly compatible items
+    const compatibleItems = categoryItems.filter(item =>
+      this.isItemCompatible(item, currentOutfit)
+    );
+
+    if (compatibleItems.length > 0) {
+      // Sort by compatibility score and return the best one
+      const scored = compatibleItems.map(item => ({
+        item,
+        score: this.calculateItemCompatibilityScore(item, currentOutfit),
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      console.log(
+        `      ✅ Found ${compatibleItems.length} compatible items, best: ${scored[0].item.name} (score: ${scored[0].score.toFixed(2)})`
+      );
+      return scored[0].item;
+    }
+
+    // If no perfectly compatible items, find the best available option
+    // For shoes and accessories, we should always include something if available
+    console.log(
+      `      ⚠️ No perfectly compatible items in ${category}, finding best available option...`
+    );
+
+    // Skip category conflict check for shoes and accessories when no perfect match exists
+    const availableItems = categoryItems.filter(item => {
+      // For multi-item categories, still check limits
+      const multiItemCategories = [
+        ClothingCategory.ACCESSORIES,
+        ClothingCategory.JEWELRY,
+        ClothingCategory.SCARVES,
+      ];
+
+      if (multiItemCategories.includes(item.category)) {
+        const sameCategories = currentOutfit.filter(
+          outfitItem => outfitItem.category === item.category
+        );
+        return sameCategories.length < 3;
+      }
+
+      // For shoes and other single-item categories, check if there's already an item
+      const hasConflictingCategory = currentOutfit.some(
+        outfitItem => outfitItem.category === item.category
+      );
+
+      // If there's already an item in this category, skip
+      if (hasConflictingCategory) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (availableItems.length > 0) {
+      // Calculate compatibility scores for all available items
+      const scored = availableItems.map(item => ({
+        item,
+        score: this.calculateItemCompatibilityScore(item, currentOutfit),
+      }));
+      scored.sort((a, b) => b.score - a.score);
+
+      console.log(
+        `      ✅ Selected best available ${category}: ${scored[0].item.name} (score: ${scored[0].score.toFixed(2)})`
+      );
+      return scored[0].item;
+    }
+
+    console.log(`      ❌ No items available in ${category} category`);
+    return null;
   }
 }
 
