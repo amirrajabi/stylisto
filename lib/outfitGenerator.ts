@@ -617,11 +617,23 @@ class OutfitGenerator {
       }
     }
 
-    // If still no accessories available, warn but continue
+    // Check if shoes are available
+    const hasShoes = (itemsByCategory[ClothingCategory.SHOES] || []).length > 0;
+    if (!hasShoes) {
+      console.log('⚠️ No SHOES available, will create outfits without shoes');
+      completingCategories.delete(ClothingCategory.SHOES);
+    }
+
+    // If no accessories available, remove from completing categories
     if (!hasAccessories) {
-      console.warn(
-        '❌ No accessories or fallback categories available. Outfits will be incomplete.'
+      console.log(
+        '⚠️ No accessories available, will create outfits without accessories'
       );
+      completingCategories.delete(ClothingCategory.ACCESSORIES);
+      // Remove all accessory fallback categories
+      for (const fallbackCategory of accessoryFallbackCategories) {
+        completingCategories.delete(fallbackCategory);
+      }
     }
 
     // Validate that we have enough items for essential categories
@@ -637,7 +649,7 @@ class OutfitGenerator {
       }
     }
 
-    // Validate that we have enough items for completing categories
+    // Validate that we have enough items for completing categories (only for what's actually in the set now)
     for (const category of completingCategories) {
       if (
         !forcedCategories.has(category) &&
@@ -745,21 +757,52 @@ class OutfitGenerator {
             item.category === ClothingCategory.SCARVES
         );
 
-        // Only add outfit if it meets all requirements
-        if (hasTop && hasBottom && hasShoes && hasAccessory) {
+        // Check if shoes and accessories are available in wardrobe
+        const shoesAvailable =
+          (itemsByCategory[ClothingCategory.SHOES] || []).length > 0;
+        const accessoriesAvailable =
+          (itemsByCategory[ClothingCategory.ACCESSORIES] || []).length > 0 ||
+          (itemsByCategory[ClothingCategory.JEWELRY] || []).length > 0 ||
+          (itemsByCategory[ClothingCategory.BAGS] || []).length > 0 ||
+          (itemsByCategory[ClothingCategory.BELTS] || []).length > 0 ||
+          (itemsByCategory[ClothingCategory.HATS] || []).length > 0 ||
+          (itemsByCategory[ClothingCategory.SCARVES] || []).length > 0;
+
+        // Essential requirements: TOP and BOTTOM always required
+        // Shoes: required only if available in wardrobe
+        // Accessories: required only if available in wardrobe
+        const meetsRequirements =
+          hasTop &&
+          hasBottom &&
+          (!shoesAvailable || hasShoes) &&
+          (!accessoriesAvailable || hasAccessory);
+
+        // Only add outfit if it meets the flexible requirements
+        if (meetsRequirements) {
           // Check for uniqueness
           const outfitKey = this.getOutfitKey(finalOutfit);
           if (
             !outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)
           ) {
             outfits.push(finalOutfit);
+
+            // Enhanced logging to show what was included
+            const components = [];
+            if (hasTop) components.push('TOP');
+            if (hasBottom) components.push('BOTTOM');
+            if (hasShoes) components.push('SHOES');
+            if (hasAccessory) components.push('ACCESSORY');
+
             console.log(
-              `✅ Complete outfit created: ${finalOutfit.map(item => item.category).join(', ')}`
+              `✅ Complete outfit created with: ${components.join(' + ')} (${finalOutfit.length} items total)`
+            );
+            console.log(
+              `   Items: ${finalOutfit.map(item => `${item.name} (${item.category})`).join(', ')}`
             );
           }
         } else {
           console.log(
-            `❌ Incomplete outfit rejected: Top:${hasTop}, Bottom:${hasBottom}, Shoes:${hasShoes}, Accessory:${hasAccessory}`
+            `❌ Outfit rejected - Top:${hasTop}, Bottom:${hasBottom}, Shoes:${hasShoes}${shoesAvailable ? '(required)' : '(optional)'}, Accessory:${hasAccessory}${accessoriesAvailable ? '(required)' : '(optional)'}`
           );
         }
         return;
@@ -824,7 +867,33 @@ class OutfitGenerator {
     );
 
     console.log(`🎉 Generated ${outfits.length} complete outfits`);
-    console.log(`📊 All outfits contain: TOP + BOTTOM + SHOES + ACCESSORIES`);
+
+    // Summary of what was included based on availability
+    const availabilityStatus = [];
+    if ((itemsByCategory[ClothingCategory.SHOES] || []).length > 0) {
+      availabilityStatus.push('SHOES (included)');
+    } else {
+      availabilityStatus.push('SHOES (unavailable)');
+    }
+
+    const hasAnyAccessories = [
+      ClothingCategory.ACCESSORIES,
+      ClothingCategory.JEWELRY,
+      ClothingCategory.BAGS,
+      ClothingCategory.BELTS,
+      ClothingCategory.HATS,
+      ClothingCategory.SCARVES,
+    ].some(cat => (itemsByCategory[cat] || []).length > 0);
+
+    if (hasAnyAccessories) {
+      availabilityStatus.push('ACCESSORIES (included)');
+    } else {
+      availabilityStatus.push('ACCESSORIES (unavailable)');
+    }
+
+    console.log(
+      `📊 All outfits contain: TOP + BOTTOM + ${availabilityStatus.join(' + ')}`
+    );
 
     return outfits;
   }
