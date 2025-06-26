@@ -18,7 +18,7 @@ import {
   OutfitFiltersModal,
 } from '../../../components/outfits/OutfitFiltersModal';
 import { OutfitStatsDisplay } from '../../../components/outfits/OutfitStatsDisplay';
-import { QuickFilters } from '../../../components/outfits/QuickFilters';
+import { WeatherOutfitBanner } from '../../../components/outfits/WeatherOutfitBanner';
 import { BodyMedium, Button, H1, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
@@ -78,7 +78,6 @@ export default function GenerateScreen() {
       enabled: false,
       useCurrentLocation: true,
       location: undefined,
-      apiKey: undefined,
     },
   });
 
@@ -218,15 +217,10 @@ export default function GenerateScreen() {
         enabled: false,
         useCurrentLocation: true,
         location: undefined,
-        apiKey: undefined,
       },
     });
     setShowQuickFilters(true);
   }, []);
-
-  const handleGenerateOutfit = useCallback(async () => {
-    await handleFiltersApply(currentFilters);
-  }, [currentFilters, handleFiltersApply]);
 
   const handleSaveOutfit = useCallback(() => {
     const outfitId = saveCurrentOutfit();
@@ -349,35 +343,105 @@ export default function GenerateScreen() {
     !currentFilters.stylePreferences.useColorTheory ||
     currentFilters.weatherIntegration.enabled;
 
+  // Add weather update handler
+  const [realWeatherData, setRealWeatherData] = useState<any>(null);
+
+  const handleWeatherUpdate = useCallback(async (weatherData: any) => {
+    console.log('🌤️ Weather data received:', weatherData);
+
+    // Store real weather data
+    setRealWeatherData(weatherData);
+
+    // Update filters
+    setCurrentFilters(prev => ({
+      ...prev,
+      weatherIntegration: {
+        ...prev.weatherIntegration,
+        enabled: true,
+      },
+      includeWeather: true,
+      weatherConditions: weatherData.conditions,
+    }));
+  }, []);
+
+  // Manual generate outfit handler
+  const handleGenerateOutfit = useCallback(async () => {
+    try {
+      if (currentFilters.includeWeather) {
+        // Map weather conditions to valid types
+        const mapWeatherConditions = (
+          conditions: string
+        ): 'clear' | 'cloudy' | 'rainy' | 'snowy' | 'windy' => {
+          const lowerConditions = conditions.toLowerCase();
+          if (
+            lowerConditions.includes('rain') ||
+            lowerConditions.includes('shower')
+          )
+            return 'rainy';
+          if (
+            lowerConditions.includes('snow') ||
+            lowerConditions.includes('blizzard')
+          )
+            return 'snowy';
+          if (lowerConditions.includes('wind')) return 'windy';
+          if (
+            lowerConditions.includes('cloud') ||
+            lowerConditions.includes('overcast')
+          )
+            return 'cloudy';
+          return 'clear';
+        };
+
+        // Use actual weather data from the banner if available
+        const weatherDataToUse =
+          realWeatherData && currentFilters.weatherConditions
+            ? {
+                temperature: realWeatherData.temperature,
+                conditions: mapWeatherConditions(realWeatherData.conditions),
+                precipitation: realWeatherData.precipitation || 0,
+                humidity: realWeatherData.humidity || 0.4,
+                windSpeed: realWeatherData.windSpeed || 5,
+              }
+            : MOCK_WEATHER;
+
+        await getWeatherBasedRecommendation(weatherDataToUse);
+      } else if (currentFilters.occasion) {
+        await getOccasionBasedRecommendation(currentFilters.occasion);
+      } else {
+        console.log('Generating outfit with filters:', currentFilters);
+        // Could add a default generation here if needed
+      }
+    } catch (error) {
+      console.error('Error generating outfit:', error);
+    }
+  }, [
+    currentFilters,
+    getWeatherBasedRecommendation,
+    getOccasionBasedRecommendation,
+  ]);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <H1>Generate Outfits</H1>
-        <BodyMedium color="secondary">
-          Let AI create perfect outfits from your wardrobe
+        <BodyMedium style={styles.headerSubtitle}>
+          AI-powered outfit recommendations based on your wardrobe
         </BodyMedium>
       </View>
 
-      {/* Conditional Filters Display */}
-      {showQuickFilters && !hasActiveFilters ? (
-        <QuickFilters
-          onOccasionSelect={handleQuickOccasionSelect}
-          onStyleSelect={handleQuickStyleSelect}
-          onOpenAdvancedFilters={() => setFiltersModalVisible(true)}
-          selectedOccasion={currentFilters.occasion}
-          selectedStyle={currentFilters.style}
-        />
-      ) : (
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Weather Integration Banner */}
+        <WeatherOutfitBanner onWeatherUpdate={handleWeatherUpdate} />
+
+        {/* Filters Bar */}
         <OutfitFiltersBar
           filters={currentFilters}
           onOpenFilters={() => setFiltersModalVisible(true)}
           onClearFilter={handleClearFilter}
           onClearAllFilters={handleClearAllFilters}
         />
-      )}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Generate Button - Only show if filters are applied */}
         {hasActiveFilters && (
           <View style={styles.generateSection}>
@@ -555,6 +619,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
     ...Shadows.sm,
+  },
+  headerSubtitle: {
+    marginTop: Spacing.xs,
+    color: Colors.text.secondary,
   },
   content: {
     flex: 1,

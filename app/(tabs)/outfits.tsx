@@ -192,10 +192,7 @@ export default function OutfitsScreen() {
           <>
             {/* Weather Banner */}
             <WeatherOutfitBanner
-              temperature={MOCK_WEATHER.temperature}
-              condition={MOCK_WEATHER.condition}
-              location={MOCK_WEATHER.location}
-              onPress={handleWeatherRecommendation}
+              onWeatherUpdate={handleWeatherRecommendation}
             />
 
             {/* Occasion Selector */}

@@ -65,6 +65,8 @@ export default {
         logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'debug',
         tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
       },
+      weatherApiKey:
+        process.env.WEATHER_API_KEY || process.env.EXPO_PUBLIC_WEATHER_API_KEY,
     },
   },
 };

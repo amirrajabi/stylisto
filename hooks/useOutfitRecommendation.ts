@@ -205,7 +205,7 @@ export const useOutfitRecommendation = (
         '⏸️ useOutfitRecommendation: Not enough items for auto-generation'
       );
     }
-  }, [filteredItems.length]);
+  }, [filteredItems.length, generateRecommendations]);
 
   return {
     ...state,

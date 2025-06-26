@@ -39,7 +39,6 @@ export interface OutfitFilters {
     enabled: boolean;
     useCurrentLocation: boolean;
     location?: string;
-    apiKey?: string;
   };
 }
 
@@ -278,16 +277,6 @@ export function OutfitFiltersModal({
     }));
   }, []);
 
-  const handleApiKeyChange = useCallback((apiKey: string) => {
-    setFilters(prev => ({
-      ...prev,
-      weatherIntegration: {
-        ...prev.weatherIntegration,
-        apiKey,
-      },
-    }));
-  }, []);
-
   const handleStylePreferenceChange = useCallback(
     (key: keyof OutfitFilters['stylePreferences'], value: number | boolean) => {
       setFilters(prev => ({
@@ -322,7 +311,6 @@ export function OutfitFiltersModal({
         enabled: false,
         useCurrentLocation: true,
         location: undefined,
-        apiKey: undefined,
       },
     });
   }, []);
@@ -803,30 +791,6 @@ export function OutfitFiltersModal({
                       />
                     </View>
                   )}
-                </View>
-
-                <View style={styles.subsection}>
-                  <Text style={styles.subsectionTitle}>API Settings</Text>
-                  <Text style={styles.subsectionDescription}>
-                    Enter your weather API key to enable real-time weather data
-                  </Text>
-
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>API Key (Optional)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={filters.weatherIntegration.apiKey || ''}
-                      onChangeText={handleApiKeyChange}
-                      placeholder="Enter weather API key"
-                      placeholderTextColor={Colors.text.tertiary}
-                      secureTextEntry
-                    />
-                  </View>
-
-                  <Text style={styles.apiNote}>
-                    We support OpenWeatherMap and WeatherAPI. Your API key is
-                    stored securely on your device.
-                  </Text>
                 </View>
 
                 {/* Current Weather Display */}
