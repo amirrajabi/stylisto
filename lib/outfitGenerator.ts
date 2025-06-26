@@ -545,181 +545,536 @@ class OutfitGenerator {
     );
     const forcedCategories = new Set(forcedItems.map(item => item.category));
 
-    // Define required categories for a valid outfit
-    const requiredCategories = new Set<ClothingCategory>([
-      ClothingCategory.TOPS,
-      ClothingCategory.BOTTOMS,
+    // Define comprehensive body coverage categories
+    const essentialCategories = new Set<ClothingCategory>();
+    const undergarmentCategories = new Set<ClothingCategory>([
+      ClothingCategory.UNDERWEAR,
+      ClothingCategory.SHORTS_UNDERWEAR,
+      ClothingCategory.BRAS,
+      ClothingCategory.UNDERSHIRTS,
+      ClothingCategory.SOCKS,
     ]);
 
-    console.log('🎯 Required categories:', Array.from(requiredCategories));
-
-    // If we have a dress, we don't need both top and bottom
+    // Determine main outfit structure
     if (itemsByCategory[ClothingCategory.DRESSES]?.length > 0) {
-      requiredCategories.delete(ClothingCategory.TOPS);
-      requiredCategories.delete(ClothingCategory.BOTTOMS);
-      requiredCategories.add(ClothingCategory.DRESSES);
-      console.log('👗 Dresses available, switching to dress-based outfits');
+      essentialCategories.add(ClothingCategory.DRESSES);
+      console.log('👗 Dresses available, building dress-based outfits');
+    } else {
+      essentialCategories.add(ClothingCategory.TOPS);
+      essentialCategories.add(ClothingCategory.BOTTOMS);
+      console.log('👕👖 Building top + bottom outfits');
     }
 
-    // Optional categories that enhance outfits
-    const optionalCategories = [
+    // Essential categories that complete the outfit
+    const completingCategories = new Set<ClothingCategory>([
       ClothingCategory.SHOES,
+    ]);
+
+    // Coordinating accessories (added based on compatibility)
+    const coordinatingCategories = [
       ClothingCategory.ACCESSORIES,
+      ClothingCategory.JEWELRY,
+      ClothingCategory.BAGS,
+      ClothingCategory.BELTS,
+      ClothingCategory.HATS,
+      ClothingCategory.SCARVES,
       ClothingCategory.OUTERWEAR,
     ];
 
-    // Start with forced items
-    const baseOutfit = [...forcedItems];
+    console.log('🎯 Essential categories:', Array.from(essentialCategories));
+    console.log(
+      '👙 Undergarment categories:',
+      Array.from(undergarmentCategories)
+    );
+    console.log('👠 Completing categories:', Array.from(completingCategories));
 
-    // Add required categories that aren't already forced
-    for (const category of requiredCategories) {
-      if (!forcedCategories.has(category)) {
-        const categoryItems = itemsByCategory[category] || [];
-        console.log(
-          `🔍 Checking category ${category}: ${categoryItems.length} items available`
+    // Validate that we have enough items for essential categories
+    for (const category of essentialCategories) {
+      if (
+        !forcedCategories.has(category) &&
+        (!itemsByCategory[category] || itemsByCategory[category].length === 0)
+      ) {
+        console.warn(
+          `❌ Essential category ${category} has no items. Cannot create complete outfits.`
         );
-
-        if (categoryItems.length === 0) {
-          // If a required category has no items, we can't create a valid outfit
-          if (category === ClothingCategory.DRESSES) {
-            // If no dresses, we need tops and bottoms instead
-            console.log(
-              '❌ No dresses available, switching back to tops + bottoms'
-            );
-            requiredCategories.delete(ClothingCategory.DRESSES);
-            requiredCategories.add(ClothingCategory.TOPS);
-            requiredCategories.add(ClothingCategory.BOTTOMS);
-          } else {
-            // If we can't satisfy required categories, return empty array
-            console.warn(
-              `❌ Required category ${category} has no items. Cannot create outfits.`
-            );
-            return [];
-          }
-        }
+        return [];
       }
     }
 
-    // Generate combinations
+    // Generate combinations with comprehensive coverage
     const outfits: ClothingItem[][] = [];
 
-    // Helper function to recursively build outfits
-    const buildOutfit = (
+    // Helper function to build complete outfits
+    const buildCompleteOutfit = (
       currentOutfit: ClothingItem[],
-      remainingRequired: Set<ClothingCategory>,
+      remainingEssential: Set<ClothingCategory>,
+      remainingCompleting: Set<ClothingCategory>,
+      remainingUndergarments: Set<ClothingCategory>,
       depth: number = 0
     ) => {
-      // Check if we've reached the maximum recursion depth
-      if (depth > 10) {
+      // Check max depth
+      if (depth > 15) {
         console.warn('🛑 Max recursion depth reached');
         return;
       }
 
-      // If we've satisfied all required categories
-      if (remainingRequired.size === 0) {
-        // Add optional categories
-        const outfitWithOptionals = this.addOptionalCategories(
+      // If all essential categories are satisfied
+      if (remainingEssential.size === 0) {
+        // Add completing categories (like shoes)
+        if (remainingCompleting.size > 0) {
+          const nextCategory = Array.from(remainingCompleting)[0];
+
+          if (!forcedCategories.has(nextCategory)) {
+            const categoryItems = itemsByCategory[nextCategory] || [];
+
+            for (const item of categoryItems) {
+              if (this.isItemCompatible(item, currentOutfit)) {
+                const newOutfit = [...currentOutfit, item];
+                const newCompleting = new Set(remainingCompleting);
+                newCompleting.delete(nextCategory);
+
+                buildCompleteOutfit(
+                  newOutfit,
+                  remainingEssential,
+                  newCompleting,
+                  remainingUndergarments,
+                  depth + 1
+                );
+              }
+            }
+          } else {
+            const newCompleting = new Set(remainingCompleting);
+            newCompleting.delete(nextCategory);
+            buildCompleteOutfit(
+              currentOutfit,
+              remainingEssential,
+              newCompleting,
+              remainingUndergarments,
+              depth + 1
+            );
+          }
+          return;
+        }
+
+        // Add coordinated undergarments
+        const outfitWithUndergarments = this.addCoordinatedUndergarments(
           currentOutfit,
-          optionalCategories,
+          remainingUndergarments,
           itemsByCategory,
           forcedCategories
         );
 
-        // Check if this is a new outfit
-        const outfitKey = this.getOutfitKey(outfitWithOptionals);
-        if (!outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)) {
-          outfits.push(outfitWithOptionals);
-        }
+        // Add coordinating accessories
+        const finalOutfit = this.addCoordinatingAccessories(
+          outfitWithUndergarments,
+          coordinatingCategories,
+          itemsByCategory,
+          forcedCategories
+        );
 
+        // Check for uniqueness
+        const outfitKey = this.getOutfitKey(finalOutfit);
+        if (!outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)) {
+          outfits.push(finalOutfit);
+        }
         return;
       }
 
-      // Get next required category
-      const nextCategory = Array.from(remainingRequired)[0];
+      // Process next essential category
+      const nextCategory = Array.from(remainingEssential)[0];
       const categoryItems = itemsByCategory[nextCategory] || [];
 
-      // If this category is already in the forced items, skip it
       if (forcedCategories.has(nextCategory)) {
-        const newRemaining = new Set(remainingRequired);
+        const newRemaining = new Set(remainingEssential);
         newRemaining.delete(nextCategory);
-        buildOutfit(currentOutfit, newRemaining, depth + 1);
+        buildCompleteOutfit(
+          currentOutfit,
+          newRemaining,
+          remainingCompleting,
+          remainingUndergarments,
+          depth + 1
+        );
         return;
       }
 
       // Try each item in this category
       for (const item of categoryItems) {
-        // Skip if this item is incompatible with current outfit
-        const isCompatible = this.isItemCompatible(item, currentOutfit);
+        if (this.isItemCompatible(item, currentOutfit)) {
+          const newOutfit = [...currentOutfit, item];
+          const newRemaining = new Set(remainingEssential);
+          newRemaining.delete(nextCategory);
 
-        if (!isCompatible) {
-          continue;
-        }
+          buildCompleteOutfit(
+            newOutfit,
+            newRemaining,
+            remainingCompleting,
+            remainingUndergarments,
+            depth + 1
+          );
 
-        // Add item to outfit
-        const newOutfit = [...currentOutfit, item];
-        const newRemaining = new Set(remainingRequired);
-        newRemaining.delete(nextCategory);
-
-        buildOutfit(newOutfit, newRemaining, depth + 1);
-
-        // Limit number of outfits to prevent excessive computation
-        if (outfits.length >= 1000) {
-          console.log('🛑 Maximum outfit limit reached');
-          return;
+          // Limit for performance
+          if (outfits.length >= 1000) {
+            console.log('🛑 Maximum outfit limit reached');
+            return;
+          }
         }
       }
     };
 
-    console.log('🚀 Starting outfit building process...');
-    // Start building outfits
-    buildOutfit(baseOutfit, requiredCategories);
+    console.log('🚀 Starting comprehensive outfit building...');
+    // Start building complete outfits
+    buildCompleteOutfit(
+      [...forcedItems],
+      essentialCategories,
+      completingCategories,
+      undergarmentCategories
+    );
 
-    console.log(`🏁 Final result: ${outfits.length} outfits generated`);
+    console.log(
+      `🏁 Final result: ${outfits.length} complete outfits generated`
+    );
     return outfits;
   }
 
   /**
-   * Add optional categories to an outfit
+   * Add coordinated undergarments to outfit
    */
-  private addOptionalCategories(
+  private addCoordinatedUndergarments(
     outfit: ClothingItem[],
-    optionalCategories: ClothingCategory[],
+    undergarmentCategories: Set<ClothingCategory>,
     itemsByCategory: Record<ClothingCategory, ClothingItem[]>,
     forcedCategories: Set<ClothingCategory>
   ): ClothingItem[] {
     let result = [...outfit];
 
-    // Add one item from each optional category if compatible
-    for (const category of optionalCategories) {
-      // Skip if this category is already in the forced items
-      if (forcedCategories.has(category)) continue;
+    // Get the main clothing colors for coordination
+    const mainColors = this.extractOutfitColors(outfit);
 
-      // Skip if outfit already has this category
+    // Add coordinated undergarments
+    for (const category of undergarmentCategories) {
+      if (forcedCategories.has(category)) continue;
       if (result.some(item => item.category === category)) continue;
 
       const categoryItems = itemsByCategory[category] || [];
-
-      // Find the most compatible item from this category
       let bestItem: ClothingItem | null = null;
       let bestScore = -1;
 
       for (const item of categoryItems) {
         if (this.isItemCompatible(item, result)) {
-          const score = this.calculateItemCompatibilityScore(item, result);
-          if (score > bestScore) {
-            bestScore = score;
+          const colorScore = this.calculateUndergarmentColorScore(
+            item,
+            mainColors
+          );
+          const compatibilityScore = this.calculateItemCompatibilityScore(
+            item,
+            result
+          );
+          const totalScore = (colorScore + compatibilityScore) / 2;
+
+          if (totalScore > bestScore) {
+            bestScore = totalScore;
             bestItem = item;
           }
         }
       }
 
-      // Add the best item if found and score is good enough
-      if (bestItem && bestScore > 0.3) {
+      // Add if good enough match (lower threshold for undergarments)
+      if (bestItem && bestScore > 0.2) {
         result.push(bestItem);
       }
     }
 
     return result;
+  }
+
+  /**
+   * Add coordinating accessories to complete the outfit
+   */
+  private addCoordinatingAccessories(
+    outfit: ClothingItem[],
+    coordinatingCategories: ClothingCategory[],
+    itemsByCategory: Record<ClothingCategory, ClothingItem[]>,
+    forcedCategories: Set<ClothingCategory>
+  ): ClothingItem[] {
+    let result = [...outfit];
+    const outfitColors = this.extractOutfitColors(outfit);
+    const outfitStyle = this.determineOutfitStyle(outfit);
+
+    // Sort categories by importance for this outfit type
+    const sortedCategories = this.prioritizeAccessoriesForOutfit(
+      coordinatingCategories,
+      outfitStyle
+    );
+
+    // Add up to 3 coordinating accessories
+    let accessoriesAdded = 0;
+    const maxAccessories = 3;
+
+    for (const category of sortedCategories) {
+      if (accessoriesAdded >= maxAccessories) break;
+      if (forcedCategories.has(category)) continue;
+      if (result.some(item => item.category === category)) continue;
+
+      const categoryItems = itemsByCategory[category] || [];
+      let bestItem: ClothingItem | null = null;
+      let bestScore = -1;
+
+      for (const item of categoryItems) {
+        if (this.isItemCompatible(item, result)) {
+          const colorScore = this.calculateAccessoryColorScore(
+            item,
+            outfitColors
+          );
+          const styleScore = this.calculateAccessoryStyleScore(
+            item,
+            outfitStyle
+          );
+          const compatibilityScore = this.calculateItemCompatibilityScore(
+            item,
+            result
+          );
+          const totalScore =
+            colorScore * 0.4 + styleScore * 0.3 + compatibilityScore * 0.3;
+
+          if (totalScore > bestScore) {
+            bestScore = totalScore;
+            bestItem = item;
+          }
+        }
+      }
+
+      // Add if high enough coordination score
+      if (bestItem && bestScore > 0.4) {
+        result.push(bestItem);
+        accessoriesAdded++;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract dominant colors from outfit for coordination
+   */
+  private extractOutfitColors(outfit: ClothingItem[]): string[] {
+    const colors = outfit.map(item => item.color);
+    const uniqueColors = [...new Set(colors)];
+    return uniqueColors;
+  }
+
+  /**
+   * Calculate color coordination score for undergarments
+   */
+  private calculateUndergarmentColorScore(
+    item: ClothingItem,
+    outfitColors: string[]
+  ): number {
+    // Neutral colors work well with everything
+    const neutralColors = ['white', 'black', 'nude', 'beige', 'gray', 'grey'];
+
+    if (
+      neutralColors.some(neutral =>
+        item.color.toLowerCase().includes(neutral.toLowerCase())
+      )
+    ) {
+      return 0.9;
+    }
+
+    // Match with outfit colors
+    for (const outfitColor of outfitColors) {
+      if (this.areColorsClose(item.color, outfitColor)) {
+        return 0.8;
+      }
+    }
+
+    return 0.5; // Acceptable but not ideal
+  }
+
+  /**
+   * Calculate color coordination score for accessories
+   */
+  private calculateAccessoryColorScore(
+    item: ClothingItem,
+    outfitColors: string[]
+  ): number {
+    // Check for direct color matches
+    for (const outfitColor of outfitColors) {
+      if (this.areColorsClose(item.color, outfitColor)) {
+        return 1.0;
+      }
+    }
+
+    // Check for complementary colors
+    const itemHSL = this.hexToHSL(item.color);
+    for (const outfitColor of outfitColors) {
+      const outfitHSL = this.hexToHSL(outfitColor);
+      const hueDiff = Math.abs(itemHSL.h - outfitHSL.h);
+
+      // Complementary colors (opposite on color wheel)
+      if (Math.abs(hueDiff - 180) < 30) {
+        return 0.9;
+      }
+
+      // Analogous colors (close on color wheel)
+      if (hueDiff < 60) {
+        return 0.8;
+      }
+    }
+
+    // Neutral accessories work with most outfits
+    const neutralColors = ['black', 'white', 'brown', 'tan', 'gold', 'silver'];
+    if (
+      neutralColors.some(neutral =>
+        item.color.toLowerCase().includes(neutral.toLowerCase())
+      )
+    ) {
+      return 0.7;
+    }
+
+    return 0.3;
+  }
+
+  /**
+   * Determine outfit style for accessory coordination
+   */
+  private determineOutfitStyle(outfit: ClothingItem[]): string {
+    const tags = outfit.flatMap(item => item.tags);
+    const occasions = outfit.flatMap(item => item.occasion);
+
+    if (occasions.includes(Occasion.FORMAL) || tags.includes('formal')) {
+      return 'formal';
+    }
+    if (occasions.includes(Occasion.WORK) || tags.includes('business')) {
+      return 'business';
+    }
+    if (occasions.includes(Occasion.PARTY) || tags.includes('party')) {
+      return 'party';
+    }
+    if (occasions.includes(Occasion.SPORT) || tags.includes('athletic')) {
+      return 'athletic';
+    }
+
+    return 'casual';
+  }
+
+  /**
+   * Calculate style coordination score for accessories
+   */
+  private calculateAccessoryStyleScore(
+    item: ClothingItem,
+    outfitStyle: string
+  ): number {
+    const itemTags = item.tags.map(tag => tag.toLowerCase());
+    const itemOccasions = item.occasion.map(occ => occ.toLowerCase());
+
+    switch (outfitStyle) {
+      case 'formal':
+        if (
+          itemTags.includes('formal') ||
+          itemTags.includes('elegant') ||
+          itemOccasions.includes('formal')
+        ) {
+          return 1.0;
+        }
+        break;
+      case 'business':
+        if (
+          itemTags.includes('business') ||
+          itemTags.includes('professional') ||
+          itemOccasions.includes('work')
+        ) {
+          return 1.0;
+        }
+        break;
+      case 'party':
+        if (
+          itemTags.includes('party') ||
+          itemTags.includes('fun') ||
+          itemOccasions.includes('party')
+        ) {
+          return 1.0;
+        }
+        break;
+      case 'athletic':
+        if (
+          itemTags.includes('athletic') ||
+          itemTags.includes('sport') ||
+          itemOccasions.includes('sport')
+        ) {
+          return 1.0;
+        }
+        break;
+      default: // casual
+        if (itemTags.includes('casual') || itemOccasions.includes('casual')) {
+          return 1.0;
+        }
+    }
+
+    // Neutral accessories work reasonably well with any style
+    if (itemTags.includes('versatile') || itemTags.includes('classic')) {
+      return 0.7;
+    }
+
+    return 0.4;
+  }
+
+  /**
+   * Prioritize accessory categories based on outfit style
+   */
+  private prioritizeAccessoriesForOutfit(
+    categories: ClothingCategory[],
+    outfitStyle: string
+  ): ClothingCategory[] {
+    const priorities: Record<string, ClothingCategory[]> = {
+      formal: [
+        ClothingCategory.JEWELRY,
+        ClothingCategory.BAGS,
+        ClothingCategory.BELTS,
+        ClothingCategory.SCARVES,
+        ClothingCategory.ACCESSORIES,
+        ClothingCategory.HATS,
+        ClothingCategory.OUTERWEAR,
+      ],
+      business: [
+        ClothingCategory.BELTS,
+        ClothingCategory.BAGS,
+        ClothingCategory.JEWELRY,
+        ClothingCategory.ACCESSORIES,
+        ClothingCategory.SCARVES,
+        ClothingCategory.OUTERWEAR,
+        ClothingCategory.HATS,
+      ],
+      party: [
+        ClothingCategory.JEWELRY,
+        ClothingCategory.ACCESSORIES,
+        ClothingCategory.BAGS,
+        ClothingCategory.SCARVES,
+        ClothingCategory.BELTS,
+        ClothingCategory.HATS,
+        ClothingCategory.OUTERWEAR,
+      ],
+      athletic: [
+        ClothingCategory.ACCESSORIES,
+        ClothingCategory.BAGS,
+        ClothingCategory.HATS,
+        ClothingCategory.OUTERWEAR,
+        ClothingCategory.BELTS,
+        ClothingCategory.JEWELRY,
+        ClothingCategory.SCARVES,
+      ],
+      casual: [
+        ClothingCategory.ACCESSORIES,
+        ClothingCategory.BAGS,
+        ClothingCategory.JEWELRY,
+        ClothingCategory.HATS,
+        ClothingCategory.BELTS,
+        ClothingCategory.SCARVES,
+        ClothingCategory.OUTERWEAR,
+      ],
+    };
+
+    const prioritized = priorities[outfitStyle] || priorities.casual;
+    return prioritized.filter(cat => categories.includes(cat));
   }
 
   /**
@@ -729,8 +1084,14 @@ class OutfitGenerator {
     item: ClothingItem,
     outfit: ClothingItem[]
   ): boolean {
-    // Can't have multiple items from the same category (except accessories)
-    if (item.category !== ClothingCategory.ACCESSORIES) {
+    // Can't have multiple items from the same category (except for multi-item categories)
+    const multiItemCategories = [
+      ClothingCategory.ACCESSORIES,
+      ClothingCategory.JEWELRY,
+      ClothingCategory.SCARVES,
+    ];
+
+    if (!multiItemCategories.includes(item.category)) {
       const hasConflictingCategory = outfit.some(
         outfitItem => outfitItem.category === item.category
       );
@@ -739,8 +1100,15 @@ class OutfitGenerator {
       }
     }
 
-    // For simplicity, let's be more permissive with compatibility
-    // Most items should be compatible unless there's a major conflict
+    // For multi-item categories, limit to reasonable numbers
+    if (multiItemCategories.includes(item.category)) {
+      const sameCategories = outfit.filter(
+        outfitItem => outfitItem.category === item.category
+      );
+      if (sameCategories.length >= 3) {
+        return false;
+      }
+    }
 
     return true;
   }
@@ -1009,6 +1377,15 @@ class OutfitGenerator {
       [ClothingCategory.SHOES]: { formality: 0.5, boldness: 0.4 },
       [ClothingCategory.ACCESSORIES]: { formality: 0.5, boldness: 0.7 },
       [ClothingCategory.UNDERWEAR]: { formality: 0.3, boldness: 0.5 },
+      [ClothingCategory.SOCKS]: { formality: 0.3, boldness: 0.4 },
+      [ClothingCategory.UNDERSHIRTS]: { formality: 0.3, boldness: 0.3 },
+      [ClothingCategory.BRAS]: { formality: 0.3, boldness: 0.4 },
+      [ClothingCategory.SHORTS_UNDERWEAR]: { formality: 0.3, boldness: 0.4 },
+      [ClothingCategory.JEWELRY]: { formality: 0.6, boldness: 0.8 },
+      [ClothingCategory.BAGS]: { formality: 0.5, boldness: 0.5 },
+      [ClothingCategory.BELTS]: { formality: 0.5, boldness: 0.5 },
+      [ClothingCategory.HATS]: { formality: 0.4, boldness: 0.7 },
+      [ClothingCategory.SCARVES]: { formality: 0.6, boldness: 0.6 },
       [ClothingCategory.ACTIVEWEAR]: { formality: 0.2, boldness: 0.6 },
       [ClothingCategory.SLEEPWEAR]: { formality: 0.1, boldness: 0.4 },
       [ClothingCategory.SWIMWEAR]: { formality: 0.3, boldness: 0.7 },
