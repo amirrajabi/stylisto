@@ -27,7 +27,7 @@ import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
 import { useWardrobe } from '../../hooks/useWardrobe';
 import { useOutfitGenerator } from '../../lib/outfitGenerator';
-import { ClothingItem } from '../../types/wardrobe';
+import { ClothingCategory, ClothingItem } from '../../types/wardrobe';
 
 interface OutfitEditModalProps {
   visible: boolean;
@@ -63,6 +63,7 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [showItemSelector, setShowItemSelector] = useState(false);
   const [updatedScore, setUpdatedScore] = useState<any>(null);
+  const [smartSuggestions, setSmartSuggestions] = useState<ClothingItem[]>([]);
 
   useEffect(() => {
     if (outfit) {
@@ -71,6 +72,166 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
       setUpdatedScore(outfit.score);
     }
   }, [outfit]);
+
+  // Analyze outfit completeness and generate smart suggestions
+  const analyzeOutfitAndGenerateSuggestions = useCallback(() => {
+    if (editedItems.length === 0) {
+      setSmartSuggestions([]);
+      return;
+    }
+
+    // Check what essential categories are missing
+    const hasTop = editedItems.some(
+      item =>
+        item.category === ClothingCategory.TOPS ||
+        item.category === ClothingCategory.DRESSES
+    );
+    const hasBottom = editedItems.some(
+      item =>
+        item.category === ClothingCategory.BOTTOMS ||
+        item.category === ClothingCategory.DRESSES
+    );
+    const hasShoes = editedItems.some(
+      item => item.category === ClothingCategory.SHOES
+    );
+    const hasAccessory = editedItems.some(
+      item =>
+        item.category === ClothingCategory.ACCESSORIES ||
+        item.category === ClothingCategory.JEWELRY ||
+        item.category === ClothingCategory.BAGS ||
+        item.category === ClothingCategory.BELTS ||
+        item.category === ClothingCategory.HATS ||
+        item.category === ClothingCategory.SCARVES
+    );
+
+    console.log(
+      `🔍 Outfit analysis - Top: ${hasTop}, Bottom: ${hasBottom}, Shoes: ${hasShoes}, Accessory: ${hasAccessory}`
+    );
+
+    // Get available items that aren't already in the outfit
+    const availableItems = filteredItems.filter(
+      item => !editedItems.find(editedItem => editedItem.id === item.id)
+    );
+
+    let prioritizedItems: ClothingItem[] = [];
+
+    // Prioritize missing essential categories
+    if (
+      !hasTop &&
+      !editedItems.some(item => item.category === ClothingCategory.DRESSES)
+    ) {
+      const tops = availableItems.filter(
+        item => item.category === ClothingCategory.TOPS
+      );
+      prioritizedItems.push(...tops.slice(0, 3));
+    }
+
+    if (
+      !hasBottom &&
+      !editedItems.some(item => item.category === ClothingCategory.DRESSES)
+    ) {
+      const bottoms = availableItems.filter(
+        item => item.category === ClothingCategory.BOTTOMS
+      );
+      prioritizedItems.push(...bottoms.slice(0, 3));
+    }
+
+    if (!hasShoes) {
+      const shoes = availableItems.filter(
+        item => item.category === ClothingCategory.SHOES
+      );
+      prioritizedItems.push(...shoes.slice(0, 3));
+    }
+
+    // If missing accessories, prioritize them with fallback categories
+    if (!hasAccessory) {
+      console.log('🎯 Missing accessory, prioritizing accessory categories...');
+
+      // Primary accessory category
+      const accessories = availableItems.filter(
+        item => item.category === ClothingCategory.ACCESSORIES
+      );
+      prioritizedItems.push(...accessories.slice(0, 2));
+
+      // Fallback accessory categories if primary is empty
+      if (accessories.length === 0) {
+        console.log('⚠️ No primary accessories, using fallback categories...');
+
+        const fallbackCategories = [
+          ClothingCategory.JEWELRY,
+          ClothingCategory.BAGS,
+          ClothingCategory.BELTS,
+          ClothingCategory.HATS,
+          ClothingCategory.SCARVES,
+        ];
+
+        for (const category of fallbackCategories) {
+          const items = availableItems.filter(
+            item => item.category === category
+          );
+          if (items.length > 0) {
+            prioritizedItems.push(...items.slice(0, 2));
+            console.log(
+              `✅ Found ${items.length} items in fallback category: ${category}`
+            );
+            break; // Only use one fallback category
+          }
+        }
+      }
+    }
+
+    // Add other complementary items
+    const remainingItems = availableItems.filter(
+      item => !prioritizedItems.find(prioritized => prioritized.id === item.id)
+    );
+
+    // Sort remaining items by compatibility (you could implement a simple compatibility score here)
+    const sortedRemainingItems = remainingItems.sort((a, b) => {
+      // Simple priority based on category usefulness
+      const categoryPriority: Record<ClothingCategory, number> = {
+        [ClothingCategory.OUTERWEAR]: 8,
+        [ClothingCategory.JEWELRY]: 7,
+        [ClothingCategory.BAGS]: 7,
+        [ClothingCategory.BELTS]: 6,
+        [ClothingCategory.HATS]: 6,
+        [ClothingCategory.SCARVES]: 6,
+        [ClothingCategory.ACCESSORIES]: 9,
+        [ClothingCategory.TOPS]: 5,
+        [ClothingCategory.BOTTOMS]: 5,
+        [ClothingCategory.SHOES]: 5,
+        [ClothingCategory.DRESSES]: 4,
+        [ClothingCategory.UNDERWEAR]: 1,
+        [ClothingCategory.SOCKS]: 2,
+        [ClothingCategory.UNDERSHIRTS]: 1,
+        [ClothingCategory.BRAS]: 1,
+        [ClothingCategory.SHORTS_UNDERWEAR]: 1,
+        [ClothingCategory.ACTIVEWEAR]: 3,
+        [ClothingCategory.SLEEPWEAR]: 2,
+        [ClothingCategory.SWIMWEAR]: 2,
+      };
+
+      const aPriority = categoryPriority[a.category] || 0;
+      const bPriority = categoryPriority[b.category] || 0;
+      return bPriority - aPriority;
+    });
+
+    // Combine prioritized and remaining items
+    const finalSuggestions = [
+      ...prioritizedItems,
+      ...sortedRemainingItems.slice(0, 10), // Limit to keep performance good
+    ].slice(0, 20); // Total limit
+
+    setSmartSuggestions(finalSuggestions);
+
+    console.log(`💡 Generated ${finalSuggestions.length} smart suggestions`);
+    console.log(
+      `🎯 Prioritized missing categories: ${!hasTop ? 'TOPS ' : ''}${!hasBottom ? 'BOTTOMS ' : ''}${!hasShoes ? 'SHOES ' : ''}${!hasAccessory ? 'ACCESSORIES ' : ''}`
+    );
+  }, [editedItems, filteredItems]);
+
+  useEffect(() => {
+    analyzeOutfitAndGenerateSuggestions();
+  }, [editedItems, analyzeOutfitAndGenerateSuggestions]);
 
   const recalculateScore = useCallback(() => {
     if (editedItems.length > 0) {
@@ -124,9 +285,13 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
     [editedItems]
   );
 
-  const availableItems = filteredItems.filter(
-    item => !editedItems.find(editedItem => editedItem.id === item.id)
-  );
+  // Use smart suggestions if available, otherwise fall back to all available items
+  const itemsToDisplay =
+    smartSuggestions.length > 0
+      ? smartSuggestions
+      : filteredItems.filter(
+          item => !editedItems.find(editedItem => editedItem.id === item.id)
+        );
 
   const getScoreColor = (score: number) => {
     if (score >= 0.8) return Colors.success[500];
@@ -305,7 +470,18 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
         >
           <View style={styles.itemSelectorContainer}>
             <View style={styles.itemSelectorHeader}>
-              <Text style={styles.itemSelectorTitle}>Add Item to Outfit</Text>
+              <View style={styles.itemSelectorTitleContainer}>
+                <Text style={styles.itemSelectorTitle}>
+                  {smartSuggestions.length > 0
+                    ? 'Smart Suggestions'
+                    : 'Add Item to Outfit'}
+                </Text>
+                {smartSuggestions.length > 0 && (
+                  <Text style={styles.itemSelectorSubtitle}>
+                    Prioritized items to complete your outfit
+                  </Text>
+                )}
+              </View>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowItemSelector(false)}
@@ -314,7 +490,7 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
               </TouchableOpacity>
             </View>
             <FlatList
-              data={availableItems}
+              data={itemsToDisplay}
               keyExtractor={item => item.id}
               numColumns={2}
               contentContainerStyle={styles.itemSelectorList}
@@ -557,17 +733,27 @@ const styles = StyleSheet.create({
   itemSelectorHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.md,
     backgroundColor: Colors.surface.primary,
     ...Shadows.sm,
   },
+  itemSelectorTitleContainer: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
   itemSelectorTitle: {
     ...Typography.heading.h4,
     color: Colors.text.primary,
     fontWeight: '600',
+    marginBottom: Spacing.xs,
+  },
+  itemSelectorSubtitle: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
   },
   itemSelectorList: {
     padding: Spacing.lg,

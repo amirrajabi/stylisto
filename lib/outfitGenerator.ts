@@ -565,20 +565,29 @@ class OutfitGenerator {
       console.log('👕👖 Building top + bottom outfits');
     }
 
-    // Essential categories that complete the outfit
+    // Essential categories that complete the outfit (REQUIRED FOR EVERY OUTFIT)
     const completingCategories = new Set<ClothingCategory>([
       ClothingCategory.SHOES,
+      ClothingCategory.ACCESSORIES, // Make accessories mandatory
     ]);
 
-    // Coordinating accessories (added based on compatibility)
+    // Additional coordinating accessories (added based on compatibility)
     const coordinatingCategories = [
-      ClothingCategory.ACCESSORIES,
       ClothingCategory.JEWELRY,
       ClothingCategory.BAGS,
       ClothingCategory.BELTS,
       ClothingCategory.HATS,
       ClothingCategory.SCARVES,
       ClothingCategory.OUTERWEAR,
+    ];
+
+    // Fallback categories if primary accessories are not available
+    const accessoryFallbackCategories = [
+      ClothingCategory.JEWELRY,
+      ClothingCategory.BAGS,
+      ClothingCategory.BELTS,
+      ClothingCategory.HATS,
+      ClothingCategory.SCARVES,
     ];
 
     console.log('🎯 Essential categories:', Array.from(essentialCategories));
@@ -588,6 +597,33 @@ class OutfitGenerator {
     );
     console.log('👠 Completing categories:', Array.from(completingCategories));
 
+    // Check if accessories are available, if not use fallback
+    let hasAccessories =
+      (itemsByCategory[ClothingCategory.ACCESSORIES] || []).length > 0;
+    if (!hasAccessories) {
+      console.log(
+        '⚠️ No ACCESSORIES available, checking fallback categories...'
+      );
+
+      // Find the first available fallback category and add it to completing categories
+      for (const fallbackCategory of accessoryFallbackCategories) {
+        if ((itemsByCategory[fallbackCategory] || []).length > 0) {
+          completingCategories.delete(ClothingCategory.ACCESSORIES);
+          completingCategories.add(fallbackCategory);
+          console.log(`✅ Using ${fallbackCategory} as accessory fallback`);
+          hasAccessories = true;
+          break;
+        }
+      }
+    }
+
+    // If still no accessories available, warn but continue
+    if (!hasAccessories) {
+      console.warn(
+        '❌ No accessories or fallback categories available. Outfits will be incomplete.'
+      );
+    }
+
     // Validate that we have enough items for essential categories
     for (const category of essentialCategories) {
       if (
@@ -596,6 +632,19 @@ class OutfitGenerator {
       ) {
         console.warn(
           `❌ Essential category ${category} has no items. Cannot create complete outfits.`
+        );
+        return [];
+      }
+    }
+
+    // Validate that we have enough items for completing categories
+    for (const category of completingCategories) {
+      if (
+        !forcedCategories.has(category) &&
+        (!itemsByCategory[category] || itemsByCategory[category].length === 0)
+      ) {
+        console.warn(
+          `❌ Completing category ${category} has no items. Cannot create complete outfits.`
         );
         return [];
       }
@@ -620,7 +669,7 @@ class OutfitGenerator {
 
       // If all essential categories are satisfied
       if (remainingEssential.size === 0) {
-        // Add completing categories (like shoes)
+        // Add completing categories (like shoes and accessories - MANDATORY)
         if (remainingCompleting.size > 0) {
           const nextCategory = Array.from(remainingCompleting)[0];
 
@@ -664,7 +713,7 @@ class OutfitGenerator {
           forcedCategories
         );
 
-        // Add coordinating accessories
+        // Add additional coordinating accessories (beyond the mandatory one)
         const finalOutfit = this.addCoordinatingAccessories(
           outfitWithUndergarments,
           coordinatingCategories,
@@ -672,10 +721,46 @@ class OutfitGenerator {
           forcedCategories
         );
 
-        // Check for uniqueness
-        const outfitKey = this.getOutfitKey(finalOutfit);
-        if (!outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)) {
-          outfits.push(finalOutfit);
+        // Validate outfit completeness
+        const hasTop = finalOutfit.some(
+          item =>
+            item.category === ClothingCategory.TOPS ||
+            item.category === ClothingCategory.DRESSES
+        );
+        const hasBottom = finalOutfit.some(
+          item =>
+            item.category === ClothingCategory.BOTTOMS ||
+            item.category === ClothingCategory.DRESSES
+        );
+        const hasShoes = finalOutfit.some(
+          item => item.category === ClothingCategory.SHOES
+        );
+        const hasAccessory = finalOutfit.some(
+          item =>
+            item.category === ClothingCategory.ACCESSORIES ||
+            item.category === ClothingCategory.JEWELRY ||
+            item.category === ClothingCategory.BAGS ||
+            item.category === ClothingCategory.BELTS ||
+            item.category === ClothingCategory.HATS ||
+            item.category === ClothingCategory.SCARVES
+        );
+
+        // Only add outfit if it meets all requirements
+        if (hasTop && hasBottom && hasShoes && hasAccessory) {
+          // Check for uniqueness
+          const outfitKey = this.getOutfitKey(finalOutfit);
+          if (
+            !outfits.some(outfit => this.getOutfitKey(outfit) === outfitKey)
+          ) {
+            outfits.push(finalOutfit);
+            console.log(
+              `✅ Complete outfit created: ${finalOutfit.map(item => item.category).join(', ')}`
+            );
+          }
+        } else {
+          console.log(
+            `❌ Incomplete outfit rejected: Top:${hasTop}, Bottom:${hasBottom}, Shoes:${hasShoes}, Accessory:${hasAccessory}`
+          );
         }
         return;
       }
@@ -721,18 +806,26 @@ class OutfitGenerator {
       }
     };
 
-    console.log('🚀 Starting comprehensive outfit building...');
-    // Start building complete outfits
+    // Start with forced items
+    const startingOutfit = forcedItems;
     buildCompleteOutfit(
-      [...forcedItems],
-      essentialCategories,
-      completingCategories,
+      startingOutfit,
+      new Set(
+        Array.from(essentialCategories).filter(
+          cat => !forcedCategories.has(cat)
+        )
+      ),
+      new Set(
+        Array.from(completingCategories).filter(
+          cat => !forcedCategories.has(cat)
+        )
+      ),
       undergarmentCategories
     );
 
-    console.log(
-      `🏁 Final result: ${outfits.length} complete outfits generated`
-    );
+    console.log(`🎉 Generated ${outfits.length} complete outfits`);
+    console.log(`📊 All outfits contain: TOP + BOTTOM + SHOES + ACCESSORIES`);
+
     return outfits;
   }
 
@@ -800,18 +893,33 @@ class OutfitGenerator {
     const outfitColors = this.extractOutfitColors(outfit);
     const outfitStyle = this.determineOutfitStyle(outfit);
 
+    // Check if we already have a mandatory accessory (from completing categories)
+    const hasMandatoryAccessory = result.some(
+      item =>
+        item.category === ClothingCategory.ACCESSORIES ||
+        item.category === ClothingCategory.JEWELRY ||
+        item.category === ClothingCategory.BAGS ||
+        item.category === ClothingCategory.BELTS ||
+        item.category === ClothingCategory.HATS ||
+        item.category === ClothingCategory.SCARVES
+    );
+
+    console.log(
+      `🔍 Mandatory accessory check: ${hasMandatoryAccessory ? 'Found' : 'Missing'}`
+    );
+
     // Sort categories by importance for this outfit type
     const sortedCategories = this.prioritizeAccessoriesForOutfit(
       coordinatingCategories,
       outfitStyle
     );
 
-    // Add up to 3 coordinating accessories
+    // Add up to 2 additional coordinating accessories (since we already have one mandatory)
     let accessoriesAdded = 0;
-    const maxAccessories = 3;
+    const maxAdditionalAccessories = hasMandatoryAccessory ? 2 : 3;
 
     for (const category of sortedCategories) {
-      if (accessoriesAdded >= maxAccessories) break;
+      if (accessoriesAdded >= maxAdditionalAccessories) break;
       if (forcedCategories.has(category)) continue;
       if (result.some(item => item.category === category)) continue;
 
@@ -833,8 +941,16 @@ class OutfitGenerator {
             item,
             result
           );
+
+          // Boost score if this is the first accessory and we need one
+          const urgencyBoost =
+            !hasMandatoryAccessory && accessoriesAdded === 0 ? 0.2 : 0;
+
           const totalScore =
-            colorScore * 0.4 + styleScore * 0.3 + compatibilityScore * 0.3;
+            colorScore * 0.4 +
+            styleScore * 0.3 +
+            compatibilityScore * 0.3 +
+            urgencyBoost;
 
           if (totalScore > bestScore) {
             bestScore = totalScore;
@@ -843,10 +959,21 @@ class OutfitGenerator {
         }
       }
 
+      // Lower threshold if we need an accessory urgently
+      const minScoreThreshold =
+        !hasMandatoryAccessory && accessoriesAdded === 0 ? 0.3 : 0.4;
+
       // Add if high enough coordination score
-      if (bestItem && bestScore > 0.4) {
+      if (bestItem && bestScore > minScoreThreshold) {
         result.push(bestItem);
         accessoriesAdded++;
+        console.log(
+          `✅ Added ${category}: ${bestItem.name} (score: ${bestScore.toFixed(2)})`
+        );
+      } else if (!hasMandatoryAccessory && accessoriesAdded === 0) {
+        console.log(
+          `⚠️ Could not find suitable ${category} accessory (best score: ${bestScore.toFixed(2)})`
+        );
       }
     }
 
