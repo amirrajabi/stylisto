@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Cloud, Heart, Settings, Sparkles } from 'lucide-react-native';
+import { Cloud, Heart, Settings } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
@@ -16,6 +16,7 @@ import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
+import { useWardrobe } from '../../../hooks/useWardrobe';
 import { Occasion } from '../../../types/wardrobe';
 
 // Mock weather data for demonstration
@@ -28,11 +29,11 @@ const MOCK_WEATHER = {
 };
 
 export default function GenerateScreen() {
+  const { filteredItems } = useWardrobe();
   const {
     loading,
     outfits,
     selectedOutfitIndex,
-    generateRecommendations,
     saveCurrentOutfit,
     nextOutfit,
     previousOutfit,
@@ -44,9 +45,17 @@ export default function GenerateScreen() {
     'quick'
   );
 
-  const handleGenerateOutfit = useCallback(async () => {
-    await generateRecommendations();
-  }, [generateRecommendations]);
+  // Debug logging
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.log(
+        '📱 Generate Screen - Items:',
+        filteredItems.length,
+        'Outfits:',
+        outfits.length
+      );
+    }
+  }, [filteredItems.length, outfits.length]);
 
   const handleWeatherOutfit = useCallback(async () => {
     setActiveTab('weather');
@@ -65,7 +74,7 @@ export default function GenerateScreen() {
     const outfitId = saveCurrentOutfit();
     if (outfitId) {
       router.push({
-        pathname: '/saved',
+        pathname: '/profile/saved' as any,
         params: { highlight: outfitId },
       });
     }
@@ -90,26 +99,6 @@ export default function GenerateScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Quick Generate */}
-        <Card style={styles.generateCard}>
-          <View style={styles.generateContent}>
-            <View style={styles.generateIcon}>
-              <Sparkles size={32} color={Colors.primary[700]} />
-            </View>
-            <H3 style={styles.generateTitle}>Quick Generate</H3>
-            <BodyMedium color="secondary" style={styles.generateDescription}>
-              Generate an outfit based on your current preferences and weather
-            </BodyMedium>
-            <Button
-              title={loading ? 'Generating...' : 'Generate Outfit'}
-              onPress={handleGenerateOutfit}
-              loading={loading && activeTab === 'quick'}
-              leftIcon={<Sparkles size={20} color={Colors.white} />}
-              style={styles.generateButton}
-            />
-          </View>
-        </Card>
-
         {/* Generated Outfit Display */}
         {outfits.length > 0 && (
           <Card style={styles.outfitCard}>
@@ -292,34 +281,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: Spacing.md,
-  },
-  generateCard: {
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-  },
-  generateContent: {
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  generateIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  generateTitle: {
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  generateDescription: {
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  generateButton: {
-    minWidth: 200,
   },
   outfitCard: {
     marginBottom: Spacing.lg,

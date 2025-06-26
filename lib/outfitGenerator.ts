@@ -108,7 +108,7 @@ class OutfitGenerator {
     // Apply default options
     const defaultOptions: OutfitGenerationOptions = {
       maxResults: 5,
-      minScore: 0.6,
+      minScore: 0.4,
       stylePreference: {
         formality: 0.5,
         boldness: 0.5,
@@ -169,9 +169,23 @@ class OutfitGenerator {
       score: this.scoreOutfit(items, mergedOptions),
     }));
 
+    console.log(`🎯 Scored ${scoredOutfits.length} outfit combinations`);
+    console.log(`📊 MinScore required: ${mergedOptions.minScore}`);
+
+    if (scoredOutfits.length > 0) {
+      const scores = scoredOutfits.map(o => o.score.total);
+      console.log(
+        `📈 Score range: ${Math.min(...scores).toFixed(2)} - ${Math.max(...scores).toFixed(2)}`
+      );
+    }
+
     // Filter outfits by minimum score
     const qualifyingOutfits = scoredOutfits.filter(
       outfit => outfit.score.total >= mergedOptions.minScore!
+    );
+
+    console.log(
+      `✅ ${qualifyingOutfits.length} outfits qualify (score >= ${mergedOptions.minScore})`
     );
 
     // Sort by score (descending)
@@ -180,8 +194,16 @@ class OutfitGenerator {
     // Apply variety filter to avoid similar outfits
     const diverseOutfits = this.ensureOutfitVariety(qualifyingOutfits);
 
+    console.log(
+      `🎨 ${diverseOutfits.length} diverse outfits after variety filter`
+    );
+
     // Limit to requested number of results
     const results = diverseOutfits.slice(0, mergedOptions.maxResults);
+
+    console.log(
+      `🏆 Final results: ${results.length} outfits (max: ${mergedOptions.maxResults})`
+    );
 
     // Record generated outfits to avoid repetition in future
     results.forEach(outfit => {
@@ -205,8 +227,21 @@ class OutfitGenerator {
     items: ClothingItem[],
     forceIncludeItems: string[] = []
   ): ClothingItem[][] {
+    console.log(
+      '🔧 generateOutfitCombinations: Starting with',
+      items.length,
+      'items'
+    );
+
     // Group items by category
     const itemsByCategory = this.groupItemsByCategory(items);
+
+    console.log(
+      '📋 Items by category:',
+      Object.keys(itemsByCategory).map(
+        cat => `${cat}: ${itemsByCategory[cat as ClothingCategory].length}`
+      )
+    );
 
     // Get items that must be included
     const forcedItems = items.filter(item =>
@@ -220,11 +255,14 @@ class OutfitGenerator {
       ClothingCategory.BOTTOMS,
     ]);
 
+    console.log('🎯 Required categories:', Array.from(requiredCategories));
+
     // If we have a dress, we don't need both top and bottom
     if (itemsByCategory[ClothingCategory.DRESSES]?.length > 0) {
       requiredCategories.delete(ClothingCategory.TOPS);
       requiredCategories.delete(ClothingCategory.BOTTOMS);
       requiredCategories.add(ClothingCategory.DRESSES);
+      console.log('👗 Dresses available, switching to dress-based outfits');
     }
 
     // Optional categories that enhance outfits
@@ -241,15 +279,25 @@ class OutfitGenerator {
     for (const category of requiredCategories) {
       if (!forcedCategories.has(category)) {
         const categoryItems = itemsByCategory[category] || [];
+        console.log(
+          `🔍 Checking category ${category}: ${categoryItems.length} items available`
+        );
+
         if (categoryItems.length === 0) {
           // If a required category has no items, we can't create a valid outfit
           if (category === ClothingCategory.DRESSES) {
             // If no dresses, we need tops and bottoms instead
+            console.log(
+              '❌ No dresses available, switching back to tops + bottoms'
+            );
             requiredCategories.delete(ClothingCategory.DRESSES);
             requiredCategories.add(ClothingCategory.TOPS);
             requiredCategories.add(ClothingCategory.BOTTOMS);
           } else {
             // If we can't satisfy required categories, return empty array
+            console.warn(
+              `❌ Required category ${category} has no items. Cannot create outfits.`
+            );
             return [];
           }
         }
@@ -266,7 +314,10 @@ class OutfitGenerator {
       depth: number = 0
     ) => {
       // Check if we've reached the maximum recursion depth
-      if (depth > 10) return;
+      if (depth > 10) {
+        console.warn('🛑 Max recursion depth reached');
+        return;
+      }
 
       // If we've satisfied all required categories
       if (remainingRequired.size === 0) {
@@ -302,7 +353,11 @@ class OutfitGenerator {
       // Try each item in this category
       for (const item of categoryItems) {
         // Skip if this item is incompatible with current outfit
-        if (!this.isItemCompatible(item, currentOutfit)) continue;
+        const isCompatible = this.isItemCompatible(item, currentOutfit);
+
+        if (!isCompatible) {
+          continue;
+        }
 
         // Add item to outfit
         const newOutfit = [...currentOutfit, item];
@@ -312,13 +367,18 @@ class OutfitGenerator {
         buildOutfit(newOutfit, newRemaining, depth + 1);
 
         // Limit number of outfits to prevent excessive computation
-        if (outfits.length >= 1000) return;
+        if (outfits.length >= 1000) {
+          console.log('🛑 Maximum outfit limit reached');
+          return;
+        }
       }
     };
 
+    console.log('🚀 Starting outfit building process...');
     // Start building outfits
     buildOutfit(baseOutfit, requiredCategories);
 
+    console.log(`🏁 Final result: ${outfits.length} outfits generated`);
     return outfits;
   }
 
@@ -358,7 +418,7 @@ class OutfitGenerator {
       }
 
       // Add the best item if found and score is good enough
-      if (bestItem && bestScore > 0.6) {
+      if (bestItem && bestScore > 0.3) {
         result.push(bestItem);
       }
     }
@@ -373,35 +433,18 @@ class OutfitGenerator {
     item: ClothingItem,
     outfit: ClothingItem[]
   ): boolean {
-    // Check if outfit already has this category (except for accessories)
-    if (
-      item.category !== ClothingCategory.ACCESSORIES &&
-      outfit.some(existingItem => existingItem.category === item.category)
-    ) {
-      return false;
-    }
-
-    // Check if item has at least one season in common with the outfit
-    if (outfit.length > 0) {
-      const outfitSeasons = new Set(outfit.flatMap(item => item.season));
-      if (
-        outfitSeasons.size > 0 &&
-        !item.season.some(season => outfitSeasons.has(season))
-      ) {
+    // Can't have multiple items from the same category (except accessories)
+    if (item.category !== ClothingCategory.ACCESSORIES) {
+      const hasConflictingCategory = outfit.some(
+        outfitItem => outfitItem.category === item.category
+      );
+      if (hasConflictingCategory) {
         return false;
       }
     }
 
-    // Check if item has at least one occasion in common with the outfit
-    if (outfit.length > 0) {
-      const outfitOccasions = new Set(outfit.flatMap(item => item.occasion));
-      if (
-        outfitOccasions.size > 0 &&
-        !item.occasion.some(occasion => outfitOccasions.has(occasion))
-      ) {
-        return false;
-      }
-    }
+    // For simplicity, let's be more permissive with compatibility
+    // Most items should be compatible unless there's a major conflict
 
     return true;
   }

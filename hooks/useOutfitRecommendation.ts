@@ -18,7 +18,7 @@ export interface OutfitRecommendationState {
 export const useOutfitRecommendation = (
   initialOptions?: Partial<OutfitGenerationOptions>
 ) => {
-  const { items, outfits: savedOutfits, actions } = useWardrobe();
+  const { filteredItems, outfits: savedOutfits, actions } = useWardrobe();
   const { generateOutfits, createOutfit } = useOutfitGenerator();
 
   const [state, setState] = useState<OutfitRecommendationState>({
@@ -30,7 +30,16 @@ export const useOutfitRecommendation = (
 
   const generateRecommendations = useCallback(
     async (options?: Partial<OutfitGenerationOptions>) => {
-      if (items.length < 2) {
+      console.log(
+        '🎯 useOutfitRecommendation: Starting generation with',
+        filteredItems.length,
+        'items'
+      );
+
+      if (filteredItems.length < 2) {
+        console.warn(
+          '⚠️ useOutfitRecommendation: Not enough items for generation'
+        );
         setState(prev => ({
           ...prev,
           error: 'Not enough items in your wardrobe to generate outfits',
@@ -47,8 +56,19 @@ export const useOutfitRecommendation = (
           ...options,
         };
 
+        console.log(
+          '🔄 useOutfitRecommendation: Generating outfits with options:',
+          mergedOptions
+        );
+
         // Generate outfits
-        const generatedOutfits = generateOutfits(items, mergedOptions);
+        const generatedOutfits = generateOutfits(filteredItems, mergedOptions);
+
+        console.log(
+          '✅ useOutfitRecommendation: Generated',
+          generatedOutfits.length,
+          'outfits'
+        );
 
         setState(prev => ({
           ...prev,
@@ -59,6 +79,11 @@ export const useOutfitRecommendation = (
 
         return generatedOutfits;
       } catch (error) {
+        console.error(
+          '❌ useOutfitRecommendation: Error during generation:',
+          error
+        );
+
         const errorMessage =
           error instanceof Error ? error.message : 'Failed to generate outfits';
 
@@ -71,7 +96,7 @@ export const useOutfitRecommendation = (
         return [];
       }
     },
-    [items, initialOptions, generateOutfits]
+    [filteredItems, initialOptions, generateOutfits]
   );
 
   const selectOutfit = useCallback(
@@ -160,10 +185,22 @@ export const useOutfitRecommendation = (
 
   // Generate initial recommendations on mount
   useEffect(() => {
-    if (items.length >= 2) {
+    console.log(
+      '🚀 useOutfitRecommendation: Effect triggered, filteredItems.length:',
+      filteredItems.length
+    );
+
+    if (filteredItems.length >= 2) {
+      console.log(
+        '✨ useOutfitRecommendation: Auto-generating initial outfits'
+      );
       generateRecommendations();
+    } else {
+      console.log(
+        '⏸️ useOutfitRecommendation: Not enough items for auto-generation'
+      );
     }
-  }, [items.length]);
+  }, [filteredItems.length]);
 
   return {
     ...state,
