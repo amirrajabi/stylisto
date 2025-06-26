@@ -18,8 +18,8 @@ interface WardrobeState {
 }
 
 const initialState: WardrobeState = {
-  items: [],
-  outfits: [],
+  items: [], // Explicitly empty - no mock data
+  outfits: [], // Explicitly empty - no mock data
   selectedItems: [],
   filters: {
     categories: [],

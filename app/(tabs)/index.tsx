@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import {
   Filter,
@@ -13,6 +14,7 @@ import {
   FlatList,
   Platform,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,8 +23,10 @@ import {
 } from 'react-native';
 import { FloatingActionButton } from '../../components/ui';
 import { AddItemModal } from '../../components/wardrobe/AddItemModal';
+import { ClearMockData } from '../../components/wardrobe/ClearMockData';
 import { ClothingItemCard } from '../../components/wardrobe/ClothingItemCard';
 import { FilterModal } from '../../components/wardrobe/FilterModal';
+
 import { useWardrobe } from '../../hooks/useWardrobe';
 import { ClothingItem } from '../../types/wardrobe';
 
@@ -366,6 +370,55 @@ export default function WardrobeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Welcome to Stylisto</Text>
+          <Text style={styles.subtitle}>
+            Your AI-powered wardrobe assistant
+          </Text>
+        </View>
+
+        <ClearMockData />
+
+        <View style={styles.quickActions}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+
+          <View style={styles.actionGrid}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/camera')}
+            >
+              <Ionicons name="camera" size={32} color="#007AFF" />
+              <Text style={styles.actionText}>Add Item</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(tabs)/generate')}
+            >
+              <Ionicons name="sparkles" size={32} color="#FF6B6B" />
+              <Text style={styles.actionText}>Generate Outfit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(tabs)/outfits')}
+            >
+              <Ionicons name="shirt" size={32} color="#4ECDC4" />
+              <Text style={styles.actionText}>My Outfits</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/outfit-builder')}
+            >
+              <Ionicons name="construct" size={32} color="#45B7D1" />
+              <Text style={styles.actionText}>Outfit Builder</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Wardrobe</Text>
@@ -548,6 +601,11 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     fontFamily: 'Inter-Bold',
   },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    fontFamily: 'Inter-Regular',
+  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -718,5 +776,34 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     justifyContent: 'space-between',
+  },
+  quickActions: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 16,
+    fontFamily: 'Inter-SemiBold',
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  actionCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    fontFamily: 'Inter-SemiBold',
   },
 });

@@ -33,47 +33,32 @@ export const useWardrobe = () => {
 
     try {
       console.log('Loading clothing items from database...');
+
+      // Clear any existing items first to ensure no mock data persists
+      dispatch(wardrobeActions.setItems([]));
+
       const result = await wardrobeService.getClothingItems();
       if (result.error) {
         console.error('Error loading clothing items:', result.error);
         setError(result.error);
+        // Keep empty array if there's an error
+        dispatch(wardrobeActions.setItems([]));
       } else if (result.data) {
         console.log('Loaded items from database:', result.data.length);
-        // If no items exist, create sample items
-        if (result.data.length === 0) {
-          console.log('No items found, creating sample items...');
-          const sampleResult = await wardrobeService.createSampleItems();
-          if (sampleResult.success) {
-            console.log('Sample items created successfully, reloading...');
-            // Reload items after creating samples
-            const newResult = await wardrobeService.getClothingItems();
-            if (newResult.error) {
-              console.error(
-                'Error reloading items after sample creation:',
-                newResult.error
-              );
-              setError(newResult.error);
-            } else if (newResult.data) {
-              console.log(
-                'Successfully reloaded items after sample creation:',
-                newResult.data.length
-              );
-              dispatch(wardrobeActions.setItems(newResult.data));
-            }
-          } else {
-            console.warn('Failed to create sample items:', sampleResult.error);
-            dispatch(wardrobeActions.setItems(result.data));
-          }
-        } else {
-          console.log('Displaying existing items from database');
-          dispatch(wardrobeActions.setItems(result.data));
-        }
+        console.log('Displaying items from database');
+        dispatch(wardrobeActions.setItems(result.data));
+      } else {
+        // Explicitly set empty array if no data
+        console.log('No data returned from database, showing empty wardrobe');
+        dispatch(wardrobeActions.setItems([]));
       }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('Exception during clothing items loading:', errorMessage);
       setError(errorMessage);
+      // Clear items on error to prevent showing stale/mock data
+      dispatch(wardrobeActions.setItems([]));
     } finally {
       setIsLoading(false);
     }
@@ -199,11 +184,55 @@ export const useWardrobe = () => {
     }
   };
 
+  const removeSampleItems = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await wardrobeService.removeSampleItems();
+      if (result.error) {
+        setError(result.error);
+        return { success: false, error: result.error };
+      } else {
+        // Reload items after removing samples
+        await loadClothingItems();
+        return { success: true };
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const debugImagePaths = async () => {
     try {
       await wardrobeService.debugImagePaths();
     } catch (error) {
       console.error('Debug error:', error);
+    }
+  };
+
+  const clearAllData = async () => {
+    try {
+      setIsLoading(true);
+
+      // Clear Redux state
+      dispatch(wardrobeActions.setItems([]));
+      dispatch(wardrobeActions.clearSelection());
+      dispatch(wardrobeActions.clearFilters());
+      dispatch(wardrobeActions.setSearchQuery(''));
+
+      console.log('All local data cleared');
+      return { success: true };
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      return { success: false, error: (error as Error).message };
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -360,7 +389,9 @@ export const useWardrobe = () => {
       toggleFavorite,
       loadClothingItems,
       refreshData: loadClothingItems, // Alias for manual refresh
+      removeSampleItems,
       debugImagePaths,
+      clearAllData,
       // Legacy Redux actions for outfits and UI state
       addOutfit: (outfit: Outfit) =>
         dispatch(wardrobeActions.addOutfit(outfit)),
