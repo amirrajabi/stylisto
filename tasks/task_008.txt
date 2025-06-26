@@ -1,0 +1,61 @@
+# Task ID: 8
+# Title: Camera Integration and Image Upload Functionality
+# Status: pending
+# Dependencies: 1, 7
+# Priority: high
+# Description: Implement camera access and photo gallery integration for capturing and uploading clothing items.
+# Details:
+Integrate Expo Camera and Image Picker APIs for capturing new photos and selecting from gallery. Implement permission handling for camera and photo library access with clear explanations. Create image processing utilities for compression and optimization before upload. Implement batch upload functionality for multiple items. Add image cropping and basic enhancement tools using libraries like react-native-image-crop-picker. Create progress indicators for upload process. Handle device-specific camera behaviors across iOS and Android. Implement fallback options when camera permissions are denied.
+
+# Test Strategy:
+Test camera capture on various devices. Verify gallery selection works with different image types and sizes. Test permission flows for both granted and denied scenarios. Validate image compression maintains adequate quality while reducing file size. Test upload functionality with various network conditions.
+
+# Subtasks:
+## 1. Set Up Camera and Gallery Dependencies [pending]
+### Dependencies: None
+### Description: Install and configure required libraries (e.g., expo-camera, expo-image-picker, @react-native-camera-roll/camera-roll) for camera and gallery access in a React Native/Expo project.
+### Details:
+Ensure all dependencies are compatible with the current Expo/React Native version. Update package.json and run necessary installation commands.
+
+## 2. Implement Permission Handling [pending]
+### Dependencies: 8.1
+### Description: Request and manage runtime permissions for camera and gallery access on both iOS and Android platforms.
+### Details:
+Add permission keys to Info.plist (iOS) and AndroidManifest.xml (Android). Use Expo/React Native APIs to prompt users and handle permission states gracefully.
+
+## 3. Build Camera Access Component [pending]
+### Dependencies: 8.2
+### Description: Create a reusable camera component that allows users to capture photos or videos, with options for camera type, flash, and error handling.
+### Details:
+Use expo-camera or similar library. Expose callbacks for successful capture and errors. Ensure UI is responsive and accessible.
+
+## 4. Integrate Gallery Picker [pending]
+### Dependencies: 8.2
+### Description: Develop a gallery picker component to let users select single or multiple images from their device gallery.
+### Details:
+Use expo-image-picker or @react-native-camera-roll/camera-roll. Support batch selection and handle large galleries efficiently.
+
+## 5. Implement Image Processing and Enhancement Tools [pending]
+### Dependencies: 8.3, 8.4
+### Description: Add image cropping, resizing, and basic enhancement features (e.g., brightness, contrast) before upload.
+### Details:
+Integrate libraries like expo-image-manipulator. Provide an intuitive UI for cropping and adjustments, and ensure processed images are optimized for upload.
+
+## 6. Develop Batch Upload Functionality [pending]
+### Dependencies: 8.5
+### Description: Enable users to select and upload multiple images at once, handling upload queuing and concurrency.
+### Details:
+Implement logic to manage upload batches, retry failed uploads, and ensure efficient network usage.
+
+## 7. Create Upload Progress UI [pending]
+### Dependencies: None
+### Description: Design and implement a user interface to display upload progress for each image and overall batch status.
+### Details:
+Show per-image progress bars, overall progress, and clear feedback for success or failure. Ensure UI updates in real time.
+
+## 8. Implement Fallback and Error Handling [pending]
+### Dependencies: 8.2, 8.3, 8.4, 8.5, 8.6, 8.7
+### Description: Handle edge cases such as denied permissions, failed uploads, unsupported file types, and device-specific issues.
+### Details:
+Provide user-friendly error messages, fallback flows (e.g., retry, alternative selection), and log/report errors for debugging.
+

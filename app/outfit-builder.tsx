@@ -65,8 +65,8 @@ export default function OutfitBuilderScreen() {
       timesWorn: editOutfit?.timesWorn || 0,
       lastWorn: editOutfit?.lastWorn,
       notes: notes.trim(),
-      createdAt: editOutfit?.createdAt || new Date(),
-      updatedAt: new Date(),
+      createdAt: editOutfit?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (editOutfit) {
@@ -133,6 +133,17 @@ export default function OutfitBuilderScreen() {
             leftIcon={<Save size={20} color={Colors.white} />}
           />
         </View>
+
+        {/* AI Training Description */}
+        {!editOutfit && (
+          <View style={styles.aiTrainingSection}>
+            <BodyMedium style={styles.aiTrainingText}>
+              ✨ Your manual outfit creations help train our AI to understand
+              your style preferences and create better recommendations in the
+              future!
+            </BodyMedium>
+          </View>
+        )}
 
         {/* Outfit Details */}
         <View style={styles.section}>
@@ -262,5 +273,14 @@ const styles = StyleSheet.create({
   emptyAvailable: {
     padding: Spacing.lg,
     alignItems: 'center',
+  },
+  aiTrainingSection: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.primary,
+  },
+  aiTrainingText: {
+    textAlign: 'center',
   },
 });

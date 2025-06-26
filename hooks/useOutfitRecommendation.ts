@@ -50,8 +50,10 @@ export const useOutfitRecommendation = (
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
-        // Merge initial options with provided options
+        // Merge initial options with provided options and enable useAllItems by default
         const mergedOptions: OutfitGenerationOptions = {
+          useAllItems: true,
+          maxResults: 10,
           ...initialOptions,
           ...options,
         };
@@ -59,6 +61,9 @@ export const useOutfitRecommendation = (
         console.log(
           '🔄 useOutfitRecommendation: Generating outfits with options:',
           mergedOptions
+        );
+        console.log(
+          '🌟 useAllItems enabled - ensuring ALL wardrobe items are utilized'
         );
 
         // Generate outfits

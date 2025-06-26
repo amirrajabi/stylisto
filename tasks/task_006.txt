@@ -1,0 +1,55 @@
+# Task ID: 6
+# Title: Database Schema Design and Implementation
+# Status: pending
+# Dependencies: 5
+# Priority: high
+# Description: Design and implement the database schema in Supabase PostgreSQL according to the PRD specifications.
+# Details:
+Create database tables for Users, ClothingItems, SavedOutfits, UserPreferences, and AIFeedback as specified in the PRD. Implement proper relationships between tables with foreign key constraints. Set up indexes for frequently queried fields to optimize performance. Configure Row Level Security policies for each table to ensure data isolation. Implement soft delete functionality for data recovery. Create database functions and triggers for complex operations. Document the schema design with entity relationship diagrams. Use PostgreSQL's JSON capabilities for flexible attribute storage where appropriate.
+
+# Test Strategy:
+Verify all tables are created with correct columns and relationships. Test RLS policies to ensure proper data isolation. Validate query performance for common operations. Test data integrity constraints with various input scenarios. Verify soft delete functionality works as expected.
+
+# Subtasks:
+## 1. Design Relational Tables [pending]
+### Dependencies: None
+### Description: Define the core entities and their attributes, ensuring normalization (at least 3NF) and appropriate primary keys for each table.
+### Details:
+List all entities required for the application. For each entity, specify columns, data types (favoring 'text' for character data and 'timestamptz' for timestamps), and constraints. Ensure each table has a primary key, preferably a surrogate key for flexibility. Avoid redundant data and ensure logical grouping of columns.
+
+## 2. Define Table Relationships [pending]
+### Dependencies: 6.1
+### Description: Establish foreign key relationships between tables to enforce referential integrity and document associations.
+### Details:
+Identify all one-to-many, many-to-many, and one-to-one relationships. Add foreign key constraints to relevant tables. Consider the tradeoffs of foreign keys for performance and integrity. Use join tables for many-to-many relationships and document cascade behaviors for updates/deletes.
+
+## 3. Set Up Indexes for Performance [pending]
+### Dependencies: 6.1, 6.2
+### Description: Create indexes on columns frequently used in queries, joins, and filters to optimize performance.
+### Details:
+Analyze expected query patterns and identify columns for indexing (e.g., foreign keys, search fields, timestamps). Create unique indexes where necessary. Avoid over-indexing to prevent unnecessary write overhead. Document the rationale for each index.
+
+## 4. Configure Row-Level Security (RLS) [pending]
+### Dependencies: 6.1, 6.2, 6.3
+### Description: Implement PostgreSQL RLS policies to restrict data access based on user roles and ownership.
+### Details:
+Enable RLS on sensitive tables. Define policies for SELECT, INSERT, UPDATE, and DELETE operations based on user context. Test policies to ensure only authorized users can access or modify data. Document all RLS configurations and their intended protections.
+
+## 5. Implement Soft Delete Mechanism [pending]
+### Dependencies: 6.1, 6.2, 6.3, 6.4
+### Description: Add soft delete support to tables by introducing a 'deleted_at' timestamp column and updating queries to exclude soft-deleted records.
+### Details:
+Add a nullable 'deleted_at' column (type 'timestamptz') to tables requiring soft delete. Update application logic and queries to filter out rows where 'deleted_at' is not null. Consider adding partial indexes to optimize queries for non-deleted records.
+
+## 6. Write Database Functions and Triggers [pending]
+### Dependencies: 6.1, 6.2, 6.3, 6.4, 6.5
+### Description: Develop PostgreSQL functions and triggers for automated behaviors such as cascading soft deletes, auditing, or enforcing business rules.
+### Details:
+Identify scenarios requiring automation (e.g., setting 'deleted_at' on related records, logging changes). Write PL/pgSQL functions and attach triggers to relevant tables. Test all triggers for correctness and performance impact.
+
+## 7. Document Schema with ER Diagrams [pending]
+### Dependencies: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6
+### Description: Create and maintain Entity-Relationship (ER) diagrams to visually document the schema, relationships, and key constraints.
+### Details:
+Use a diagramming tool to represent all tables, columns, primary/foreign keys, and relationships. Annotate diagrams with notes on RLS, soft delete, and triggers. Ensure diagrams are kept up-to-date with schema changes and are accessible to the development team.
+

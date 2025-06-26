@@ -1,33 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-} from 'react-native';
-import {
-  Sparkles,
-  Cloud,
   Calendar,
-  Tag,
-  Shirt,
+  Cloud,
   Filter,
   RefreshCw,
+  Shirt,
+  Sparkles,
+  Tag,
 } from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  useOutfitGenerator,
-  OutfitGenerationOptions,
-  GeneratedOutfit,
-  WeatherData,
-} from '../../lib/outfitGenerator';
-import { useWardrobe } from '../../hooks/useWardrobe';
-import { OutfitPreview } from './OutfitPreview';
-import { ClothingCategory, Occasion, Season } from '../../types/wardrobe';
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
+import { useWardrobe } from '../../hooks/useWardrobe';
+import {
+  GeneratedOutfit,
+  OutfitGenerationOptions,
+  useOutfitGenerator,
+} from '../../lib/outfitGenerator';
+import { OutfitPreview } from './OutfitPreview';
 
 interface OutfitGeneratorProps {
   onSaveOutfit?: (outfitId: string) => void;
@@ -59,7 +56,8 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
       colorfulness: 0.5,
     },
     maxResults: initialOptions.maxResults || 5,
-    minScore: initialOptions.minScore || 0.6,
+    minScore: initialOptions.minScore || 0.1,
+    useAllItems: initialOptions.useAllItems || false,
   });
 
   // Generate outfits on mount if we have items
@@ -239,6 +237,29 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[
+            styles.optionButton,
+            options.useAllItems && styles.optionButtonActive,
+          ]}
+          onPress={() =>
+            handleUpdateOption('useAllItems', !options.useAllItems)
+          }
+        >
+          <Shirt
+            size={20}
+            color={options.useAllItems ? Colors.white : Colors.text.secondary}
+          />
+          <Text
+            style={[
+              styles.optionText,
+              options.useAllItems && styles.optionTextActive,
+            ]}
+          >
+            Use All Items
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.optionButton}
           onPress={() => {
             /* Open filter modal */
@@ -348,9 +369,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface.secondary,
     gap: Spacing.xs,
   },
+  optionButtonActive: {
+    backgroundColor: Colors.primary[700],
+  },
   optionText: {
     ...Typography.caption.medium,
     color: Colors.text.secondary,
+  },
+  optionTextActive: {
+    color: Colors.white,
   },
   outfitContainer: {
     flex: 1,
@@ -411,7 +438,7 @@ const styles = StyleSheet.create({
     ...Typography.heading.h3,
     color: Colors.primary[700],
   },
-  scoreLabel: {
+  scoreLabelSimple: {
     ...Typography.caption.medium,
     color: Colors.text.secondary,
   },

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Cloud, Settings } from 'lucide-react-native';
+import { Cloud, Plus, Settings } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
@@ -12,6 +12,7 @@ import {
 import { OutfitCard } from '../../../components/outfits/OutfitCard';
 import { OutfitDetailModal } from '../../../components/outfits/OutfitDetailModal';
 import { OutfitEditModal } from '../../../components/outfits/OutfitEditModal';
+import { OutfitStatsDisplay } from '../../../components/outfits/OutfitStatsDisplay';
 import { BodyMedium, Button, H1, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
@@ -188,6 +189,10 @@ export default function GenerateScreen() {
     [saveCurrentOutfit]
   );
 
+  const handleManualOutfitBuilder = useCallback(() => {
+    router.push('/outfit-builder');
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -199,6 +204,34 @@ export default function GenerateScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Outfit Generation Statistics */}
+        <OutfitStatsDisplay
+          totalItems={filteredItems.length}
+          generatedOutfits={outfits.length}
+          averageScore={
+            outfits.length > 0
+              ? (outfits.reduce((sum, outfit) => sum + outfit.score.total, 0) /
+                  outfits.length) *
+                100
+              : 0
+          }
+          highScoreOutfits={
+            outfits.filter(outfit => outfit.score.total >= 0.8).length
+          }
+          utilizationRate={
+            filteredItems.length > 0
+              ? (outfits
+                  .flatMap(outfit => outfit.items)
+                  .filter(
+                    (item, index, arr) =>
+                      arr.findIndex(i => i.id === item.id) === index
+                  ).length /
+                  filteredItems.length) *
+                100
+              : 0
+          }
+        />
+
         {/* Generated Outfits Display */}
         {loading ? (
           <View style={styles.loadingState}>
@@ -241,6 +274,29 @@ export default function GenerateScreen() {
             </Text>
           </View>
         )}
+
+        {/* Manual Outfit Builder */}
+        <View style={styles.manualBuilderContainer}>
+          <TouchableOpacity
+            style={styles.manualBuilderCard}
+            onPress={handleManualOutfitBuilder}
+          >
+            <View style={styles.manualBuilderIcon}>
+              <Plus size={28} color={Colors.primary[500]} />
+            </View>
+            <View style={styles.manualBuilderContent}>
+              <Text style={styles.manualBuilderTitle}>
+                Create Manual Outfit
+              </Text>
+              <Text style={styles.manualBuilderDescription}>
+                Build your own outfit combinations to train our AI
+              </Text>
+            </View>
+            <View style={styles.optionArrow}>
+              <Text style={styles.arrow}>›</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* Options */}
         <View style={styles.optionsContainer}>
@@ -590,5 +646,38 @@ const styles = StyleSheet.create({
   },
   weatherButton: {
     alignSelf: 'flex-end',
+  },
+  manualBuilderContainer: {
+    marginBottom: Spacing.lg,
+  },
+  manualBuilderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
+  },
+  manualBuilderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  manualBuilderContent: {
+    flex: 1,
+  },
+  manualBuilderTitle: {
+    ...Typography.heading.h5,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  manualBuilderDescription: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
   },
 });

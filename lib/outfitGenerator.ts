@@ -19,6 +19,7 @@ export interface OutfitGenerationOptions {
   forceIncludeItems?: string[];
   maxResults?: number;
   minScore?: number;
+  useAllItems?: boolean;
 }
 
 export interface WeatherData {
@@ -108,7 +109,8 @@ class OutfitGenerator {
     // Apply default options
     const defaultOptions: OutfitGenerationOptions = {
       maxResults: 5,
-      minScore: 0.4,
+      minScore: 0.1,
+      useAllItems: false,
       stylePreference: {
         formality: 0.5,
         boldness: 0.5,
@@ -118,6 +120,11 @@ class OutfitGenerator {
     };
 
     const mergedOptions = { ...defaultOptions, ...options };
+
+    // If useAllItems is enabled, use special algorithm
+    if (mergedOptions.useAllItems) {
+      return this.generateOutfitsUsingAllItems(items, mergedOptions);
+    }
 
     // Filter available items based on options
     let availableItems = [...items];
@@ -198,26 +205,315 @@ class OutfitGenerator {
       `🎨 ${diverseOutfits.length} diverse outfits after variety filter`
     );
 
-    // Limit to requested number of results
-    const results = diverseOutfits.slice(0, mergedOptions.maxResults);
+    // Limit results
+    const finalOutfits = diverseOutfits.slice(0, mergedOptions.maxResults);
 
-    console.log(
-      `🏆 Final results: ${results.length} outfits (max: ${mergedOptions.maxResults})`
-    );
-
-    // Record generated outfits to avoid repetition in future
-    results.forEach(outfit => {
-      const outfitKey = this.getOutfitKey(outfit.items);
-      this.recentlyGeneratedOutfits.set(outfitKey, new Date());
-    });
-
-    // Clean up expired entries in recently generated outfits
+    // Clean up recent outfits
     this.cleanupRecentOutfits();
 
-    const endTime = performance.now();
-    console.log(`Outfit generation completed in ${endTime - startTime}ms`);
+    // Store generated outfits
+    finalOutfits.forEach(outfit => {
+      const key = this.getOutfitKey(outfit.items);
+      this.recentlyGeneratedOutfits.set(key, new Date());
+    });
 
-    return results;
+    const endTime = performance.now();
+    console.log(
+      `⏱️ Outfit generation completed in ${(endTime - startTime).toFixed(2)}ms`
+    );
+    console.log(`🎉 Returning ${finalOutfits.length} final outfits`);
+
+    return finalOutfits;
+  }
+
+  /**
+   * Generate outfits ensuring ALL items are used at least once
+   */
+  private generateOutfitsUsingAllItems(
+    items: ClothingItem[],
+    options: OutfitGenerationOptions
+  ): GeneratedOutfit[] {
+    console.log(`🌟 Using ALL ITEMS strategy with ${items.length} items`);
+
+    const allOutfits: GeneratedOutfit[] = [];
+    const usedItems = new Set<string>();
+    const itemsByCategory = this.groupItemsByCategory(items);
+
+    // Strategy 1: Create outfits with each item as the "star" piece
+    for (const starItem of items) {
+      const outfitsWithStarItem = this.generateOutfitsAroundStarItem(
+        starItem,
+        items,
+        options
+      );
+
+      outfitsWithStarItem.forEach(outfit => {
+        outfit.items.forEach(item => usedItems.add(item.id));
+      });
+
+      allOutfits.push(...outfitsWithStarItem);
+    }
+
+    // Strategy 2: Create additional outfits for any remaining unused items
+    const unusedItems = items.filter(item => !usedItems.has(item.id));
+
+    if (unusedItems.length > 0) {
+      console.log(
+        `🔧 Creating additional outfits for ${unusedItems.length} unused items`
+      );
+
+      for (const unusedItem of unusedItems) {
+        const additionalOutfits = this.generateOutfitsAroundStarItem(
+          unusedItem,
+          items,
+          { ...options, minScore: 0.05 } // Even lower score for unused items
+        );
+
+        allOutfits.push(...additionalOutfits);
+        usedItems.add(unusedItem.id);
+      }
+    }
+
+    // Strategy 3: Create "challenge" outfits with hard-to-match items
+    const challengeOutfits = this.generateChallengeOutfits(items, options);
+    allOutfits.push(...challengeOutfits);
+
+    // Remove duplicates and sort by score
+    const uniqueOutfits = this.removeDuplicateOutfits(allOutfits);
+    uniqueOutfits.sort((a, b) => b.score.total - a.score.total);
+
+    // Calculate final statistics
+    const finalUsedItems = new Set<string>();
+    uniqueOutfits.forEach(outfit => {
+      outfit.items.forEach(item => finalUsedItems.add(item.id));
+    });
+
+    const utilizationRate = (finalUsedItems.size / items.length) * 100;
+    console.log(
+      `📊 Final utilization: ${finalUsedItems.size}/${items.length} items (${utilizationRate.toFixed(1)}%)`
+    );
+    console.log(
+      `🎯 Generated ${uniqueOutfits.length} unique outfits using ALL items strategy`
+    );
+
+    // Return the best outfits, but ensure we have enough to showcase all items
+    const targetCount = Math.max(
+      options.maxResults || 10,
+      Math.ceil(items.length / 3)
+    );
+    return uniqueOutfits.slice(0, targetCount);
+  }
+
+  /**
+   * Generate outfits with a specific item as the focal point
+   */
+  private generateOutfitsAroundStarItem(
+    starItem: ClothingItem,
+    allItems: ClothingItem[],
+    options: OutfitGenerationOptions
+  ): GeneratedOutfit[] {
+    const outfits: GeneratedOutfit[] = [];
+    const itemsByCategory = this.groupItemsByCategory(allItems);
+
+    // Remove the star item from its category to avoid duplicates
+    const availableItems = allItems.filter(item => item.id !== starItem.id);
+    const availableByCategory = this.groupItemsByCategory(availableItems);
+
+    // Determine required categories based on star item
+    let requiredCategories: ClothingCategory[] = [];
+
+    if (starItem.category === ClothingCategory.DRESSES) {
+      // Dress-based outfit
+      requiredCategories = [];
+    } else if (starItem.category === ClothingCategory.TOPS) {
+      // Need bottom
+      requiredCategories = [ClothingCategory.BOTTOMS];
+    } else if (starItem.category === ClothingCategory.BOTTOMS) {
+      // Need top
+      requiredCategories = [ClothingCategory.TOPS];
+    } else {
+      // Accessory/shoes/outerwear - need top and bottom
+      requiredCategories = [ClothingCategory.TOPS, ClothingCategory.BOTTOMS];
+    }
+
+    // Generate base outfits
+    if (requiredCategories.length === 0) {
+      // Star item is sufficient alone (dress)
+      const outfit = [starItem];
+      this.addBestOptionalItems(outfit, availableByCategory, [
+        'SHOES',
+        'ACCESSORIES',
+        'OUTERWEAR',
+      ]);
+
+      const score = this.scoreOutfit(outfit, options);
+      if (score.total >= (options.minScore || 0.05)) {
+        outfits.push({ items: outfit, score });
+      }
+    } else {
+      // Need to add required items
+      this.generateCombinationsWithStarItem(
+        [starItem],
+        requiredCategories,
+        availableByCategory,
+        options,
+        outfits
+      );
+    }
+
+    return outfits;
+  }
+
+  /**
+   * Recursively generate outfit combinations with a star item
+   */
+  private generateCombinationsWithStarItem(
+    currentOutfit: ClothingItem[],
+    remainingCategories: ClothingCategory[],
+    availableByCategory: Record<ClothingCategory, ClothingItem[]>,
+    options: OutfitGenerationOptions,
+    outfits: GeneratedOutfit[]
+  ): void {
+    if (remainingCategories.length === 0) {
+      // Add optional items and finalize outfit
+      const finalOutfit = [...currentOutfit];
+      this.addBestOptionalItems(finalOutfit, availableByCategory, [
+        'SHOES',
+        'ACCESSORIES',
+        'OUTERWEAR',
+      ]);
+
+      const score = this.scoreOutfit(finalOutfit, options);
+      if (score.total >= (options.minScore || 0.05)) {
+        outfits.push({ items: finalOutfit, score });
+      }
+      return;
+    }
+
+    const nextCategory = remainingCategories[0];
+    const categoryItems = availableByCategory[nextCategory] || [];
+
+    // Try each item in this category
+    for (const item of categoryItems) {
+      if (this.isItemCompatible(item, currentOutfit)) {
+        const newOutfit = [...currentOutfit, item];
+        const newRemainingCategories = remainingCategories.slice(1);
+
+        this.generateCombinationsWithStarItem(
+          newOutfit,
+          newRemainingCategories,
+          availableByCategory,
+          options,
+          outfits
+        );
+      }
+    }
+
+    // If no compatible items found, try with relaxed compatibility
+    if (categoryItems.length > 0) {
+      const bestItem = categoryItems[0]; // Take first available item as fallback
+      const newOutfit = [...currentOutfit, bestItem];
+      const newRemainingCategories = remainingCategories.slice(1);
+
+      this.generateCombinationsWithStarItem(
+        newOutfit,
+        newRemainingCategories,
+        availableByCategory,
+        options,
+        outfits
+      );
+    }
+  }
+
+  /**
+   * Add the best optional items to an outfit
+   */
+  private addBestOptionalItems(
+    outfit: ClothingItem[],
+    availableByCategory: Record<ClothingCategory, ClothingItem[]>,
+    optionalCategories: string[]
+  ): void {
+    for (const categoryStr of optionalCategories) {
+      const category = categoryStr as ClothingCategory;
+
+      // Skip if outfit already has this category
+      if (outfit.some(item => item.category === category)) continue;
+
+      const categoryItems = availableByCategory[category] || [];
+      if (categoryItems.length === 0) continue;
+
+      // Find best matching item
+      let bestItem: ClothingItem | null = null;
+      let bestScore = -1;
+
+      for (const item of categoryItems) {
+        const score = this.calculateItemCompatibilityScore(item, outfit);
+        if (score > bestScore) {
+          bestScore = score;
+          bestItem = item;
+        }
+      }
+
+      // Add item if it has decent compatibility
+      if (bestItem && bestScore > 0.1) {
+        outfit.push(bestItem);
+      }
+    }
+  }
+
+  /**
+   * Generate challenge outfits that pair difficult items together
+   */
+  private generateChallengeOutfits(
+    items: ClothingItem[],
+    options: OutfitGenerationOptions
+  ): GeneratedOutfit[] {
+    const challengeOutfits: GeneratedOutfit[] = [];
+    const itemsByCategory = this.groupItemsByCategory(items);
+
+    // Create a few "wild" combinations that push boundaries
+    const topItems = itemsByCategory[ClothingCategory.TOPS] || [];
+    const bottomItems = itemsByCategory[ClothingCategory.BOTTOMS] || [];
+
+    if (topItems.length > 0 && bottomItems.length > 0) {
+      // Create unexpected color combinations
+      for (let i = 0; i < Math.min(3, topItems.length); i++) {
+        for (let j = 0; j < Math.min(2, bottomItems.length); j++) {
+          const challengeOutfit = [topItems[i], bottomItems[j]];
+
+          // Add accessories for fun
+          this.addBestOptionalItems(challengeOutfit, itemsByCategory, [
+            'SHOES',
+            'ACCESSORIES',
+          ]);
+
+          const score = this.scoreOutfit(challengeOutfit, options);
+          challengeOutfits.push({ items: challengeOutfit, score });
+        }
+      }
+    }
+
+    return challengeOutfits;
+  }
+
+  /**
+   * Remove duplicate outfits based on item composition
+   */
+  private removeDuplicateOutfits(
+    outfits: GeneratedOutfit[]
+  ): GeneratedOutfit[] {
+    const seen = new Set<string>();
+    const unique: GeneratedOutfit[] = [];
+
+    for (const outfit of outfits) {
+      const key = this.getOutfitKey(outfit.items);
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(outfit);
+      }
+    }
+
+    return unique;
   }
 
   /**
