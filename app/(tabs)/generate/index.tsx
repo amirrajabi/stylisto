@@ -522,23 +522,38 @@ export default function StylistScreen() {
 
   const handleOutfitSave = useCallback(
     async (outfitId: string) => {
-      const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
-      if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
-        const savedOutfitId = saveCurrentOutfit(
-          `Generated Outfit ${outfitIndex + 1}`
-        );
-        if (savedOutfitId) {
-          // Refresh saved outfits from database after saving
-          await refreshOutfits();
+      // Handle AI generated outfits
+      if (outfitId.startsWith('outfit-')) {
+        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+        if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
+          const savedOutfitId = saveCurrentOutfit(
+            `Generated Outfit ${outfitIndex + 1}`
+          );
+          if (savedOutfitId) {
+            // Refresh saved outfits from database after saving
+            await refreshOutfits();
 
+            router.push({
+              pathname: '/profile/saved' as any,
+              params: { highlight: savedOutfitId },
+            });
+          }
+        }
+      }
+      // Handle manual outfits
+      else if (outfitId.startsWith('manual-db-')) {
+        const originalId = outfitId.replace('manual-db-', '');
+        const outfit = savedOutfits?.find(o => o.id === originalId);
+        if (outfit) {
+          // Manual outfits are already saved, just navigate to saved page
           router.push({
             pathname: '/profile/saved' as any,
-            params: { highlight: savedOutfitId },
+            params: { highlight: outfit.id },
           });
         }
       }
     },
-    [outfits, saveCurrentOutfit, refreshOutfits]
+    [outfits, saveCurrentOutfit, refreshOutfits, savedOutfits]
   );
 
   const handleOutfitEdit = useCallback(
@@ -958,13 +973,11 @@ export default function StylistScreen() {
                     o => o.id === outfitId
                   );
                   if (outfit) {
-                    router.push({
-                      pathname: '/outfit-detail',
-                      params: { outfitId: outfit.originalData.id },
-                    });
+                    setSelectedOutfit(outfit);
+                    setModalVisible(true);
                   }
                 }}
-                onSaveOutfit={() => {}}
+                onSaveOutfit={handleOutfitSave}
                 onEditOutfit={(outfit: any) => {
                   const foundOutfit = manualOutfitsFromDB.find(
                     o => o.id === outfit.id
