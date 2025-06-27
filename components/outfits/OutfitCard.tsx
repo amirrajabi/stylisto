@@ -87,7 +87,10 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => onOutfitPress(outfit.id)}
+        onPress={() => {
+          console.log('🔍 OutfitCard - outfit pressed:', outfit.id);
+          onOutfitPress(outfit.id);
+        }}
         activeOpacity={0.8}
       >
         {/* Header with name and action buttons */}

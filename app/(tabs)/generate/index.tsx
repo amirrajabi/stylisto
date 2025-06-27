@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Filter, Plus, Sparkles, X } from 'lucide-react-native';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Animated,
   SafeAreaView,
@@ -519,6 +519,7 @@ export default function StylistScreen() {
   );
 
   const handleModalClose = useCallback(() => {
+    console.log('🔄 Closing outfit detail modal');
     setModalVisible(false);
     setSelectedOutfit(null);
   }, []);
@@ -536,10 +537,7 @@ export default function StylistScreen() {
             // Refresh saved outfits from database after saving
             await refreshManualOutfits();
 
-            router.push({
-              pathname: '/profile/saved' as any,
-              params: { highlight: savedOutfitId },
-            });
+            console.log('✅ Outfit updated successfully:', savedOutfitId);
           }
         }
       }
@@ -549,10 +547,7 @@ export default function StylistScreen() {
         const outfit = manualOutfitsFromDB.find(o => o.id === originalId);
         if (outfit) {
           // Manual outfits are already saved, just navigate to saved page
-          router.push({
-            pathname: '/profile/saved' as any,
-            params: { highlight: outfit.id },
-          });
+          console.log('✅ Manual outfit already saved:', outfit.id);
         }
       }
     },
@@ -598,10 +593,7 @@ export default function StylistScreen() {
           // Refresh saved outfits from database after updating
           await refreshManualOutfits();
 
-          router.push({
-            pathname: '/profile/saved' as any,
-            params: { highlight: savedOutfitId },
-          });
+          console.log('✅ Outfit saved successfully:', savedOutfitId);
         }
       }
     },
@@ -650,6 +642,19 @@ export default function StylistScreen() {
       weatherConditions: weatherData.conditions,
     }));
   }, []);
+
+  // Debug manual outfits data
+  useEffect(() => {
+    console.log('🔍 Manual outfits updated:', {
+      loading: manualOutfitsLoading,
+      count: manualOutfitsFromDB.length,
+      outfits: manualOutfitsFromDB.map(o => ({
+        id: o.id,
+        name: o.name,
+        items: o.items?.length,
+      })),
+    });
+  }, [manualOutfitsFromDB, manualOutfitsLoading]);
 
   // Refresh saved outfits when screen comes into focus (only once per focus)
   useFocusEffect(
@@ -939,31 +944,45 @@ export default function StylistScreen() {
               </ScrollView>
             ) : manualOutfitsFromDB.length > 0 ? (
               <OutfitCard
-                outfits={manualOutfitsFromDB.map(outfit => ({
-                  id: `manual-db-${outfit.id}`,
-                  name: outfit.name,
-                  items: outfit.items,
-                  score: outfit.score,
-                  type: 'manual',
-                  originalData: outfit,
-                  isFavorite: false,
-                  createdAt: outfit.createdAt,
-                  updatedAt: outfit.updatedAt,
-                }))}
+                outfits={manualOutfitsFromDB.map(outfit => {
+                  console.log(
+                    '🔍 Mapping outfit for OutfitCard:',
+                    outfit.id,
+                    outfit.name
+                  );
+                  return {
+                    id: `manual-db-${outfit.id}`,
+                    name: outfit.name,
+                    items: outfit.items,
+                    score: outfit.score,
+                    type: 'manual',
+                    originalData: outfit,
+                    isFavorite: false,
+                    createdAt: outfit.createdAt,
+                    updatedAt: outfit.updatedAt,
+                  };
+                })}
                 onOutfitPress={(outfitId: string) => {
                   const id = outfitId.replace('manual-db-', '');
                   const outfit = manualOutfitsFromDB.find(o => o.id === id);
                   if (outfit) {
+                    console.log('🔍 Selected outfit for modal:', outfit);
+                    console.log('🔍 Outfit score:', outfit.score);
+
+                    // Ensure score structure matches OutfitDetailModal expectations
+                    const normalizedScore = {
+                      total: outfit.score?.total || 0.8,
+                      color: outfit.score?.color || 0.8,
+                      style: outfit.score?.style || 0.8,
+                      season: outfit.score?.season || 0.8,
+                      occasion: outfit.score?.occasion || 0.8,
+                    };
+
                     setSelectedOutfit({
                       id: `manual-db-${outfit.id}`,
                       name: outfit.name,
-                      items: outfit.items,
-                      score: outfit.score,
-                      type: 'manual',
-                      originalData: outfit,
-                      isFavorite: false,
-                      createdAt: outfit.createdAt,
-                      updatedAt: outfit.updatedAt,
+                      items: outfit.items || [],
+                      score: normalizedScore,
                     });
                     setModalVisible(true);
                   }

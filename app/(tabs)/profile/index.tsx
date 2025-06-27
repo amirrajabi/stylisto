@@ -597,7 +597,7 @@ export default function ProfileScreen() {
             icon={<Heart size={20} color={colors.text.secondary} />}
             title="Saved Outfits"
             subtitle="Browse and manage your saved outfits"
-            onPress={() => router.push('/profile/saved')}
+            onPress={() => console.log('Saved outfits feature not available')}
           />
           <MenuItem
             icon={<DollarSign size={20} color={colors.text.secondary} />}

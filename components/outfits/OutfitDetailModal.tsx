@@ -52,7 +52,17 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   onSave,
   onShare,
 }) => {
-  if (!outfit) return null;
+  console.log(
+    '🔍 OutfitDetailModal render - visible:',
+    visible,
+    'outfit:',
+    outfit
+  );
+
+  if (!outfit) {
+    console.log('❌ OutfitDetailModal: No outfit data provided');
+    return null;
+  }
 
   const getScoreColor = (score: number) => {
     if (score >= 0.8) return Colors.success[500];
@@ -75,7 +85,9 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
     }
   };
 
-  const totalScore = Math.round(outfit.score.total * 100);
+  console.log('🔍 Outfit score structure:', outfit.score);
+  const totalScore = Math.round((outfit.score?.total || 0) * 100);
+  console.log('🔍 Calculated total score:', totalScore);
 
   return (
     <Modal
@@ -132,22 +144,22 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
                 {
                   key: 'style',
                   label: 'Style Harmony',
-                  value: outfit.score.style,
+                  value: outfit.score?.style || 0,
                 },
                 {
                   key: 'color',
                   label: 'Color Match',
-                  value: outfit.score.color,
+                  value: outfit.score?.color || 0,
                 },
                 {
                   key: 'season',
                   label: 'Season Fit',
-                  value: outfit.score.season,
+                  value: outfit.score?.season || 0,
                 },
                 {
                   key: 'occasion',
                   label: 'Occasion',
-                  value: outfit.score.occasion,
+                  value: outfit.score?.occasion || 0,
                 },
               ].map(scoreItem => (
                 <View key={scoreItem.key} style={styles.scoreCard}>
