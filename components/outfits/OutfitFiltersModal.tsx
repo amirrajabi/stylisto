@@ -1,4 +1,3 @@
-import Slider from '@react-native-community/slider';
 import { Filter, X } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
@@ -16,7 +15,7 @@ import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
 import { Occasion } from '../../types/wardrobe';
-import { Button, H2, H3 } from '../ui';
+import { Button, H2, H3, Slider } from '../ui';
 
 export interface OutfitFilters {
   occasion: Occasion | null;

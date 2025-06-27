@@ -24,6 +24,9 @@ export { FloatingActionButton } from './FloatingActionButton';
 export { ProgressBar } from './ProgressBar';
 export type { ProgressBarProps } from './ProgressBar';
 
+export { Slider } from './Slider';
+export type { SliderProps } from './Slider';
+
 // Typography components
 export {
   BodyLarge,

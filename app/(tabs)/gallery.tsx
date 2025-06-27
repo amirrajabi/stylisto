@@ -189,14 +189,22 @@ export default function GalleryScreen() {
 
   const handleProveOutfit = async (outfitId: string) => {
     console.log('🚀 Prove outfit function called for outfit:', outfitId);
-    // TODO: Add your custom prove outfit functionality here
-    // This is where you can implement the specific action you want to perform
-    // Examples:
-    // - Navigate to a specific screen
-    // - Call an API endpoint
-    // - Show a specific modal
-    // - Trigger a specific workflow
-    alert(`Prove outfit functionality triggered for outfit: ${outfitId}`);
+
+    // The OutfitDetailModal now handles all Virtual Try-On logic using Redux store
+    // This callback is just for logging and external tracking
+    console.log('Virtual try-on process initiated for outfit:', outfitId);
+  };
+
+  const handleVirtualTryOnComplete = (result: any) => {
+    console.log('Virtual try-on completed:', result);
+  };
+
+  const handleVirtualTryOnSave = (result: any) => {
+    console.log('Virtual try-on result saved:', result);
+  };
+
+  const handleVirtualTryOnShare = (result: any) => {
+    console.log('Virtual try-on result shared:', result);
   };
 
   const handleRemoveFromFavorites = async (outfitId: string) => {
@@ -333,9 +341,13 @@ export default function GalleryScreen() {
           visible={modalVisible}
           outfit={selectedOutfit}
           onClose={handleCloseModal}
+          userImage={user?.full_body_image_url || undefined}
           onSave={handleSaveOutfit}
           onShare={handleShareOutfit}
           onProve={handleProveOutfit}
+          onVirtualTryOnComplete={handleVirtualTryOnComplete}
+          onVirtualTryOnSave={handleVirtualTryOnSave}
+          onVirtualTryOnShare={handleVirtualTryOnShare}
         />
       )}
     </SafeAreaView>

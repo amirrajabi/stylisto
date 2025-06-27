@@ -1,4 +1,3 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { router } from 'expo-router';
 import {
@@ -18,7 +17,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -39,7 +37,6 @@ export default function EditProfileScreen() {
   const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<ProfileUpdateFormData>({
@@ -78,11 +75,53 @@ export default function EditProfileScreen() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      updateFormData('date_of_birth', selectedDate.toISOString().split('T')[0]);
-    }
+  const formatDateForDisplay = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const openDatePicker = () => {
+    // Simple prompt-based date picker for Expo Go compatibility
+    Alert.prompt(
+      'Date of Birth',
+      'Enter your date of birth (DD/MM/YYYY)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Set',
+          onPress: text => {
+            if (text) {
+              // Parse DD/MM/YYYY format
+              const parts = text.split('/');
+              if (parts.length === 3) {
+                const day = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                const year = parseInt(parts[2]);
+
+                if (day <= 31 && month <= 12 && year > 1900 && year < 2030) {
+                  const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                  updateFormData('date_of_birth', isoDate);
+                } else {
+                  Alert.alert(
+                    'Invalid Date',
+                    'Please enter a valid date in DD/MM/YYYY format'
+                  );
+                }
+              } else {
+                Alert.alert('Invalid Format', 'Please use DD/MM/YYYY format');
+              }
+            }
+          },
+        },
+      ],
+      'plain-text',
+      formatDateForDisplay(formData.date_of_birth || '')
+    );
   };
 
   const handleSave = async () => {
@@ -229,10 +268,7 @@ export default function EditProfileScreen() {
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Date of Birth</Text>
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowDatePicker(true)}
-            >
+            <TouchableOpacity style={styles.dateInput} onPress={openDatePicker}>
               <Calendar size={16} color={Colors.text.secondary} />
               <Text
                 style={[
@@ -246,20 +282,6 @@ export default function EditProfileScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={
-                formData.date_of_birth
-                  ? new Date(formData.date_of_birth)
-                  : new Date()
-              }
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-            />
-          )}
 
           <PickerField
             label="Gender"

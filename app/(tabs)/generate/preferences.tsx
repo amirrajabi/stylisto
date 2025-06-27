@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Slider from '@react-native-community/slider';
 import { router } from 'expo-router';
 import {
   ArrowLeft,
@@ -19,7 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BodyMedium, Button, H1 } from '../../../components/ui';
+import { BodyMedium, Button, H1, Slider } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -150,7 +149,9 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.formality}
-              onValueChange={value => handleSliderChange('formality', value)}
+              onValueChange={(value: number) =>
+                handleSliderChange('formality', value)
+              }
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -175,7 +176,9 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.boldness}
-              onValueChange={value => handleSliderChange('boldness', value)}
+              onValueChange={(value: number) =>
+                handleSliderChange('boldness', value)
+              }
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -200,7 +203,9 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.layering}
-              onValueChange={value => handleSliderChange('layering', value)}
+              onValueChange={(value: number) =>
+                handleSliderChange('layering', value)
+              }
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}
@@ -225,7 +230,9 @@ export default function PreferencesScreen() {
               maximumValue={1}
               step={0.05}
               value={stylePreference.colorfulness}
-              onValueChange={value => handleSliderChange('colorfulness', value)}
+              onValueChange={(value: number) =>
+                handleSliderChange('colorfulness', value)
+              }
               minimumTrackTintColor={Colors.primary[700]}
               maximumTrackTintColor={Colors.neutral[300]}
               thumbTintColor={Colors.primary[700]}

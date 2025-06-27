@@ -23,6 +23,7 @@ import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
+import { useAuth } from '../../../hooks/useAuth';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { useWardrobe } from '../../../hooks/useWardrobe';
 
@@ -88,6 +89,7 @@ const getColorLabel = (color: string): string => {
 };
 
 export default function StylistScreen() {
+  const { user } = useAuth();
   const { filteredItems } = useWardrobe();
 
   // Use new hook for manual outfits - direct from database without cache
@@ -608,14 +610,22 @@ export default function StylistScreen() {
 
   const handleProveOutfit = useCallback(async (outfitId: string) => {
     console.log('🚀 Prove outfit function called for outfit:', outfitId);
-    // TODO: Add your custom prove outfit functionality here
-    // This is where you can implement the specific action you want to perform
-    // Examples:
-    // - Navigate to a specific screen
-    // - Call an API endpoint
-    // - Show a specific modal
-    // - Trigger a specific workflow
-    alert(`Prove outfit functionality triggered for outfit: ${outfitId}`);
+
+    // No additional logic needed here since OutfitDetailModal handles the virtual try-on
+    // This function is called as a callback when the prove button is pressed
+    console.log('Virtual try-on process initiated for outfit:', outfitId);
+  }, []);
+
+  const handleVirtualTryOnComplete = useCallback((result: any) => {
+    console.log('Virtual try-on completed:', result);
+  }, []);
+
+  const handleVirtualTryOnSave = useCallback((result: any) => {
+    console.log('Virtual try-on result saved:', result);
+  }, []);
+
+  const handleVirtualTryOnShare = useCallback((result: any) => {
+    console.log('Virtual try-on result shared:', result);
   }, []);
 
   const handleTryOutfit = useCallback(async (outfitId: string) => {
@@ -1115,10 +1125,14 @@ export default function StylistScreen() {
         visible={modalVisible}
         onClose={handleModalClose}
         outfit={selectedOutfit}
+        userImage={user?.full_body_image_url || undefined}
         onSave={handleOutfitSave}
         onShare={handleShareOutfit}
         onProve={handleProveOutfit}
         onTry={handleTryOutfit}
+        onVirtualTryOnComplete={handleVirtualTryOnComplete}
+        onVirtualTryOnSave={handleVirtualTryOnSave}
+        onVirtualTryOnShare={handleVirtualTryOnShare}
       />
 
       {/* Edit Modal */}

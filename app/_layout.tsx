@@ -25,12 +25,6 @@ import { errorHandling } from '../lib/errorHandling';
 import { store } from '../store/store';
 import { imageCache } from '../utils/imageCache';
 
-// Initialize error handling service
-errorHandling.initialize();
-
-// Initialize image cache
-imageCache.initialize();
-
 // Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync();
 
@@ -44,6 +38,18 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    // Initialize services
+    const initializeServices = async () => {
+      try {
+        await errorHandling.initialize();
+        await imageCache.initialize();
+      } catch (error) {
+        console.error('Failed to initialize services:', error);
+      }
+    };
+
+    initializeServices();
+
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
