@@ -32,12 +32,24 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
   // Sync with prop changes
   useEffect(() => {
+    console.log(
+      'useEffect triggered - avatarUrl:',
+      avatarUrl,
+      'currentAvatarUrl:',
+      currentAvatarUrl
+    );
     if (avatarUrl !== currentAvatarUrl) {
+      console.log(
+        'Syncing avatar URL - prop:',
+        avatarUrl,
+        'current:',
+        currentAvatarUrl
+      );
       setCurrentAvatarUrl(avatarUrl);
       setImageError(false);
       setImageLoading(!!avatarUrl); // Set loading only if there's a URL
     }
-  }, [avatarUrl]);
+  }, [avatarUrl, currentAvatarUrl]);
 
   const pickImageFromGallery = async () => {
     const permissionResult =
@@ -182,13 +194,15 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       try {
         await updateUserProfile({ avatar_url: publicUrl });
 
-        // Set a delay to ensure the image is available
-        setTimeout(() => {
-          setCurrentAvatarUrl(publicUrl);
-          setImageLoading(true);
-          setImageError(false);
-          onImageUpdate?.(publicUrl);
-        }, 1000);
+        // Immediately update the local state with new URL
+        setCurrentAvatarUrl(publicUrl);
+        setImageLoading(true);
+        setImageError(false);
+
+        // Call callback immediately
+        onImageUpdate?.(publicUrl);
+
+        console.log('Local state updated with new avatar URL:', publicUrl);
 
         Alert.alert('Success', 'Profile picture updated successfully!');
         console.log('Avatar updated successfully:', publicUrl);
@@ -199,12 +213,12 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         const statusCode = profileError.statusCode || '';
 
         // Handle gracefully and still update UI
-        setTimeout(() => {
-          setCurrentAvatarUrl(publicUrl);
-          setImageLoading(true);
-          setImageError(false);
-          onImageUpdate?.(publicUrl);
-        }, 1000);
+        setCurrentAvatarUrl(publicUrl);
+        setImageLoading(true);
+        setImageError(false);
+        onImageUpdate?.(publicUrl);
+
+        console.log('Local state updated despite profile error:', publicUrl);
 
         if (
           errorMessage.includes('avatar_url') ||
@@ -250,27 +264,32 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setImageError(true);
 
     // If this is a newly uploaded image that failed to load,
-    // try falling back to the original avatar URL
+    // and we have a different prop URL, try falling back to it
     if (currentAvatarUrl && avatarUrl && currentAvatarUrl !== avatarUrl) {
-      console.log('Falling back to original avatar URL');
+      console.log('Falling back to prop avatar URL after 2 seconds...');
       setTimeout(() => {
+        console.log('Executing fallback to prop URL:', avatarUrl);
         setCurrentAvatarUrl(avatarUrl);
         setImageLoading(true);
         setImageError(false);
       }, 2000);
+    } else {
+      // If no fallback available, try refreshing the current URL
+      console.log('No fallback available, will show placeholder');
     }
   };
 
   const renderAvatarContent = () => {
-    const hasAvatarUrl = currentAvatarUrl || avatarUrl;
+    // Prioritize current avatar URL (which might be newer) over prop
+    const displayUrl = currentAvatarUrl || avatarUrl;
 
-    console.log('Rendering avatar content - hasAvatarUrl:', hasAvatarUrl);
+    console.log('Rendering avatar content - displayUrl:', displayUrl);
     console.log('Current avatar URL:', currentAvatarUrl);
     console.log('Prop avatar URL:', avatarUrl);
     console.log('Image loading:', imageLoading);
     console.log('Image error:', imageError);
 
-    if (!hasAvatarUrl) {
+    if (!displayUrl) {
       return (
         <View style={styles.avatarPlaceholder}>
           <User size={48} color={Colors.primary[500]} />
@@ -290,7 +309,7 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     return (
       <>
         <Image
-          source={{ uri: hasAvatarUrl }}
+          source={{ uri: displayUrl }}
           style={styles.avatar}
           contentFit="cover"
           transition={200}

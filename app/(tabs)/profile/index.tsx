@@ -47,7 +47,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { supabase } from '../../../lib/supabase';
 
 export default function ProfileScreen() {
-  const { user, signOut, updateProfile } = useAuth();
+  const { user, signOut, updateProfile, refreshUserProfile } = useAuth();
   const { colors, theme, toggleHighContrast } = useAccessibility();
   const { trackScreenView, trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
@@ -173,8 +173,17 @@ export default function ProfileScreen() {
   };
 
   // Handle avatar update
-  const handleAvatarUpdate = (url: string) => {
+  const handleAvatarUpdate = async (url: string) => {
     console.log('Avatar updated:', url);
+
+    try {
+      // Refresh user profile from database to get the latest avatar URL
+      await refreshUserProfile();
+      console.log('User profile refreshed after avatar update');
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error);
+    }
+
     // Force refresh by updating the key
     setAvatarRefreshKey(prev => prev + 1);
     // Track event
@@ -182,8 +191,17 @@ export default function ProfileScreen() {
   };
 
   // Handle full body image update
-  const handleFullBodyImageUpdate = (url: string) => {
+  const handleFullBodyImageUpdate = async (url: string) => {
     console.log('Full body image updated:', url);
+
+    try {
+      // Refresh user profile from database to get the latest full body image URL
+      await refreshUserProfile();
+      console.log('User profile refreshed after full body image update');
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error);
+    }
+
     // Force refresh by updating the key
     setFullBodyRefreshKey(prev => prev + 1);
     // Track event

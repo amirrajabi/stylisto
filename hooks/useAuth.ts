@@ -188,6 +188,21 @@ export const useAuth = () => {
     [getUserProfile]
   );
 
+  // Refresh user profile from database
+  const refreshUserProfile = useCallback(async () => {
+    try {
+      const userProfile = await getUserProfile();
+      setAuthState(prev => ({
+        ...prev,
+        user: userProfile,
+      }));
+      return userProfile;
+    } catch (error: any) {
+      console.error('Error refreshing user profile:', error);
+      throw error;
+    }
+  }, [getUserProfile]);
+
   // Sign out
   const signOut = useCallback(async () => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
@@ -324,6 +339,7 @@ export const useAuth = () => {
     updateProfile,
     resetPassword,
     handleOAuthCallback,
+    refreshUserProfile,
   };
 };
 
