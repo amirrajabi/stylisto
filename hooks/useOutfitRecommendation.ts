@@ -5,6 +5,7 @@ import {
   useOutfitGenerator,
   WeatherData,
 } from '../lib/outfitGenerator';
+import { GeneratedOutfitRecord, OutfitService } from '../lib/outfitService';
 import { Occasion, Season } from '../types/wardrobe';
 import { useWardrobe } from './useWardrobe';
 
@@ -12,8 +13,11 @@ export interface OutfitRecommendationState {
   loading: boolean;
   error: string | null;
   outfits: GeneratedOutfit[];
+  manualOutfits: GeneratedOutfit[];
   selectedOutfitIndex: number;
   generationProgress: number;
+  hasPersistedOutfits: boolean;
+  hasPersistedManualOutfits: boolean;
 }
 
 export const useOutfitRecommendation = (
@@ -27,12 +31,107 @@ export const useOutfitRecommendation = (
     loading: false,
     error: null,
     outfits: [],
+    manualOutfits: [],
     selectedOutfitIndex: 0,
     generationProgress: 0,
+    hasPersistedOutfits: false,
+    hasPersistedManualOutfits: false,
   });
 
   const isGeneratingRef = useRef(false);
   const hasInitialGeneration = useRef(false);
+
+  // Check for existing generated outfits on load
+  useEffect(() => {
+    if (screenReady && !hasInitialGeneration.current) {
+      checkForExistingOutfits();
+    }
+  }, [screenReady]);
+
+  const checkForExistingOutfits = useCallback(async () => {
+    try {
+      console.log('🔍 Checking for existing outfits on app load...');
+      const [hasGeneratedOutfits, hasManualOutfits] = await Promise.all([
+        OutfitService.hasGeneratedOutfits(),
+        OutfitService.hasManualOutfits(),
+      ]);
+
+      setState(prev => ({
+        ...prev,
+        hasPersistedOutfits: hasGeneratedOutfits,
+        hasPersistedManualOutfits: hasManualOutfits,
+      }));
+
+      const promises = [];
+
+      if (hasGeneratedOutfits) {
+        console.log('📥 Found existing generated outfits, loading them...');
+        promises.push(OutfitService.loadGeneratedOutfits());
+      }
+
+      if (hasManualOutfits) {
+        console.log('📥 Found existing manual outfits, loading them...');
+        promises.push(OutfitService.loadManualOutfits());
+      }
+
+      if (promises.length > 0) {
+        const results = await Promise.all(promises);
+
+        const generatedOutfits = hasGeneratedOutfits ? results[0] : [];
+        const manualOutfits = hasManualOutfits
+          ? hasGeneratedOutfits
+            ? results[1]
+            : results[0]
+          : [];
+
+        const convertedGeneratedOutfits = generatedOutfits.map(
+          convertToGeneratedOutfit
+        );
+        const convertedManualOutfits = manualOutfits.map(
+          convertToGeneratedOutfit
+        );
+
+        setState(prev => ({
+          ...prev,
+          outfits: convertedGeneratedOutfits,
+          manualOutfits: convertedManualOutfits,
+          hasPersistedOutfits: hasGeneratedOutfits,
+          hasPersistedManualOutfits: hasManualOutfits,
+        }));
+
+        console.log(
+          '✅ Loaded',
+          convertedGeneratedOutfits.length,
+          'generated outfits and',
+          convertedManualOutfits.length,
+          'manual outfits'
+        );
+        hasInitialGeneration.current = true; // Mark as loaded to prevent auto-generation
+      } else {
+        console.log('📭 No existing outfits found, will auto-generate');
+      }
+    } catch (error) {
+      console.error('❌ Error checking for existing outfits:', error);
+    }
+  }, []);
+
+  const convertToGeneratedOutfit = (
+    record: GeneratedOutfitRecord
+  ): GeneratedOutfit => ({
+    items: record.items,
+    score: {
+      total: record.score.total,
+      breakdown: {
+        colorHarmony: record.score.color,
+        styleMatching: record.score.style,
+        occasionSuitability: record.score.occasion,
+        seasonSuitability: record.score.season,
+        weatherSuitability: record.score.total * 0.85,
+        userPreference: record.score.total * 0.9,
+        variety: record.score.total * 0.8,
+      },
+    },
+  });
 
   const generateRecommendations = useCallback(
     async (options?: Partial<OutfitGenerationOptions>) => {
@@ -117,54 +216,31 @@ export const useOutfitRecommendation = (
             .slice(0, 10)
         );
 
-        // Debug: Log first few outfit details
-        if (__DEV__ && generatedOutfits.length > 0) {
-          console.log('🔍 Score breakdown for first outfit:');
-          const firstOutfit = generatedOutfits[0];
-          console.log(
-            `  Total: ${(firstOutfit.score.total * 100).toFixed(1)}%`
-          );
-          console.log(
-            `  Color Harmony: ${(firstOutfit.score.breakdown.colorHarmony * 100).toFixed(1)}%`
-          );
-          console.log(
-            `  Style Matching: ${(firstOutfit.score.breakdown.styleMatching * 100).toFixed(1)}%`
-          );
-          console.log(
-            `  Occasion: ${(firstOutfit.score.breakdown.occasionSuitability * 100).toFixed(1)}%`
-          );
-          console.log(
-            `  Season: ${(firstOutfit.score.breakdown.seasonSuitability * 100).toFixed(1)}%`
-          );
-        }
+        // Save generated outfits to database
+        setState(prev => ({
+          ...prev,
+          generationProgress: 0.9,
+        }));
 
-        // Clear progress updates and finalize
+        await OutfitService.saveGeneratedOutfits(generatedOutfits);
 
         setState(prev => ({
           ...prev,
-          loading: false,
           outfits: generatedOutfits,
-          selectedOutfitIndex: 0,
-          generationProgress: 1.0,
+          loading: false,
+          generationProgress: 1,
+          hasPersistedOutfits: true,
         }));
 
         return generatedOutfits;
       } catch (error) {
-        console.error(
-          '❌ useOutfitRecommendation: Error during generation:',
-          error
-        );
-
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to generate outfits';
-
+        console.error('❌ useOutfitRecommendation: Generation failed:', error);
         setState(prev => ({
           ...prev,
           loading: false,
-          error: errorMessage,
+          error: 'Failed to generate outfit recommendations',
           generationProgress: 0,
         }));
-
         return [];
       } finally {
         isGeneratingRef.current = false;
@@ -173,14 +249,57 @@ export const useOutfitRecommendation = (
     [filteredItems, generateOutfits, initialOptions]
   );
 
-  const selectOutfit = useCallback(
-    (index: number) => {
-      if (index >= 0 && index < state.outfits.length) {
-        setState(prev => ({ ...prev, selectedOutfitIndex: index }));
-      }
-    },
-    [state.outfits]
-  );
+  const clearAndRegenerateOutfits = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, loading: true, generationProgress: 0.1 }));
+
+      await OutfitService.clearGeneratedOutfits();
+
+      setState(prev => ({
+        ...prev,
+        outfits: [],
+        hasPersistedOutfits: false,
+        generationProgress: 0.3,
+      }));
+
+      await generateRecommendations();
+    } catch (error) {
+      console.error('❌ Error clearing and regenerating outfits:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Failed to clear and regenerate outfits',
+      }));
+    }
+  }, [generateRecommendations]);
+
+  // Auto-generate outfits if none exist and conditions are met
+  const autoGenerateIfNeeded = useCallback(async () => {
+    if (
+      screenReady &&
+      !hasInitialGeneration.current &&
+      filteredItems.length >= 2 &&
+      !state.hasPersistedOutfits &&
+      !state.loading &&
+      state.outfits.length === 0
+    ) {
+      console.log('🎯 Auto-generating outfits - no persisted outfits found');
+      hasInitialGeneration.current = true;
+      await generateRecommendations();
+    }
+  }, [
+    screenReady,
+    filteredItems.length,
+    state.hasPersistedOutfits,
+    state.loading,
+    state.outfits.length,
+    generateRecommendations,
+  ]);
+
+  // Only auto-generate if no persisted outfits exist and we haven't generated yet
+  useEffect(() => {
+    autoGenerateIfNeeded();
+  }, [autoGenerateIfNeeded]);
 
   const nextOutfit = useCallback(() => {
     setState(prev => ({
@@ -249,73 +368,30 @@ export const useOutfitRecommendation = (
 
   const getOccasionBasedRecommendation = useCallback(
     async (occasion: Occasion) => {
-      // Generate outfits for specific occasion
       return generateRecommendations({
         occasion,
-        maxResults: Math.min(25, Math.max(6, filteredItems.length)), // Occasion-specific realistic count
-        minScore: 0.4, // Slightly lower for occasion-specific outfits
+        maxResults: Math.min(20, Math.max(6, filteredItems.length)), // Occasion-specific count
+        minScore: 0.5, // Higher threshold for occasion-specific outfits
       });
     },
     [generateRecommendations, filteredItems.length]
   );
 
-  const resetAutoGeneration = useCallback(() => {
-    hasInitialGeneration.current = false;
-  }, []);
-
-  // Generate initial recommendations on mount with delay for screen render
-  useEffect(() => {
-    console.log(
-      '🚀 useOutfitRecommendation: Effect triggered, filteredItems.length:',
-      filteredItems.length,
-      'screenReady:',
-      screenReady
-    );
-
-    if (
-      screenReady &&
-      filteredItems.length >= 2 &&
-      state.outfits.length === 0 &&
-      !hasInitialGeneration.current &&
-      !isGeneratingRef.current
-    ) {
-      console.log(
-        '✨ useOutfitRecommendation: Auto-generating initial outfits with delay'
-      );
-      hasInitialGeneration.current = true;
-
-      // Delay generation to allow screen to render first
-      setTimeout(() => {
-        generateRecommendations();
-      }, 200); // Slightly longer delay to ensure smooth screen render
-    } else {
-      console.log(
-        '⏸️ useOutfitRecommendation: Not ready for auto-generation:',
-        {
-          screenReady,
-          hasEnoughItems: filteredItems.length >= 2,
-          hasNoOutfits: state.outfits.length === 0,
-          notAlreadyGenerated: !hasInitialGeneration.current,
-          notCurrentlyGenerating: !isGeneratingRef.current,
-        }
-      );
-    }
-  }, [
-    filteredItems.length,
-    state.outfits.length,
-    generateRecommendations,
-    screenReady,
-  ]);
-
   return {
-    ...state,
+    loading: state.loading,
+    error: state.error,
+    outfits: state.outfits,
+    manualOutfits: state.manualOutfits,
+    selectedOutfitIndex: state.selectedOutfitIndex,
+    generationProgress: state.generationProgress,
+    hasPersistedOutfits: state.hasPersistedOutfits,
+    hasPersistedManualOutfits: state.hasPersistedManualOutfits,
     generateRecommendations,
-    selectOutfit,
+    clearAndRegenerateOutfits,
     nextOutfit,
     previousOutfit,
     saveCurrentOutfit,
     getWeatherBasedRecommendation,
     getOccasionBasedRecommendation,
-    resetAutoGeneration,
   };
 };

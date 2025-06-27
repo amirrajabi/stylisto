@@ -91,6 +91,7 @@ export default function StylistScreen() {
   const {
     loading,
     outfits,
+    manualOutfits,
     selectedOutfitIndex,
     saveCurrentOutfit,
     nextOutfit,
@@ -99,6 +100,9 @@ export default function StylistScreen() {
     getOccasionBasedRecommendation,
     generateRecommendations,
     generationProgress,
+    hasPersistedOutfits,
+    hasPersistedManualOutfits,
+    clearAndRegenerateOutfits,
   } = useOutfitRecommendation(undefined, screenReady);
 
   const [selectedOutfit, setSelectedOutfit] = useState<any>(null);
@@ -698,8 +702,20 @@ export default function StylistScreen() {
         ) : outfits.length > 0 ? (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
-              <H3 style={styles.sectionTitle}>Your Styled Outfits</H3>
-              <Text style={styles.outfitCount}>({outfits.length})</Text>
+              <View style={styles.sectionTitleContainer}>
+                <H3 style={styles.sectionTitle}>Your Styled Outfits</H3>
+                <Text style={styles.outfitCount}>({outfits.length})</Text>
+              </View>
+              {hasPersistedOutfits && (
+                <TouchableOpacity
+                  style={styles.regenerateButton}
+                  onPress={clearAndRegenerateOutfits}
+                  disabled={loading}
+                >
+                  <X size={16} color={Colors.primary[600]} />
+                  <Text style={styles.regenerateButtonText}>Clear All</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <OutfitCard
               outfits={outfits.map((outfit, index) => ({
@@ -755,6 +771,58 @@ export default function StylistScreen() {
               Use the filters above to get personalized styling recommendations
               based on your preferences.
             </Text>
+          </View>
+        )}
+
+        {/* Manual Outfits Section */}
+        {manualOutfits.length > 0 && (
+          <View style={styles.outfitsSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <H3 style={styles.sectionTitle}>Your Manual Outfits</H3>
+                <Text style={styles.outfitCount}>({manualOutfits.length})</Text>
+              </View>
+            </View>
+            <OutfitCard
+              outfits={manualOutfits.map((outfit, index) => ({
+                id: `manual-outfit-${index}`,
+                name: `Manual Outfit ${index + 1}`,
+                items: outfit.items,
+                score: {
+                  total: outfit.score.total,
+                  color: outfit.score.breakdown?.colorHarmony || 1.0,
+                  style: outfit.score.breakdown?.styleMatching || 1.0,
+                  season: outfit.score.breakdown?.seasonSuitability || 1.0,
+                  occasion: outfit.score.breakdown?.occasionSuitability || 1.0,
+                },
+              }))}
+              onOutfitPress={(outfitId: string) => {
+                const index = parseInt(
+                  outfitId.replace('manual-outfit-', ''),
+                  10
+                );
+                const manualOutfit = manualOutfits[index];
+                if (manualOutfit) {
+                  setSelectedOutfit({
+                    id: outfitId,
+                    name: `Manual Outfit ${index + 1}`,
+                    items: manualOutfit.items,
+                    score: manualOutfit.score,
+                  });
+                  setModalVisible(true);
+                }
+              }}
+              onSaveOutfit={() => {}}
+              onEditOutfit={(outfit: any) => {
+                setOutfitToEdit({
+                  ...outfit,
+                  isManual: true,
+                });
+                setEditModalVisible(true);
+              }}
+              onCurrentIndexChange={setCurrentOutfitIndex}
+              currentIndex={0}
+            />
           </View>
         )}
 
@@ -1045,5 +1113,27 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 350,
     alignSelf: 'center',
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  regenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primary[50],
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+    borderRadius: 20,
+    ...Shadows.sm,
+  },
+  regenerateButtonText: {
+    ...Typography.body.small,
+    color: Colors.primary[700],
+    fontWeight: '600',
+    marginLeft: Spacing.xs,
   },
 });

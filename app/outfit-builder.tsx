@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Save, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  Alert,
   FlatList,
   SafeAreaView,
   ScrollView,
@@ -14,8 +15,8 @@ import { ClothingItemCard } from '../components/wardrobe/ClothingItemCard';
 import { Colors } from '../constants/Colors';
 import { Layout, Spacing } from '../constants/Spacing';
 import { useWardrobe } from '../hooks/useWardrobe';
+import { OutfitService } from '../lib/outfitService';
 import { ClothingItem, Outfit } from '../types/wardrobe';
-import { generateId } from '../utils/wardrobeUtils';
 
 export default function OutfitBuilderScreen() {
   const { editOutfitId } = useLocalSearchParams<{ editOutfitId?: string }>();
@@ -43,42 +44,68 @@ export default function OutfitBuilderScreen() {
     setOutfitItems(prev => prev.filter(item => item.id !== itemId));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!outfitName.trim()) {
-      alert('Please enter an outfit name');
+      Alert.alert('Error', 'Please enter an outfit name');
       return;
     }
 
     if (outfitItems.length === 0) {
-      alert('Please add at least one item to the outfit');
+      Alert.alert('Error', 'Please add at least one item to the outfit');
       return;
     }
 
-    const outfit: Outfit = {
-      id: editOutfit?.id || generateId(),
-      name: outfitName.trim(),
-      items: outfitItems,
-      occasion: [],
-      season: [],
-      tags: [],
-      isFavorite: editOutfit?.isFavorite || false,
-      timesWorn: editOutfit?.timesWorn || 0,
-      lastWorn: editOutfit?.lastWorn,
-      notes: notes.trim(),
-      createdAt: editOutfit?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      if (editOutfit) {
+        // Update existing outfit in local storage
+        const outfit: Outfit = {
+          id: editOutfit.id,
+          name: outfitName.trim(),
+          items: outfitItems,
+          occasion: editOutfit.occasion || [],
+          season: editOutfit.season || [],
+          tags: editOutfit.tags || [],
+          isFavorite: editOutfit.isFavorite || false,
+          timesWorn: editOutfit.timesWorn || 0,
+          lastWorn: editOutfit.lastWorn,
+          notes: notes.trim(),
+          createdAt: editOutfit.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
 
-    if (editOutfit) {
-      actions.updateOutfit(outfit);
-    } else {
-      actions.addOutfit(outfit);
+        actions.updateOutfit(outfit);
+      } else {
+        // Save new manual outfit to database
+        await OutfitService.saveManualOutfit(
+          outfitName.trim(),
+          outfitItems,
+          [], // occasions
+          [], // seasons
+          notes.trim()
+        );
+
+        Alert.alert(
+          'Success',
+          'Your manual outfit has been saved! It will appear in the Stylist tab along with AI-generated outfits.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      }
+
+      // Clear selection
+      actions.clearSelection();
+
+      if (editOutfit) {
+        router.back();
+      }
+    } catch (error) {
+      console.error('Error saving manual outfit:', error);
+      Alert.alert('Error', 'Failed to save outfit. Please try again.');
     }
-
-    // Clear selection
-    actions.clearSelection();
-
-    router.back();
   };
 
   const renderOutfitItem = ({
