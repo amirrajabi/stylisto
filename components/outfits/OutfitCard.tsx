@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Edit3, Heart } from 'lucide-react-native';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -13,6 +13,7 @@ import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
+import { OutfitService } from '../../lib/outfitService';
 import { ClothingItem } from '../../types/wardrobe';
 
 interface OutfitCardProps {
@@ -27,6 +28,7 @@ interface OutfitCardProps {
       season: number;
       occasion: number;
     };
+    isFavorite?: boolean;
   }[];
   onOutfitPress: (outfitId: string) => void;
   onSaveOutfit?: (outfitId: string) => void;
@@ -34,6 +36,7 @@ interface OutfitCardProps {
   onCurrentIndexChange?: (index: number) => void;
   onGoToIndex?: (index: number) => void;
   currentIndex?: number;
+  onFavoriteToggled?: (outfitId: string, isFavorite: boolean) => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -47,8 +50,47 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   onCurrentIndexChange,
   onGoToIndex,
   currentIndex = 0,
+  onFavoriteToggled,
 }) => {
   const flatListRef = useRef<FlatList>(null);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [favoriteLoading, setFavoriteLoading] = useState<
+    Record<string, boolean>
+  >({});
+
+  useEffect(() => {
+    const initialFavorites: Record<string, boolean> = {};
+    outfits.forEach(outfit => {
+      initialFavorites[outfit.id] = outfit.isFavorite || false;
+    });
+    setFavorites(initialFavorites);
+  }, [outfits]);
+
+  const handleToggleFavorite = async (outfitId: string) => {
+    if (favoriteLoading[outfitId]) return;
+
+    setFavoriteLoading(prev => ({ ...prev, [outfitId]: true }));
+
+    try {
+      const result = await OutfitService.toggleOutfitFavorite(outfitId);
+
+      if (result.error) {
+        console.error('Failed to toggle favorite:', result.error);
+        return;
+      }
+
+      const newFavoriteStatus = result.isFavorite || false;
+      setFavorites(prev => ({ ...prev, [outfitId]: newFavoriteStatus }));
+
+      if (onFavoriteToggled) {
+        onFavoriteToggled(outfitId, newFavoriteStatus);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      setFavoriteLoading(prev => ({ ...prev, [outfitId]: false }));
+    }
+  };
 
   // Effect to scroll to currentIndex when it changes externally
   useEffect(() => {
@@ -111,9 +153,21 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
               {onSaveOutfit && (
                 <TouchableOpacity
                   style={styles.saveButton}
-                  onPress={() => onSaveOutfit(outfit.id)}
+                  onPress={() => handleToggleFavorite(outfit.id)}
+                  disabled={favoriteLoading[outfit.id]}
                 >
-                  <Heart size={16} color={Colors.error[500]} />
+                  <Heart
+                    size={16}
+                    color={
+                      favorites[outfit.id]
+                        ? Colors.error[500]
+                        : Colors.neutral[400]
+                    }
+                    fill={
+                      favorites[outfit.id] ? Colors.error[500] : 'transparent'
+                    }
+                    strokeWidth={2}
+                  />
                 </TouchableOpacity>
               )}
             </View>

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Shirt, Sparkles, User } from 'lucide-react-native';
+import { Heart, Shirt, Sparkles, User } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
@@ -67,6 +67,22 @@ export default function TabLayout() {
             />
           ),
           tabBarAccessibilityLabel: 'AI Stylist tab',
+        }}
+      />
+      <Tabs.Screen
+        name="gallery"
+        options={{
+          title: 'Gallery',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Heart
+              size={size}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+              fill={focused ? color : 'transparent'}
+              accessibilityLabel=""
+            />
+          ),
+          tabBarAccessibilityLabel: 'Favorite outfits gallery tab',
         }}
       />
       <Tabs.Screen

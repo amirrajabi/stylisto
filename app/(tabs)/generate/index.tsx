@@ -28,6 +28,7 @@ import { useWardrobe } from '../../../hooks/useWardrobe';
 
 import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
 import { useManualOutfits } from '../../../hooks/useManualOutfits';
+import { useOutfitFavorites } from '../../../hooks/useOutfitFavorites';
 import { Occasion } from '../../../types/wardrobe';
 
 const getOccasionLabel = (occasion: Occasion): string => {
@@ -95,6 +96,9 @@ export default function StylistScreen() {
     loading: manualOutfitsLoading,
     refreshManualOutfits,
   } = useManualOutfits();
+
+  const { favoriteStatus, toggleOutfitFavorite, setOutfitFavoriteStatus } =
+    useOutfitFavorites();
 
   const [screenReady, setScreenReady] = useState(false);
 
@@ -852,6 +856,7 @@ export default function StylistScreen() {
                   season: outfit.score.breakdown.seasonSuitability,
                   occasion: outfit.score.breakdown.occasionSuitability,
                 },
+                isFavorite: favoriteStatus[`outfit-${index}`] || false,
               }))}
               onOutfitPress={(outfitId: string) => {
                 const index = parseInt(outfitId.replace('outfit-', ''), 10);
@@ -861,6 +866,11 @@ export default function StylistScreen() {
               onEditOutfit={handleOutfitEdit}
               onCurrentIndexChange={setCurrentOutfitIndex}
               currentIndex={currentOutfitIndex}
+              onFavoriteToggled={(outfitId: string, isFavorite: boolean) => {
+                console.log(
+                  `✅ Outfit ${outfitId} favorite status changed to: ${isFavorite}`
+                );
+              }}
             />
           </View>
         ) : showQuickFilters && !hasActiveFilters ? (
@@ -957,7 +967,8 @@ export default function StylistScreen() {
                     score: outfit.score,
                     type: 'manual',
                     originalData: outfit,
-                    isFavorite: false,
+                    isFavorite:
+                      favoriteStatus[`manual-db-${outfit.id}`] || false,
                     createdAt: outfit.createdAt,
                     updatedAt: outfit.updatedAt,
                   };
@@ -1003,6 +1014,11 @@ export default function StylistScreen() {
                 }}
                 onCurrentIndexChange={setCurrentOutfitIndex}
                 currentIndex={0}
+                onFavoriteToggled={(outfitId: string, isFavorite: boolean) => {
+                  console.log(
+                    `✅ Manual outfit ${outfitId} favorite status changed to: ${isFavorite}`
+                  );
+                }}
               />
             ) : (
               <ScrollView

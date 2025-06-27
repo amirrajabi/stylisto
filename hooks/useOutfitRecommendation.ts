@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import {
   GeneratedOutfit,
   OutfitGenerationOptions,
@@ -34,6 +35,10 @@ export interface OutfitRecommendationState {
   generationProgress: number;
   hasPersistedManualOutfits: boolean;
   isLoadedFromDatabase: boolean;
+}
+
+export interface OutfitWithFavorite extends GeneratedOutfit {
+  isFavorite?: boolean;
 }
 
 export const useOutfitRecommendation = (
@@ -362,6 +367,61 @@ export const useOutfitRecommendation = (
     [generateRecommendations, filteredItems.length]
   );
 
+  const [outfits, setOutfits] = useState<OutfitWithFavorite[]>([]);
+  const [manualOutfits, setManualOutfits] = useState<OutfitWithFavorite[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const toggleOutfitFavorite = async (outfitId: string) => {
+    try {
+      const result = await OutfitService.toggleOutfitFavorite(outfitId);
+
+      if (result.error) {
+        Alert.alert('Error', 'Failed to update favorite status');
+        return;
+      }
+
+      const updateOutfitFavorite = (outfit: OutfitWithFavorite) =>
+        outfit.id === outfitId
+          ? { ...outfit, isFavorite: result.isFavorite }
+          : outfit;
+
+      setOutfits(prev => prev.map(updateOutfitFavorite));
+      setManualOutfits(prev => prev.map(updateOutfitFavorite));
+
+      return result.isFavorite;
+    } catch (error) {
+      console.error('Error toggling outfit favorite:', error);
+      Alert.alert('Error', 'Failed to update favorite status');
+    }
+  };
+
+  const loadOutfits = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [generatedOutfits, manualOutfitsList] = await Promise.all([
+        OutfitService.loadGeneratedOutfits(),
+        OutfitService.loadManualOutfits(),
+      ]);
+
+      setOutfits(
+        generatedOutfits.map(outfit => ({ ...outfit, isFavorite: false }))
+      );
+      setManualOutfits(
+        manualOutfitsList.map(outfit => ({ ...outfit, isFavorite: false }))
+      );
+    } catch (error) {
+      console.error('Error loading outfits:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const refreshOutfits = useCallback(async () => {
+    setRefreshing(true);
+    await loadOutfits();
+    setRefreshing(false);
+  }, [loadOutfits]);
+
   return {
     loading: state.loading,
     error: state.error,
@@ -380,5 +440,8 @@ export const useOutfitRecommendation = (
     getOccasionBasedRecommendation,
     checkForExistingOutfits,
     refreshManualOutfits,
+    toggleOutfitFavorite,
+    loadOutfits,
+    refreshOutfits,
   };
 };

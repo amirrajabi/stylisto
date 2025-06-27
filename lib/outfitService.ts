@@ -526,4 +526,50 @@ export class OutfitService {
       occasion: totalScore * 0.9,
     };
   }
+
+  static async toggleOutfitFavorite(
+    outfitId: string
+  ): Promise<{ error: string | null; isFavorite?: boolean }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { error: 'User not authenticated' };
+      }
+
+      const { data: outfit, error: fetchError } = await supabase
+        .from('saved_outfits')
+        .select('is_favorite')
+        .eq('id', outfitId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching outfit:', fetchError);
+        return { error: 'Failed to fetch outfit' };
+      }
+
+      const newFavoriteStatus = !outfit.is_favorite;
+
+      const { error: updateError } = await supabase
+        .from('saved_outfits')
+        .update({ is_favorite: newFavoriteStatus })
+        .eq('id', outfitId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Error updating outfit favorite status:', updateError);
+        return { error: 'Failed to update favorite status' };
+      }
+
+      console.log(
+        `✅ Outfit ${outfitId} favorite status updated to: ${newFavoriteStatus}`
+      );
+      return { error: null, isFavorite: newFavoriteStatus };
+    } catch (error) {
+      console.error('Error toggling outfit favorite:', error);
+      return { error: 'Failed to toggle favorite status' };
+    }
+  }
 }
