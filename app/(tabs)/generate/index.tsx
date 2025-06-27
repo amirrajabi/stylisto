@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { Filter, Plus, X } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
@@ -12,33 +12,82 @@ import {
 import { OutfitCard } from '../../../components/outfits/OutfitCard';
 import { OutfitDetailModal } from '../../../components/outfits/OutfitDetailModal';
 import { OutfitEditModal } from '../../../components/outfits/OutfitEditModal';
-import { OutfitFiltersBar } from '../../../components/outfits/OutfitFiltersBar';
 import {
   OutfitFilters,
   OutfitFiltersModal,
 } from '../../../components/outfits/OutfitFiltersModal';
 import { OutfitStatsDisplay } from '../../../components/outfits/OutfitStatsDisplay';
-import { WeatherOutfitBanner } from '../../../components/outfits/WeatherOutfitBanner';
-import { BodyMedium, Button, H1, H3 } from '../../../components/ui';
+import { BodyMedium, H1, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { useWardrobe } from '../../../hooks/useWardrobe';
+
+import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
 import { Occasion } from '../../../types/wardrobe';
 
-// Mock weather data for demonstration
-const MOCK_WEATHER = {
-  temperature: 22,
-  conditions: 'clear' as const,
-  precipitation: 0,
-  humidity: 0.4,
-  windSpeed: 5,
+const getOccasionLabel = (occasion: Occasion): string => {
+  switch (occasion) {
+    case Occasion.CASUAL:
+      return 'Casual';
+    case Occasion.WORK:
+      return 'Work';
+    case Occasion.FORMAL:
+      return 'Formal';
+    case Occasion.DATE:
+      return 'Date';
+    case Occasion.SPORT:
+      return 'Sport';
+    case Occasion.PARTY:
+      return 'Party';
+    default:
+      return 'Unknown';
+  }
+};
+
+const getStyleLabel = (style: string): string => {
+  const labels: Record<string, string> = {
+    minimalist: 'Minimalist',
+    bohemian: 'Bohemian',
+    classic: 'Classic',
+    trendy: 'Trendy',
+    edgy: 'Edgy',
+    romantic: 'Romantic',
+    sporty: 'Sporty',
+    vintage: 'Vintage',
+  };
+  return labels[style] || style;
+};
+
+const getFormalityLabel = (formality: string): string => {
+  const labels: Record<string, string> = {
+    casual: 'Casual',
+    'semi-formal': 'Semi-Formal',
+    formal: 'Formal',
+  };
+  return labels[formality] || formality;
+};
+
+const getColorLabel = (color: string): string => {
+  const labels: Record<string, string> = {
+    neutrals: 'Neutrals',
+    blues: 'Blues',
+    greens: 'Greens',
+    reds: 'Reds',
+    blacks: 'Blacks',
+    whites: 'Whites',
+    pastels: 'Pastels',
+    'earth-tones': 'Earth Tones',
+  };
+  return labels[color] || color;
 };
 
 export default function GenerateScreen() {
   const { filteredItems } = useWardrobe();
+  const [screenReady, setScreenReady] = useState(false);
+
   const {
     loading,
     outfits,
@@ -48,7 +97,9 @@ export default function GenerateScreen() {
     previousOutfit,
     getWeatherBasedRecommendation,
     getOccasionBasedRecommendation,
-  } = useOutfitRecommendation();
+    generateRecommendations,
+    generationProgress,
+  } = useOutfitRecommendation(undefined, screenReady);
 
   const [selectedOutfit, setSelectedOutfit] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -65,6 +116,7 @@ export default function GenerateScreen() {
     formality: null,
     colors: [],
     includeWeather: false,
+    temperatureRange: { min: 15, max: 25 },
     stylePreferences: {
       formality: 0.5,
       boldness: 0.5,
@@ -76,10 +128,20 @@ export default function GenerateScreen() {
     },
     weatherIntegration: {
       enabled: false,
-      useCurrentLocation: true,
+      useCurrentLocation: false,
       location: undefined,
     },
   });
+
+  // Ensure screen renders before any heavy processing
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setScreenReady(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Auto-generation is handled by useOutfitRecommendation hook
 
   // Debug logging
   React.useEffect(() => {
@@ -103,15 +165,113 @@ export default function GenerateScreen() {
       setCurrentFilters(filters);
       setShowQuickFilters(false);
 
-      if (filters.includeWeather) {
-        await getWeatherBasedRecommendation(MOCK_WEATHER);
-      } else if (filters.occasion) {
-        await getOccasionBasedRecommendation(filters.occasion);
-      } else {
-        console.log('Generating outfit with filters:', filters);
+      console.log('🎯 Applying filters and auto-generating outfits:', filters);
+
+      // Map formality string to number
+      const mapFormalityToNumber = (formality: string | null): number => {
+        switch (formality) {
+          case 'casual':
+            return 0.2;
+          case 'semi-formal':
+            return 0.5;
+          case 'formal':
+            return 0.8;
+          default:
+            return filters.stylePreferences.formality;
+        }
+      };
+
+      // Map style to style preferences
+      const mapStyleToPreferences = (style: string | null) => {
+        const base = {
+          formality: filters.formality
+            ? mapFormalityToNumber(filters.formality)
+            : filters.stylePreferences.formality,
+          boldness: filters.stylePreferences.boldness,
+          layering: filters.stylePreferences.layering,
+          colorfulness: filters.stylePreferences.colorfulness,
+        };
+
+        switch (style) {
+          case 'minimalist':
+            return { ...base, boldness: 0.2, colorfulness: 0.3, layering: 0.2 };
+          case 'bohemian':
+            return { ...base, boldness: 0.7, colorfulness: 0.8, layering: 0.7 };
+          case 'classic':
+            return {
+              ...base,
+              formality: 0.6,
+              boldness: 0.4,
+              colorfulness: 0.4,
+            };
+          case 'trendy':
+            return { ...base, boldness: 0.8, colorfulness: 0.7, layering: 0.6 };
+          case 'edgy':
+            return {
+              ...base,
+              boldness: 0.9,
+              colorfulness: 0.5,
+              formality: 0.3,
+            };
+          case 'romantic':
+            return { ...base, boldness: 0.3, colorfulness: 0.6, layering: 0.5 };
+          case 'sporty':
+            return { ...base, formality: 0.2, boldness: 0.6, layering: 0.3 };
+          case 'vintage':
+            return { ...base, boldness: 0.5, colorfulness: 0.6, layering: 0.4 };
+          default:
+            return base;
+        }
+      };
+
+      // Prepare comprehensive generation options
+      const generationOptions = {
+        occasion: filters.occasion,
+        preferredColors: filters.colors.length > 0 ? filters.colors : undefined,
+        stylePreference: filters.style
+          ? mapStyleToPreferences(filters.style)
+          : {
+              formality: filters.formality
+                ? mapFormalityToNumber(filters.formality)
+                : filters.stylePreferences.formality,
+              boldness: filters.stylePreferences.boldness,
+              layering: filters.stylePreferences.layering,
+              colorfulness: filters.stylePreferences.colorfulness,
+            },
+        maxResults: Math.min(25, Math.max(6, filteredItems.length)), // Realistic based on filters
+        minScore: 0.65, // Require quality outfits
+      };
+
+      // Auto-generate outfits immediately after applying filters
+      try {
+        if (filters.includeWeather || filters.temperatureRange) {
+          await getWeatherBasedRecommendation({
+            temperature: filters.temperatureRange?.min || 20,
+            conditions: 'clear' as
+              | 'clear'
+              | 'cloudy'
+              | 'rainy'
+              | 'snowy'
+              | 'windy',
+            precipitation: 0,
+            humidity: 0.4,
+            windSpeed: 5,
+          });
+        } else if (filters.occasion) {
+          await getOccasionBasedRecommendation(filters.occasion);
+        } else {
+          // Generate outfit with all applied filters
+          await generateRecommendations(generationOptions);
+        }
+      } catch (error) {
+        console.error('Error generating outfits after filter apply:', error);
       }
     },
-    [getWeatherBasedRecommendation, getOccasionBasedRecommendation]
+    [
+      getWeatherBasedRecommendation,
+      getOccasionBasedRecommendation,
+      generateRecommendations,
+    ]
   );
 
   const handleQuickOccasionSelect = useCallback(
@@ -177,6 +337,9 @@ export default function GenerateScreen() {
           newFilters.formality ||
           newFilters.colors.length > 0 ||
           newFilters.includeWeather ||
+          (newFilters.temperatureRange &&
+            (newFilters.temperatureRange.min !== 15 ||
+              newFilters.temperatureRange.max !== 25)) ||
           newFilters.stylePreferences.formality !== 0.5 ||
           newFilters.stylePreferences.boldness !== 0.5 ||
           newFilters.stylePreferences.layering !== 0.5 ||
@@ -196,14 +359,18 @@ export default function GenerateScreen() {
     []
   );
 
-  const handleClearAllFilters = useCallback(() => {
-    setCurrentFilters({
+  const handleClearAllFilters = useCallback(async () => {
+    console.log('🧹 Clearing all filters and regenerating outfits');
+
+    // Reset filters to default
+    const defaultFilters = {
       occasion: null,
       style: null,
       weatherConditions: null,
       formality: null,
       colors: [],
       includeWeather: false,
+      temperatureRange: { min: 15, max: 25 },
       stylePreferences: {
         formality: 0.5,
         boldness: 0.5,
@@ -215,12 +382,30 @@ export default function GenerateScreen() {
       },
       weatherIntegration: {
         enabled: false,
-        useCurrentLocation: true,
+        useCurrentLocation: false,
         location: undefined,
       },
-    });
+    };
+
+    setCurrentFilters(defaultFilters);
     setShowQuickFilters(true);
-  }, []);
+
+    // Auto-generate default outfits after clearing filters
+    try {
+      await generateRecommendations({
+        maxResults: Math.min(30, Math.max(8, filteredItems.length)), // Realistic based on item count
+        minScore: 0.65, // Require quality outfits
+        stylePreference: {
+          formality: 0.5,
+          boldness: 0.5,
+          layering: 0.5,
+          colorfulness: 0.5,
+        },
+      });
+    } catch (error) {
+      console.error('Error generating outfits after clearing filters:', error);
+    }
+  }, [generateRecommendations]);
 
   const handleSaveOutfit = useCallback(() => {
     const outfitId = saveCurrentOutfit();
@@ -334,11 +519,14 @@ export default function GenerateScreen() {
     currentFilters.formality ||
     currentFilters.colors.length > 0 ||
     currentFilters.includeWeather ||
+    (currentFilters.temperatureRange &&
+      (currentFilters.temperatureRange.min !== 15 ||
+        currentFilters.temperatureRange.max !== 25)) ||
     currentFilters.stylePreferences.formality !== 0.5 ||
     currentFilters.stylePreferences.boldness !== 0.5 ||
     currentFilters.stylePreferences.layering !== 0.5 ||
     currentFilters.stylePreferences.colorfulness !== 0.5 ||
-    !currentFilters.stylePreferences.autoWeather ||
+    currentFilters.stylePreferences.autoWeather ||
     !currentFilters.stylePreferences.saveHistory ||
     !currentFilters.stylePreferences.useColorTheory ||
     currentFilters.weatherIntegration.enabled;
@@ -364,96 +552,108 @@ export default function GenerateScreen() {
     }));
   }, []);
 
-  // Manual generate outfit handler
-  const handleGenerateOutfit = useCallback(async () => {
-    try {
-      if (currentFilters.includeWeather) {
-        // Map weather conditions to valid types
-        const mapWeatherConditions = (
-          conditions: string
-        ): 'clear' | 'cloudy' | 'rainy' | 'snowy' | 'windy' => {
-          const lowerConditions = conditions.toLowerCase();
-          if (
-            lowerConditions.includes('rain') ||
-            lowerConditions.includes('shower')
-          )
-            return 'rainy';
-          if (
-            lowerConditions.includes('snow') ||
-            lowerConditions.includes('blizzard')
-          )
-            return 'snowy';
-          if (lowerConditions.includes('wind')) return 'windy';
-          if (
-            lowerConditions.includes('cloud') ||
-            lowerConditions.includes('overcast')
-          )
-            return 'cloudy';
-          return 'clear';
-        };
-
-        // Use actual weather data from the banner if available
-        const weatherDataToUse =
-          realWeatherData && currentFilters.weatherConditions
-            ? {
-                temperature: realWeatherData.temperature,
-                conditions: mapWeatherConditions(realWeatherData.conditions),
-                precipitation: realWeatherData.precipitation || 0,
-                humidity: realWeatherData.humidity || 0.4,
-                windSpeed: realWeatherData.windSpeed || 5,
-              }
-            : MOCK_WEATHER;
-
-        await getWeatherBasedRecommendation(weatherDataToUse);
-      } else if (currentFilters.occasion) {
-        await getOccasionBasedRecommendation(currentFilters.occasion);
-      } else {
-        console.log('Generating outfit with filters:', currentFilters);
-        // Could add a default generation here if needed
-      }
-    } catch (error) {
-      console.error('Error generating outfit:', error);
-    }
-  }, [
-    currentFilters,
-    getWeatherBasedRecommendation,
-    getOccasionBasedRecommendation,
-  ]);
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Header with integrated filter button */}
       <View style={styles.header}>
-        <H1>Generate Outfits</H1>
-        <BodyMedium style={styles.headerSubtitle}>
-          AI-powered outfit recommendations based on your wardrobe
-        </BodyMedium>
+        <View style={styles.headerTop}>
+          <View style={styles.titleSection}>
+            <H1 style={styles.title}>Generate Outfits</H1>
+            <BodyMedium style={styles.headerSubtitle}>
+              AI-powered outfit recommendations based on your wardrobe
+            </BodyMedium>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.headerFilterButton,
+              hasActiveFilters && styles.headerFilterButtonActive,
+            ]}
+            onPress={() => setFiltersModalVisible(true)}
+          >
+            <Filter
+              size={20}
+              color={
+                hasActiveFilters ? Colors.primary[600] : Colors.text.secondary
+              }
+            />
+            {hasActiveFilters && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>
+                  {[
+                    currentFilters.occasion,
+                    currentFilters.style,
+                    currentFilters.formality,
+                    currentFilters.includeWeather,
+                    currentFilters.stylePreferences.formality !== 0.5,
+                    currentFilters.stylePreferences.boldness !== 0.5,
+                    currentFilters.stylePreferences.layering !== 0.5,
+                    currentFilters.stylePreferences.colorfulness !== 0.5,
+                    !currentFilters.stylePreferences.autoWeather,
+                    !currentFilters.stylePreferences.saveHistory,
+                    !currentFilters.stylePreferences.useColorTheory,
+                    currentFilters.weatherIntegration.enabled,
+                  ].filter(Boolean).length + currentFilters.colors.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Filters Display */}
+        {hasActiveFilters && (
+          <View style={styles.activeFiltersContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.activeFiltersScroll}
+              contentContainerStyle={styles.activeFiltersContent}
+            >
+              {currentFilters.occasion && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {getOccasionLabel(currentFilters.occasion)}
+                  </Text>
+                </View>
+              )}
+              {currentFilters.style && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {getStyleLabel(currentFilters.style)}
+                  </Text>
+                </View>
+              )}
+              {currentFilters.formality && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {getFormalityLabel(currentFilters.formality)}
+                  </Text>
+                </View>
+              )}
+              {currentFilters.colors.map(color => (
+                <View key={color} style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {getColorLabel(color)}
+                  </Text>
+                </View>
+              ))}
+              {currentFilters.includeWeather && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>Weather</Text>
+                </View>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.clearFiltersButton}
+              onPress={handleClearAllFilters}
+            >
+              <X size={16} color={Colors.error[600]} />
+              <Text style={styles.clearFiltersText}>Clear All</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Weather Integration Banner */}
-        <WeatherOutfitBanner onWeatherUpdate={handleWeatherUpdate} />
-
-        {/* Filters Bar */}
-        <OutfitFiltersBar
-          filters={currentFilters}
-          onOpenFilters={() => setFiltersModalVisible(true)}
-          onClearFilter={handleClearFilter}
-          onClearAllFilters={handleClearAllFilters}
-        />
-
-        {/* Generate Button - Only show if filters are applied */}
-        {hasActiveFilters && (
-          <View style={styles.generateSection}>
-            <Button
-              title="Generate Outfit"
-              onPress={handleGenerateOutfit}
-              loading={loading}
-              style={styles.generateButton}
-            />
-          </View>
-        )}
-
         {/* Outfit Generation Statistics */}
         <OutfitStatsDisplay
           totalItems={filteredItems.length}
@@ -483,12 +683,18 @@ export default function GenerateScreen() {
         />
 
         {/* Generated Outfits Display */}
-        {loading ? (
-          <View style={styles.loadingState}>
-            <Text style={styles.loadingText}>
-              Generating perfect outfits for you...
-            </Text>
-          </View>
+        {!screenReady ? (
+          <OutfitGenerationProgress
+            isGenerating={true}
+            progress={0.05}
+            onComplete={() => {}}
+          />
+        ) : loading ? (
+          <OutfitGenerationProgress
+            isGenerating={loading}
+            progress={generationProgress}
+            onComplete={() => {}}
+          />
         ) : outfits.length > 0 ? (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
@@ -515,25 +721,8 @@ export default function GenerateScreen() {
               onSaveOutfit={handleOutfitSave}
               onEditOutfit={handleOutfitEdit}
               onCurrentIndexChange={setCurrentOutfitIndex}
+              currentIndex={currentOutfitIndex}
             />
-
-            {/* Current Outfit Indicator */}
-            <View style={styles.outfitIndicatorContainer}>
-              <Text style={styles.currentOutfitText}>
-                {currentOutfitIndex + 1} of {outfits.length}
-              </Text>
-              <View style={styles.dotsContainer}>
-                {outfits.map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.dot,
-                      index === currentOutfitIndex && styles.activeDot,
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
           </View>
         ) : showQuickFilters && !hasActiveFilters ? (
           <View style={styles.emptyState}>
@@ -542,6 +731,22 @@ export default function GenerateScreen() {
               Select an occasion and style above to get started with AI-powered
               outfit recommendations.
             </Text>
+          </View>
+        ) : hasActiveFilters && !loading && outfits.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>Preparing Your Outfits</Text>
+            <Text style={styles.emptyStateDescription}>
+              Processing your preferences to create perfect outfit combinations.
+            </Text>
+
+            {/* Show progress indicator when preparing */}
+            <View style={styles.preparingProgressContainer}>
+              <OutfitGenerationProgress
+                isGenerating={true}
+                progress={0.15}
+                onComplete={() => {}}
+              />
+            </View>
           </View>
         ) : (
           <View style={styles.emptyState}>
@@ -585,7 +790,6 @@ export default function GenerateScreen() {
         onClose={() => setFiltersModalVisible(false)}
         onApplyFilters={handleFiltersApply}
         currentFilters={currentFilters}
-        weatherData={MOCK_WEATHER}
       />
 
       {/* Detail Modal */}
@@ -628,12 +832,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.md,
   },
-  generateSection: {
-    marginBottom: Spacing.lg,
-  },
-  generateButton: {
-    marginHorizontal: 0,
-  },
+
   outfitsSection: {
     marginBottom: Spacing.xl,
   },
@@ -648,32 +847,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
     fontWeight: '500',
   },
-  outfitIndicatorContainer: {
-    alignItems: 'center',
-    marginTop: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
-  currentOutfitText: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary[200],
-    marginHorizontal: Spacing.xs / 2,
-  },
-  activeDot: {
-    backgroundColor: Colors.primary[500],
-    transform: [{ scale: 1.2 }],
-  },
+
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
@@ -780,5 +954,98 @@ const styles = StyleSheet.create({
   manualBuilderDescription: {
     ...Typography.body.small,
     color: Colors.text.secondary,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  titleSection: {
+    flex: 1,
+    paddingRight: Spacing.md,
+  },
+  title: {
+    color: Colors.text.primary,
+  },
+  headerFilterButton: {
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.surface.secondary,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    position: 'relative',
+  },
+  headerFilterButtonActive: {
+    backgroundColor: Colors.primary[50],
+    borderColor: Colors.primary[300],
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: Colors.primary[500],
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.surface.primary,
+  },
+  filterBadgeText: {
+    ...Typography.caption.small,
+    color: Colors.text.inverse,
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  activeFiltersContainer: {
+    marginTop: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activeFiltersScroll: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  activeFiltersContent: {
+    paddingRight: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  activeFilterChip: {
+    backgroundColor: Colors.primary[100],
+    borderRadius: Layout.borderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.primary[300],
+  },
+  activeFilterText: {
+    ...Typography.caption.medium,
+    color: Colors.primary[700],
+    fontWeight: '500',
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.error[50],
+    borderWidth: 1,
+    borderColor: Colors.error[200],
+    borderRadius: 20,
+    marginLeft: Spacing.sm,
+    ...Shadows.sm,
+  },
+  clearFiltersText: {
+    ...Typography.body.small,
+    color: Colors.error[700],
+    fontWeight: '600',
+    marginLeft: Spacing.xs,
+  },
+  preparingProgressContainer: {
+    marginTop: Spacing.lg,
+    width: '100%',
+    maxWidth: 350,
+    alignSelf: 'center',
   },
 });

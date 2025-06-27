@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   CreateClothingItemData,
@@ -198,22 +198,19 @@ export const useWardrobe = () => {
         await loadClothingItems();
         return { success: true };
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+    } catch (error) {
+      console.error('Error removing sample items:', error);
+      setError((error as Error).message);
+      return { success: false, error: (error as Error).message };
     } finally {
       setIsLoading(false);
     }
   };
 
   const debugImagePaths = async () => {
-    try {
-      await wardrobeService.debugImagePaths();
-    } catch (error) {
-      console.error('Debug error:', error);
-    }
+    const result = await wardrobeService.debugImagePaths();
+    console.log('Debug image paths result:', result);
+    return result;
   };
 
   const clearAllData = async () => {
@@ -236,7 +233,8 @@ export const useWardrobe = () => {
     }
   };
 
-  const getFilteredItems = (): ClothingItem[] => {
+  // Memoize filtered items to prevent unnecessary re-renders
+  const filteredItems = useMemo((): ClothingItem[] => {
     let filtered = wardrobeState.items;
 
     // Apply search query
@@ -325,9 +323,15 @@ export const useWardrobe = () => {
     });
 
     return sortedFiltered;
-  };
+  }, [
+    wardrobeState.items,
+    wardrobeState.searchQuery,
+    wardrobeState.filters,
+    wardrobeState.sortOptions,
+  ]);
 
-  const getWardrobeStats = (): WardrobeStats => {
+  // Memoize wardrobe stats to prevent unnecessary re-calculations
+  const stats = useMemo((): WardrobeStats => {
     const items = wardrobeState.items;
 
     const itemsByCategory = Object.values(ClothingCategory).reduce(
@@ -373,12 +377,12 @@ export const useWardrobe = () => {
       leastWornItems: sortedByWorn.slice(-5).reverse(),
       recentlyAdded: sortedByDate.slice(0, 5),
     };
-  };
+  }, [wardrobeState.items, wardrobeState.outfits.length]);
 
   return {
     ...wardrobeState,
-    filteredItems: getFilteredItems(),
-    stats: getWardrobeStats(),
+    filteredItems,
+    stats,
     isLoading: isLoading || wardrobeState.isLoading,
     error: error || wardrobeState.error,
     actions: {

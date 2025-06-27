@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -26,6 +25,7 @@ export interface OutfitFilters {
   formality: 'casual' | 'semi-formal' | 'formal' | null;
   colors: string[];
   includeWeather: boolean;
+  temperatureRange?: { min: number; max: number };
   stylePreferences: {
     formality: number;
     boldness: number;
@@ -326,11 +326,14 @@ export function OutfitFiltersModal({
     filters.formality ||
     filters.colors.length > 0 ||
     filters.includeWeather ||
+    (filters.temperatureRange &&
+      (filters.temperatureRange.min !== 15 ||
+        filters.temperatureRange.max !== 25)) ||
     filters.stylePreferences.formality !== 0.5 ||
     filters.stylePreferences.boldness !== 0.5 ||
     filters.stylePreferences.layering !== 0.5 ||
     filters.stylePreferences.colorfulness !== 0.5 ||
-    !filters.stylePreferences.autoWeather ||
+    filters.stylePreferences.autoWeather ||
     !filters.stylePreferences.saveHistory ||
     !filters.stylePreferences.useColorTheory ||
     filters.weatherIntegration.enabled;
@@ -549,7 +552,6 @@ export function OutfitFiltersModal({
                 onValueChange={value => handleSliderChange('formality', value)}
                 minimumTrackTintColor={Colors.primary[700]}
                 maximumTrackTintColor={Colors.neutral[300]}
-                thumbTintColor={Colors.primary[700]}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderMinLabel}>Casual</Text>
@@ -574,7 +576,6 @@ export function OutfitFiltersModal({
                 onValueChange={value => handleSliderChange('boldness', value)}
                 minimumTrackTintColor={Colors.primary[700]}
                 maximumTrackTintColor={Colors.neutral[300]}
-                thumbTintColor={Colors.primary[700]}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderMinLabel}>Conservative</Text>
@@ -599,7 +600,6 @@ export function OutfitFiltersModal({
                 onValueChange={value => handleSliderChange('layering', value)}
                 minimumTrackTintColor={Colors.primary[700]}
                 maximumTrackTintColor={Colors.neutral[300]}
-                thumbTintColor={Colors.primary[700]}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderMinLabel}>Minimal</Text>
@@ -629,7 +629,6 @@ export function OutfitFiltersModal({
                 }
                 minimumTrackTintColor={Colors.primary[700]}
                 maximumTrackTintColor={Colors.neutral[300]}
-                thumbTintColor={Colors.primary[700]}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderMinLabel}>Monochrome</Text>
@@ -702,170 +701,78 @@ export function OutfitFiltersModal({
             </View>
           </View>
 
-          {/* Weather Integration Section */}
+          {/* Temperature Range Section */}
           <View style={styles.section}>
-            <H3 style={styles.sectionTitle}>Weather Integration</H3>
+            <H3 style={styles.sectionTitle}>Temperature Range</H3>
             <Text style={styles.sectionDescription}>
-              Configure how weather affects your outfit recommendations
+              Set temperature range for outfit recommendations
             </Text>
 
-            {/* Enable Weather Integration */}
             <View style={styles.subsection}>
-              <TouchableOpacity
-                style={[
-                  styles.toggleOption,
-                  filters.weatherIntegration.enabled &&
-                    styles.toggleOptionSelected,
-                ]}
-                onPress={handleWeatherIntegrationToggle}
-              >
-                <View style={styles.toggleContent}>
-                  <Text
-                    style={[
-                      styles.toggleLabel,
-                      filters.weatherIntegration.enabled &&
-                        styles.toggleLabelSelected,
-                    ]}
-                  >
-                    Enable Weather Integration
+              <View style={styles.temperatureRangeContainer}>
+                <View style={styles.temperatureLabels}>
+                  <Text style={styles.temperatureLabel}>
+                    Min: {filters.temperatureRange?.min || 15}°C
                   </Text>
-                  <Text
-                    style={[
-                      styles.toggleDescription,
-                      filters.weatherIntegration.enabled &&
-                        styles.toggleDescriptionSelected,
-                    ]}
-                  >
-                    Factor in current weather conditions when generating outfits
+                  <Text style={styles.temperatureLabel}>
+                    Max: {filters.temperatureRange?.max || 25}°C
                   </Text>
                 </View>
-                <View
-                  style={[
-                    styles.checkmark,
-                    filters.weatherIntegration.enabled &&
-                      styles.checkmarkSelected,
-                  ]}
-                >
-                  {filters.weatherIntegration.enabled && (
-                    <Text style={styles.checkmarkText}>✓</Text>
-                  )}
+
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>Minimum Temperature</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={-20}
+                    maximumValue={40}
+                    step={1}
+                    value={filters.temperatureRange?.min || 15}
+                    onValueChange={value =>
+                      setFilters(prev => ({
+                        ...prev,
+                        temperatureRange: {
+                          min: value,
+                          max: prev.temperatureRange?.max || 25,
+                        },
+                      }))
+                    }
+                    minimumTrackTintColor={Colors.primary[500]}
+                    maximumTrackTintColor={Colors.neutral[300]}
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabelText}>-20°C</Text>
+                    <Text style={styles.sliderLabelText}>40°C</Text>
+                  </View>
                 </View>
-              </TouchableOpacity>
+
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>Maximum Temperature</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={-20}
+                    maximumValue={40}
+                    step={1}
+                    value={filters.temperatureRange?.max || 25}
+                    onValueChange={value =>
+                      setFilters(prev => ({
+                        ...prev,
+                        temperatureRange: {
+                          min: prev.temperatureRange?.min || 15,
+                          max: value,
+                        },
+                      }))
+                    }
+                    minimumTrackTintColor={Colors.primary[500]}
+                    maximumTrackTintColor={Colors.neutral[300]}
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabelText}>-20°C</Text>
+                    <Text style={styles.sliderLabelText}>40°C</Text>
+                  </View>
+                </View>
+              </View>
             </View>
-
-            {/* Weather Options (only show if enabled) */}
-            {filters.weatherIntegration.enabled && (
-              <>
-                <View style={styles.subsection}>
-                  <Text style={styles.subsectionTitle}>Location Settings</Text>
-
-                  <View style={styles.settingRow}>
-                    <View style={styles.settingInfo}>
-                      <Text style={styles.settingTitle}>
-                        Use Current Location
-                      </Text>
-                      <Text style={styles.settingDescription}>
-                        Automatically detect your location
-                      </Text>
-                    </View>
-                    <Switch
-                      value={filters.weatherIntegration.useCurrentLocation}
-                      onValueChange={handleLocationToggle}
-                      trackColor={{
-                        false: Colors.neutral[300],
-                        true: Colors.primary[500],
-                      }}
-                      thumbColor={Colors.white}
-                    />
-                  </View>
-
-                  {!filters.weatherIntegration.useCurrentLocation && (
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Location</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={filters.weatherIntegration.location || ''}
-                        onChangeText={handleLocationChange}
-                        placeholder="Enter city name"
-                        placeholderTextColor={Colors.text.tertiary}
-                      />
-                    </View>
-                  )}
-                </View>
-
-                {/* Current Weather Display */}
-                {weatherData && (
-                  <View style={styles.weatherDisplay}>
-                    <Text style={styles.weatherDisplayTitle}>
-                      Current Weather
-                    </Text>
-                    <View style={styles.weatherStats}>
-                      <View style={styles.weatherStat}>
-                        <Text style={styles.weatherValue}>
-                          {Math.round(weatherData.temperature)}°C
-                        </Text>
-                        <Text style={styles.weatherLabel}>Temperature</Text>
-                      </View>
-                      <View style={styles.weatherStat}>
-                        <Text style={styles.weatherValue}>
-                          {weatherData.humidity}%
-                        </Text>
-                        <Text style={styles.weatherLabel}>Humidity</Text>
-                      </View>
-                      <View style={styles.weatherStat}>
-                        <Text style={styles.weatherValue}>
-                          {weatherData.conditions}
-                        </Text>
-                        <Text style={styles.weatherLabel}>Conditions</Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-              </>
-            )}
           </View>
-
-          {/* Legacy Weather Section (kept for backward compatibility) */}
-          {weatherData && !filters.weatherIntegration.enabled && (
-            <View style={styles.section}>
-              <H3 style={styles.sectionTitle}>Weather Consideration</H3>
-              <Text style={styles.sectionDescription}>
-                Include current weather conditions in outfit selection
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.weatherCard,
-                  filters.includeWeather && styles.weatherCardSelected,
-                ]}
-                onPress={handleWeatherToggle}
-              >
-                <View style={styles.weatherInfo}>
-                  <Text style={styles.weatherTemp}>
-                    {Math.round(weatherData.temperature)}°C
-                  </Text>
-                  <Text style={styles.weatherCondition}>
-                    {weatherData.conditions}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.weatherToggle,
-                    filters.includeWeather && styles.weatherToggleSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.weatherToggleText,
-                      filters.includeWeather &&
-                        styles.weatherToggleTextSelected,
-                    ]}
-                  >
-                    {filters.includeWeather ? 'Enabled' : 'Disabled'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          )}
         </ScrollView>
 
         {/* Footer */}
@@ -1285,5 +1192,26 @@ const styles = StyleSheet.create({
     ...Typography.caption.medium,
     color: Colors.text.tertiary,
     marginTop: Spacing.sm,
+  },
+  temperatureRangeContainer: {
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  temperatureLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  temperatureLabel: {
+    ...Typography.body.medium,
+    color: Colors.primary[700],
+    fontWeight: '600',
+  },
+  sliderLabelText: {
+    ...Typography.caption.medium,
+    color: Colors.text.tertiary,
   },
 });

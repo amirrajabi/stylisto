@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { Edit3, Heart, Star } from 'lucide-react-native';
-import React from 'react';
+import { Edit3, Heart } from 'lucide-react-native';
+import React, { useEffect, useRef } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -32,6 +32,8 @@ interface OutfitCardProps {
   onSaveOutfit?: (outfitId: string) => void;
   onEditOutfit?: (outfitId: string) => void;
   onCurrentIndexChange?: (index: number) => void;
+  onGoToIndex?: (index: number) => void;
+  currentIndex?: number;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -43,10 +45,44 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   onSaveOutfit,
   onEditOutfit,
   onCurrentIndexChange,
+  onGoToIndex,
+  currentIndex = 0,
 }) => {
+  const flatListRef = useRef<FlatList>(null);
+
+  // Effect to scroll to currentIndex when it changes externally
+  useEffect(() => {
+    if (
+      flatListRef.current &&
+      currentIndex >= 0 &&
+      currentIndex < outfits.length
+    ) {
+      flatListRef.current.scrollToIndex({
+        index: currentIndex,
+        animated: true,
+      });
+    }
+  }, [currentIndex, outfits.length]);
+
+  const getItemLayout = (data: any, index: number) => ({
+    length: cardWidth + Spacing.md,
+    offset: index * (cardWidth + Spacing.md),
+    index,
+  });
+
+  const onScrollToIndexFailed = (info: any) => {
+    console.warn('ScrollToIndex failed:', info);
+    // Fallback: scroll to approximate position
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({
+        offset: info.index * (cardWidth + Spacing.md),
+        animated: true,
+      });
+    }
+  };
+
   const renderOutfitItem = ({ item: outfit }: { item: any }) => {
     const displayItems = outfit.items.slice(0, 3);
-    const totalScore = Math.round(outfit.score.total * 100);
 
     return (
       <TouchableOpacity
@@ -60,14 +96,6 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             {outfit.name}
           </Text>
           <View style={styles.headerActions}>
-            <View style={styles.scoreContainer}>
-              <Star
-                size={14}
-                color={Colors.warning[500]}
-                fill={Colors.warning[500]}
-              />
-              <Text style={styles.scoreText}>{totalScore}%</Text>
-            </View>
             <View style={styles.actionButtons}>
               {onEditOutfit && (
                 <TouchableOpacity
@@ -126,7 +154,12 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             />
             <Text style={styles.scoreLabel}>Style</Text>
             <Text style={styles.scoreValue}>
-              {Math.round(outfit.score.style * 100)}%
+              {Math.round(
+                (outfit.score.breakdown?.styleMatching ||
+                  outfit.score.style ||
+                  0.85) * 100
+              )}
+              %
             </Text>
           </View>
           <View style={styles.scoreItem}>
@@ -138,7 +171,12 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             />
             <Text style={styles.scoreLabel}>Color</Text>
             <Text style={styles.scoreValue}>
-              {Math.round(outfit.score.color * 100)}%
+              {Math.round(
+                (outfit.score.breakdown?.colorHarmony ||
+                  outfit.score.color ||
+                  0.85) * 100
+              )}
+              %
             </Text>
           </View>
           <View style={styles.scoreItem}>
@@ -147,7 +185,12 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             />
             <Text style={styles.scoreLabel}>Season</Text>
             <Text style={styles.scoreValue}>
-              {Math.round(outfit.score.season * 100)}%
+              {Math.round(
+                (outfit.score.breakdown?.seasonSuitability ||
+                  outfit.score.season ||
+                  0.85) * 100
+              )}
+              %
             </Text>
           </View>
         </View>
@@ -217,21 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.warning[50],
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    marginRight: Spacing.xs,
-  },
-  scoreText: {
-    ...Typography.body.small,
-    color: Colors.warning[700],
-    fontWeight: '600',
-    marginLeft: Spacing.xs,
-  },
+
   itemsContainer: {
     flexDirection: 'row',
     alignItems: 'center',

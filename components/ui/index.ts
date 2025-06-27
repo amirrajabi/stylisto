@@ -21,6 +21,9 @@ export { CheckBox } from './CheckBox';
 
 export { FloatingActionButton } from './FloatingActionButton';
 
+export { ProgressBar } from './ProgressBar';
+export type { ProgressBarProps } from './ProgressBar';
+
 // Typography components
 export {
   BodyLarge,

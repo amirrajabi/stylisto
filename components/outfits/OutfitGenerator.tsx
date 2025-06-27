@@ -55,8 +55,9 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
       layering: 0.5,
       colorfulness: 0.5,
     },
-    maxResults: initialOptions.maxResults || 5,
-    minScore: initialOptions.minScore || 0.1,
+    maxResults:
+      initialOptions.maxResults || Math.min(20, Math.max(5, items.length)),
+    minScore: initialOptions.minScore || 0.65,
     useAllItems: initialOptions.useAllItems || false,
   });
 

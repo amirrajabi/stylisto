@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   GeneratedOutfit,
   OutfitGenerationOptions,
@@ -13,10 +13,12 @@ export interface OutfitRecommendationState {
   error: string | null;
   outfits: GeneratedOutfit[];
   selectedOutfitIndex: number;
+  generationProgress: number;
 }
 
 export const useOutfitRecommendation = (
-  initialOptions?: Partial<OutfitGenerationOptions>
+  initialOptions?: Partial<OutfitGenerationOptions>,
+  screenReady?: boolean
 ) => {
   const { filteredItems, outfits: savedOutfits, actions } = useWardrobe();
   const { generateOutfits, createOutfit } = useOutfitGenerator();
@@ -26,10 +28,21 @@ export const useOutfitRecommendation = (
     error: null,
     outfits: [],
     selectedOutfitIndex: 0,
+    generationProgress: 0,
   });
+
+  const isGeneratingRef = useRef(false);
+  const hasInitialGeneration = useRef(false);
 
   const generateRecommendations = useCallback(
     async (options?: Partial<OutfitGenerationOptions>) => {
+      if (isGeneratingRef.current) {
+        console.log(
+          '🔄 useOutfitRecommendation: Generation already in progress, skipping'
+        );
+        return [];
+      }
+
       console.log(
         '🎯 useOutfitRecommendation: Starting generation with',
         filteredItems.length,
@@ -47,13 +60,29 @@ export const useOutfitRecommendation = (
         return [];
       }
 
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      isGeneratingRef.current = true;
+      setState(prev => ({
+        ...prev,
+        loading: true,
+        error: null,
+        generationProgress: 0,
+      }));
 
       try {
+        // Update progress as we go through steps
+        setState(prev => ({
+          ...prev,
+          generationProgress: 0.1,
+        }));
+
         // Merge initial options with provided options and enable useAllItems by default
         const mergedOptions: OutfitGenerationOptions = {
           useAllItems: true,
-          maxResults: 10,
+          maxResults: Math.min(
+            75,
+            Math.max(15, Math.floor(filteredItems.length * 1.5))
+          ), // More realistic based on item count
+          minScore: 0.45, // Lower threshold for more variety in scores
           ...initialOptions,
           ...options,
         };
@@ -66,20 +95,57 @@ export const useOutfitRecommendation = (
           '🌟 useAllItems enabled - ensuring ALL wardrobe items are utilized'
         );
 
+        setState(prev => ({
+          ...prev,
+          generationProgress: 0.3,
+        }));
+
         // Generate outfits
         const generatedOutfits = generateOutfits(filteredItems, mergedOptions);
+
+        setState(prev => ({
+          ...prev,
+          generationProgress: 0.7,
+        }));
 
         console.log(
           '✅ useOutfitRecommendation: Generated',
           generatedOutfits.length,
-          'outfits'
+          'outfits with scores:',
+          generatedOutfits
+            .map(o => Math.round(o.score.total * 100) + '%')
+            .slice(0, 10)
         );
+
+        // Debug: Log first few outfit details
+        if (__DEV__ && generatedOutfits.length > 0) {
+          console.log('🔍 Score breakdown for first outfit:');
+          const firstOutfit = generatedOutfits[0];
+          console.log(
+            `  Total: ${(firstOutfit.score.total * 100).toFixed(1)}%`
+          );
+          console.log(
+            `  Color Harmony: ${(firstOutfit.score.breakdown.colorHarmony * 100).toFixed(1)}%`
+          );
+          console.log(
+            `  Style Matching: ${(firstOutfit.score.breakdown.styleMatching * 100).toFixed(1)}%`
+          );
+          console.log(
+            `  Occasion: ${(firstOutfit.score.breakdown.occasionSuitability * 100).toFixed(1)}%`
+          );
+          console.log(
+            `  Season: ${(firstOutfit.score.breakdown.seasonSuitability * 100).toFixed(1)}%`
+          );
+        }
+
+        // Clear progress updates and finalize
 
         setState(prev => ({
           ...prev,
           loading: false,
           outfits: generatedOutfits,
           selectedOutfitIndex: 0,
+          generationProgress: 1.0,
         }));
 
         return generatedOutfits;
@@ -96,12 +162,15 @@ export const useOutfitRecommendation = (
           ...prev,
           loading: false,
           error: errorMessage,
+          generationProgress: 0,
         }));
 
         return [];
+      } finally {
+        isGeneratingRef.current = false;
       }
     },
-    [filteredItems, initialOptions, generateOutfits]
+    [filteredItems, generateOutfits, initialOptions]
   );
 
   const selectOutfit = useCallback(
@@ -171,10 +240,11 @@ export const useOutfitRecommendation = (
       return generateRecommendations({
         season: weatherSeason,
         weather: weatherData,
-        maxResults: 3,
+        maxResults: Math.min(30, Math.max(8, filteredItems.length)), // Weather-appropriate realistic count
+        minScore: 0.4, // Slightly lower for weather-specific outfits
       });
     },
-    [generateRecommendations]
+    [generateRecommendations, filteredItems.length]
   );
 
   const getOccasionBasedRecommendation = useCallback(
@@ -182,30 +252,60 @@ export const useOutfitRecommendation = (
       // Generate outfits for specific occasion
       return generateRecommendations({
         occasion,
-        maxResults: 3,
+        maxResults: Math.min(25, Math.max(6, filteredItems.length)), // Occasion-specific realistic count
+        minScore: 0.4, // Slightly lower for occasion-specific outfits
       });
     },
-    [generateRecommendations]
+    [generateRecommendations, filteredItems.length]
   );
 
-  // Generate initial recommendations on mount
+  const resetAutoGeneration = useCallback(() => {
+    hasInitialGeneration.current = false;
+  }, []);
+
+  // Generate initial recommendations on mount with delay for screen render
   useEffect(() => {
     console.log(
       '🚀 useOutfitRecommendation: Effect triggered, filteredItems.length:',
-      filteredItems.length
+      filteredItems.length,
+      'screenReady:',
+      screenReady
     );
 
-    if (filteredItems.length >= 2) {
+    if (
+      screenReady &&
+      filteredItems.length >= 2 &&
+      state.outfits.length === 0 &&
+      !hasInitialGeneration.current &&
+      !isGeneratingRef.current
+    ) {
       console.log(
-        '✨ useOutfitRecommendation: Auto-generating initial outfits'
+        '✨ useOutfitRecommendation: Auto-generating initial outfits with delay'
       );
-      generateRecommendations();
+      hasInitialGeneration.current = true;
+
+      // Delay generation to allow screen to render first
+      setTimeout(() => {
+        generateRecommendations();
+      }, 200); // Slightly longer delay to ensure smooth screen render
     } else {
       console.log(
-        '⏸️ useOutfitRecommendation: Not enough items for auto-generation'
+        '⏸️ useOutfitRecommendation: Not ready for auto-generation:',
+        {
+          screenReady,
+          hasEnoughItems: filteredItems.length >= 2,
+          hasNoOutfits: state.outfits.length === 0,
+          notAlreadyGenerated: !hasInitialGeneration.current,
+          notCurrentlyGenerating: !isGeneratingRef.current,
+        }
       );
     }
-  }, [filteredItems.length, generateRecommendations]);
+  }, [
+    filteredItems.length,
+    state.outfits.length,
+    generateRecommendations,
+    screenReady,
+  ]);
 
   return {
     ...state,
@@ -216,5 +316,6 @@ export const useOutfitRecommendation = (
     saveCurrentOutfit,
     getWeatherBasedRecommendation,
     getOccasionBasedRecommendation,
+    resetAutoGeneration,
   };
 };

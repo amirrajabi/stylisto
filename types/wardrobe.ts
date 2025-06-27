@@ -26,6 +26,19 @@ export interface ClothingItem {
   updatedAt: string;
 }
 
+export interface OutfitScore {
+  total: number;
+  breakdown: {
+    colorHarmony: number;
+    styleMatching: number;
+    occasionSuitability: number;
+    seasonSuitability: number;
+    weatherSuitability: number;
+    userPreference: number;
+    variety: number;
+  };
+}
+
 export interface Outfit {
   id: string;
   name: string;
@@ -37,6 +50,7 @@ export interface Outfit {
   timesWorn: number;
   lastWorn?: string;
   notes?: string;
+  score?: OutfitScore;
   createdAt: string;
   updatedAt: string;
 }
