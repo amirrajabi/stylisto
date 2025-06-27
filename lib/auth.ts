@@ -15,6 +15,7 @@ export interface AuthUser {
   first_name?: string;
   last_name?: string;
   avatar_url?: string;
+  full_body_image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -501,6 +502,10 @@ export class AuthService {
       if (updates.bio !== undefined) userUpdates.bio = updates.bio;
       if (updates.website_url !== undefined)
         userUpdates.website_url = updates.website_url;
+
+      // Full body image for outfit try-on
+      if (updates.full_body_image_url !== undefined)
+        userUpdates.full_body_image_url = updates.full_body_image_url;
 
       const { data, error: dbError } = await supabase
         .from('users')

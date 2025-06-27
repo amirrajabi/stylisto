@@ -503,8 +503,9 @@ export default function StylistScreen() {
     (outfitIndex: number) => {
       const outfit = outfits[outfitIndex];
       if (outfit) {
+        const outfitId = `outfit-${outfitIndex}`;
         const outfitWithMetadata = {
-          id: `outfit-${outfitIndex}`,
+          id: outfitId,
           name: `Generated Outfit ${outfitIndex + 1}`,
           items: outfit.items,
           score: {
@@ -514,12 +515,13 @@ export default function StylistScreen() {
             season: outfit.score.breakdown.seasonSuitability,
             occasion: outfit.score.breakdown.occasionSuitability,
           },
+          isFavorite: favoriteStatus[outfitId] || false,
         };
         setSelectedOutfit(outfitWithMetadata);
         setModalVisible(true);
       }
     },
-    [outfits]
+    [outfits, favoriteStatus]
   );
 
   const handleModalClose = useCallback(() => {
@@ -603,6 +605,38 @@ export default function StylistScreen() {
     },
     [saveCurrentOutfit, refreshManualOutfits]
   );
+
+  const handleProveOutfit = useCallback(async (outfitId: string) => {
+    console.log('🚀 Prove outfit function called for outfit:', outfitId);
+    // TODO: Add your custom prove outfit functionality here
+    // This is where you can implement the specific action you want to perform
+    // Examples:
+    // - Navigate to a specific screen
+    // - Call an API endpoint
+    // - Show a specific modal
+    // - Trigger a specific workflow
+    alert(`Prove outfit functionality triggered for outfit: ${outfitId}`);
+  }, []);
+
+  const handleTryOutfit = useCallback(async (outfitId: string) => {
+    console.log('👕 Try outfit function called for outfit:', outfitId);
+    // TODO: Add your custom try outfit functionality here
+    // This could trigger:
+    // - Virtual try-on feature
+    // - Outfit preview mode
+    // - Camera/AR integration
+    alert(`Try outfit functionality triggered for outfit: ${outfitId}`);
+  }, []);
+
+  const handleShareOutfit = useCallback(async (outfitId: string) => {
+    console.log('📤 Share outfit function called for outfit:', outfitId);
+    // TODO: Add your custom share functionality here
+    // This could trigger:
+    // - Social media sharing
+    // - Export to image
+    // - Share with friends
+    alert(`Share outfit functionality triggered for outfit: ${outfitId}`);
+  }, []);
 
   const handleManualOutfitBuilder = useCallback(() => {
     router.push('/outfit-builder');
@@ -958,7 +992,9 @@ export default function StylistScreen() {
                   console.log(
                     '🔍 Mapping outfit for OutfitCard:',
                     outfit.id,
-                    outfit.name
+                    outfit.name,
+                    'isFavorite from DB:',
+                    outfit.isFavorite
                   );
                   return {
                     id: `manual-db-${outfit.id}`,
@@ -967,8 +1003,7 @@ export default function StylistScreen() {
                     score: outfit.score,
                     type: 'manual',
                     originalData: outfit,
-                    isFavorite:
-                      favoriteStatus[`manual-db-${outfit.id}`] || false,
+                    isFavorite: outfit.isFavorite || false,
                     createdAt: outfit.createdAt,
                     updatedAt: outfit.updatedAt,
                   };
@@ -1081,6 +1116,9 @@ export default function StylistScreen() {
         onClose={handleModalClose}
         outfit={selectedOutfit}
         onSave={handleOutfitSave}
+        onShare={handleShareOutfit}
+        onProve={handleProveOutfit}
+        onTry={handleTryOutfit}
       />
 
       {/* Edit Modal */}

@@ -51,6 +51,7 @@ export default function GalleryScreen() {
       season: number;
       occasion: number;
     };
+    isFavorite?: boolean;
   } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -168,6 +169,7 @@ export default function GalleryScreen() {
       name: outfit.name,
       items: outfit.items,
       score: dbScore,
+      isFavorite: true, // Since we're in Gallery, all outfits are favorites
     });
     setModalVisible(true);
   };
@@ -183,6 +185,18 @@ export default function GalleryScreen() {
 
   const handleShareOutfit = async (outfitId: string) => {
     console.log('Share outfit:', outfitId);
+  };
+
+  const handleProveOutfit = async (outfitId: string) => {
+    console.log('🚀 Prove outfit function called for outfit:', outfitId);
+    // TODO: Add your custom prove outfit functionality here
+    // This is where you can implement the specific action you want to perform
+    // Examples:
+    // - Navigate to a specific screen
+    // - Call an API endpoint
+    // - Show a specific modal
+    // - Trigger a specific workflow
+    alert(`Prove outfit functionality triggered for outfit: ${outfitId}`);
   };
 
   const handleRemoveFromFavorites = async (outfitId: string) => {
@@ -321,6 +335,7 @@ export default function GalleryScreen() {
           onClose={handleCloseModal}
           onSave={handleSaveOutfit}
           onShare={handleShareOutfit}
+          onProve={handleProveOutfit}
         />
       )}
     </SafeAreaView>

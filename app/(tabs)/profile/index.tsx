@@ -32,6 +32,7 @@ import {
   View,
 } from 'react-native';
 import { AccessibilitySettingsCard } from '../../../components/profile/AccessibilitySettingsCard';
+import { FullBodyImageUploader } from '../../../components/profile/FullBodyImageUploader';
 import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
 import {
   BodyMedium,
@@ -546,6 +547,14 @@ export default function ProfileScreen() {
           </Text>
           <BodyMedium color="secondary">{user?.email}</BodyMedium>
         </View>
+
+        {/* Full Body Image Uploader */}
+        <FullBodyImageUploader
+          fullBodyImageUrl={user?.full_body_image_url}
+          onImageUpdate={url => {
+            console.log('Full body image updated:', url);
+          }}
+        />
 
         {/* Accessibility Settings Card */}
         <AccessibilitySettingsCard />

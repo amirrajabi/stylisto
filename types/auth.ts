@@ -10,6 +10,7 @@ export interface User {
   gender?: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say';
   phone?: string;
   avatar_url?: string;
+  full_body_image_url?: string;
 
   // Location and Timezone
   country?: string;
@@ -179,6 +180,7 @@ export interface ProfileUpdateFormData {
     | 'inverted-triangle';
   bio?: string;
   website_url?: string;
+  full_body_image_url?: string;
 }
 
 export interface ForgotPasswordFormData {

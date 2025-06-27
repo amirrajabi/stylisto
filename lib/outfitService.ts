@@ -18,6 +18,7 @@ export interface GeneratedOutfitRecord {
     userPreference?: number;
     variety?: number;
   };
+  isFavorite?: boolean;
   tags: string[];
   createdAt: string;
   updatedAt: string;
@@ -279,6 +280,9 @@ export class OutfitService {
           name,
           tags,
           notes,
+          occasions,
+          seasons,
+          is_favorite,
           created_at,
           updated_at,
           outfit_items (
@@ -359,6 +363,7 @@ export class OutfitService {
           userPreference: undefined,
           variety: undefined,
         },
+        isFavorite: outfit.is_favorite || false,
         tags: outfit.tags,
         createdAt: outfit.created_at,
         updatedAt: outfit.updated_at,
@@ -391,6 +396,7 @@ export class OutfitService {
           notes,
           occasions,
           seasons,
+          is_favorite,
           created_at,
           updated_at,
           outfit_items (
@@ -467,6 +473,7 @@ export class OutfitService {
           userPreference: 0.8,
           variety: 0.75,
         },
+        isFavorite: outfit.is_favorite || false,
         tags: outfit.tags,
         createdAt: outfit.created_at,
         updatedAt: outfit.updated_at,
