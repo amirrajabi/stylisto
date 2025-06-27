@@ -25,8 +25,8 @@ import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
+import { useOutfitScoring } from '../../hooks/useOutfitScoring';
 import { useWardrobe } from '../../hooks/useWardrobe';
-import { useOutfitGenerator } from '../../lib/outfitGenerator';
 import { ClothingCategory, ClothingItem } from '../../types/wardrobe';
 
 interface OutfitEditModalProps {
@@ -56,7 +56,7 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
   onSave,
 }) => {
   const { filteredItems } = useWardrobe();
-  const { calculateOutfitScore } = useOutfitGenerator();
+  const { calculateDetailedScore } = useOutfitScoring();
 
   const [editedName, setEditedName] = useState('');
   const [editedItems, setEditedItems] = useState<ClothingItem[]>([]);
@@ -236,13 +236,13 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
   const recalculateScore = useCallback(() => {
     if (editedItems.length > 0) {
       try {
-        const scoreData = calculateOutfitScore(editedItems);
+        const scoreData = calculateDetailedScore(editedItems);
         const formattedScore = {
           total: scoreData.total,
-          color: scoreData.breakdown.colorHarmony,
-          style: scoreData.breakdown.styleMatching,
-          season: scoreData.breakdown.seasonSuitability,
-          occasion: scoreData.breakdown.occasionSuitability,
+          color: scoreData.colorMatch,
+          style: scoreData.styleHarmony,
+          season: scoreData.seasonFit,
+          occasion: scoreData.occasion,
         };
         setUpdatedScore(formattedScore);
       } catch (error) {
@@ -251,7 +251,7 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
     } else {
       setUpdatedScore(null);
     }
-  }, [editedItems, calculateOutfitScore]);
+  }, [editedItems, calculateDetailedScore]);
 
   useEffect(() => {
     recalculateScore();

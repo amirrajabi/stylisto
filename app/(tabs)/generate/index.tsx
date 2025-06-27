@@ -28,6 +28,7 @@ import { useSavedOutfits } from '../../../hooks/useSavedOutfits';
 import { useWardrobe } from '../../../hooks/useWardrobe';
 
 import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
+import { ClearOutfitCache } from '../../../components/wardrobe/ClearOutfitCache';
 import { Occasion } from '../../../types/wardrobe';
 
 const getOccasionLabel = (occasion: Occasion): string => {
@@ -939,8 +940,7 @@ export default function StylistScreen() {
         )}
 
         {/* Manual Outfits Section */}
-        {(manualOutfitsFromDB.length > 0 ||
-          (!savedOutfitsLoading && screenReady)) && (
+        {manualOutfitsFromDB.length > 0 && (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
@@ -1015,6 +1015,23 @@ export default function StylistScreen() {
             )}
           </View>
         )}
+
+        {/* Clear Outfit Cache Section - for debugging */}
+        <View style={styles.clearCacheSection}>
+          <Text style={styles.clearCacheTitle}>
+            Having issues with outdated outfits?
+          </Text>
+          <Text style={styles.clearCacheDescription}>
+            If you see outfits that should no longer appear, clear the cache to
+            refresh from database.
+          </Text>
+          <ClearOutfitCache
+            onCacheCleared={() => {
+              // Refresh the outfits after cache is cleared
+              refreshOutfits();
+            }}
+          />
+        </View>
 
         {/* Manual Outfit Builder */}
         <View style={styles.manualBuilderContainer}>
@@ -1501,5 +1518,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.sm,
     fontStyle: 'italic',
+  },
+  clearCacheSection: {
+    marginBottom: Spacing.xl,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    ...Shadows.sm,
+  },
+  clearCacheTitle: {
+    ...Typography.heading.h5,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  clearCacheDescription: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
   },
 });

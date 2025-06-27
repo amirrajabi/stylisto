@@ -1,23 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  Switch,
-  ScrollView,
+  ArrowLeft,
+  Globe,
+  Moon,
+  Save,
+  Settings as SettingsIcon,
+  Smartphone,
+  Sun,
+  Trash2,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
   Alert,
   Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, Settings as SettingsIcon, Moon, Sun, Smartphone, Globe, Save, Trash2 } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { Shadows } from '../../../constants/Shadows';
 import { H1 } from '../../../components/ui';
+import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
 
 // Import ChevronRight
 import { ChevronRight } from 'lucide-react-native';
@@ -49,14 +58,14 @@ export default function SettingsScreen() {
         if (storedSettings) {
           setSettings(JSON.parse(storedSettings));
         }
-        
+
         // Calculate cache size
         calculateCacheSize();
       } catch (error) {
         console.error('Failed to load app settings:', error);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -67,7 +76,8 @@ export default function SettingsScreen() {
         const storedSettings = await AsyncStorage.getItem('@app_settings');
         if (storedSettings) {
           const parsedSettings = JSON.parse(storedSettings);
-          const changed = JSON.stringify(parsedSettings) !== JSON.stringify(settings);
+          const changed =
+            JSON.stringify(parsedSettings) !== JSON.stringify(settings);
           setHasChanges(changed);
         } else {
           // If no stored settings, check against defaults
@@ -78,15 +88,16 @@ export default function SettingsScreen() {
             autoSave: true,
             cacheImages: true,
           };
-          
-          const changed = JSON.stringify(defaultSettings) !== JSON.stringify(settings);
+
+          const changed =
+            JSON.stringify(defaultSettings) !== JSON.stringify(settings);
           setHasChanges(changed);
         }
       } catch (error) {
         console.error('Error checking for changes:', error);
       }
     };
-    
+
     checkForChanges();
   }, [settings]);
 
@@ -104,36 +115,34 @@ export default function SettingsScreen() {
   const handleThemeChange = (theme: 'light' | 'dark' | 'system') => {
     setSettings(prev => ({
       ...prev,
-      theme
+      theme,
     }));
   };
 
   const handleFontSizeChange = (fontSize: 'small' | 'medium' | 'large') => {
     setSettings(prev => ({
       ...prev,
-      fontSize
+      fontSize,
     }));
   };
 
   const handleToggle = (key: keyof AppSettings) => {
     setSettings(prev => ({
       ...prev,
-      [key]: !prev[key as keyof typeof prev]
+      [key]: !prev[key as keyof typeof prev],
     }));
   };
 
   const handleSave = async () => {
     try {
       await AsyncStorage.setItem('@app_settings', JSON.stringify(settings));
-      
-      Alert.alert(
-        'Settings Saved',
-        'Your app settings have been updated.',
-        [{ text: 'OK' }]
-      );
-      
+
+      Alert.alert('Settings Saved', 'Your app settings have been updated.', [
+        { text: 'OK' },
+      ]);
+
       setHasChanges(false);
-      
+
       // In a real app, you would apply the settings here
       // For example, update the theme, font size, etc.
     } catch (error) {
@@ -148,29 +157,31 @@ export default function SettingsScreen() {
       'Are you sure you want to clear the app cache? This will remove all cached images and data.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear Cache', 
+        {
+          text: 'Clear Cache',
           style: 'destructive',
           onPress: async () => {
             try {
               // In a real app, you would clear the actual cache
               // For this demo, we'll just show a success message
-              
+
               // Clear image cache
               await AsyncStorage.removeItem('@wardrobe_image_cache');
-              
+
               // Clear other caches
               const cacheKeys = [
                 '@outfit_recommendations_cache',
                 '@weather_data_cache',
-                '@clothing_analysis_cache'
+                '@clothing_analysis_cache',
               ];
-              
-              await Promise.all(cacheKeys.map(key => AsyncStorage.removeItem(key)));
-              
+
+              await Promise.all(
+                cacheKeys.map(key => AsyncStorage.removeItem(key))
+              );
+
               // Update cache size
               setCacheSize('0 KB');
-              
+
               Alert.alert(
                 'Cache Cleared',
                 'App cache has been successfully cleared.',
@@ -180,7 +191,7 @@ export default function SettingsScreen() {
               console.error('Error clearing cache:', error);
               Alert.alert('Error', 'Failed to clear cache. Please try again.');
             }
-          }
+          },
         },
       ]
     );
@@ -204,11 +215,11 @@ export default function SettingsScreen() {
             <SettingsIcon size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>App Settings</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
             Customize your app experience with these settings.
           </Text>
-          
+
           {/* Theme Selection */}
           <View style={styles.settingGroup}>
             <Text style={styles.settingGroupTitle}>Theme</Text>
@@ -216,53 +227,82 @@ export default function SettingsScreen() {
               <TouchableOpacity
                 style={[
                   styles.themeOption,
-                  settings.theme === 'light' && styles.selectedThemeOption
+                  settings.theme === 'light' && styles.selectedThemeOption,
                 ]}
                 onPress={() => handleThemeChange('light')}
               >
-                <Sun size={24} color={settings.theme === 'light' ? Colors.primary[700] : Colors.text.secondary} />
-                <Text style={[
-                  styles.themeOptionText,
-                  settings.theme === 'light' && styles.selectedThemeOptionText
-                ]}>
+                <Sun
+                  size={24}
+                  color={
+                    settings.theme === 'light'
+                      ? Colors.primary[700]
+                      : Colors.text.secondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    settings.theme === 'light' &&
+                      styles.selectedThemeOptionText,
+                  ]}
+                >
                   Light
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.themeOption,
-                  settings.theme === 'dark' && styles.selectedThemeOption
+                  settings.theme === 'dark' && styles.selectedThemeOption,
                 ]}
                 onPress={() => handleThemeChange('dark')}
               >
-                <Moon size={24} color={settings.theme === 'dark' ? Colors.primary[700] : Colors.text.secondary} />
-                <Text style={[
-                  styles.themeOptionText,
-                  settings.theme === 'dark' && styles.selectedThemeOptionText
-                ]}>
+                <Moon
+                  size={24}
+                  color={
+                    settings.theme === 'dark'
+                      ? Colors.primary[700]
+                      : Colors.text.secondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    settings.theme === 'dark' && styles.selectedThemeOptionText,
+                  ]}
+                >
                   Dark
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.themeOption,
-                  settings.theme === 'system' && styles.selectedThemeOption
+                  settings.theme === 'system' && styles.selectedThemeOption,
                 ]}
                 onPress={() => handleThemeChange('system')}
               >
-                <Smartphone size={24} color={settings.theme === 'system' ? Colors.primary[700] : Colors.text.secondary} />
-                <Text style={[
-                  styles.themeOptionText,
-                  settings.theme === 'system' && styles.selectedThemeOptionText
-                ]}>
+                <Smartphone
+                  size={24}
+                  color={
+                    settings.theme === 'system'
+                      ? Colors.primary[700]
+                      : Colors.text.secondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    settings.theme === 'system' &&
+                      styles.selectedThemeOptionText,
+                  ]}
+                >
                   System
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Font Size Selection */}
           <View style={styles.settingGroup}>
             <Text style={styles.settingGroupTitle}>Font Size</Text>
@@ -270,69 +310,93 @@ export default function SettingsScreen() {
               <TouchableOpacity
                 style={[
                   styles.fontSizeOption,
-                  settings.fontSize === 'small' && styles.selectedFontSizeOption
+                  settings.fontSize === 'small' &&
+                    styles.selectedFontSizeOption,
                 ]}
                 onPress={() => handleFontSizeChange('small')}
               >
-                <Text style={[
-                  styles.fontSizeOptionText,
-                  { fontSize: 14 },
-                  settings.fontSize === 'small' && styles.selectedFontSizeOptionText
-                ]}>
+                <Text
+                  style={[
+                    styles.fontSizeOptionText,
+                    { fontSize: 14 },
+                    settings.fontSize === 'small' &&
+                      styles.selectedFontSizeOptionText,
+                  ]}
+                >
                   Small
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.fontSizeOption,
-                  settings.fontSize === 'medium' && styles.selectedFontSizeOption
+                  settings.fontSize === 'medium' &&
+                    styles.selectedFontSizeOption,
                 ]}
                 onPress={() => handleFontSizeChange('medium')}
               >
-                <Text style={[
-                  styles.fontSizeOptionText,
-                  { fontSize: 16 },
-                  settings.fontSize === 'medium' && styles.selectedFontSizeOptionText
-                ]}>
+                <Text
+                  style={[
+                    styles.fontSizeOptionText,
+                    { fontSize: 16 },
+                    settings.fontSize === 'medium' &&
+                      styles.selectedFontSizeOptionText,
+                  ]}
+                >
                   Medium
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.fontSizeOption,
-                  settings.fontSize === 'large' && styles.selectedFontSizeOption
+                  settings.fontSize === 'large' &&
+                    styles.selectedFontSizeOption,
                 ]}
                 onPress={() => handleFontSizeChange('large')}
               >
-                <Text style={[
-                  styles.fontSizeOptionText,
-                  { fontSize: 18 },
-                  settings.fontSize === 'large' && styles.selectedFontSizeOptionText
-                ]}>
+                <Text
+                  style={[
+                    styles.fontSizeOptionText,
+                    { fontSize: 18 },
+                    settings.fontSize === 'large' &&
+                      styles.selectedFontSizeOptionText,
+                  ]}
+                >
                   Large
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Language Selection */}
           <TouchableOpacity
             style={styles.languageSelector}
             onPress={() => {
               // In a real app, this would open a language selector
-              Alert.alert(
-                'Language',
-                'Select your preferred language',
-                [
-                  { text: 'English', onPress: () => setSettings(prev => ({ ...prev, language: 'en' })) },
-                  { text: 'Spanish', onPress: () => setSettings(prev => ({ ...prev, language: 'es' })) },
-                  { text: 'French', onPress: () => setSettings(prev => ({ ...prev, language: 'fr' })) },
-                  { text: 'German', onPress: () => setSettings(prev => ({ ...prev, language: 'de' })) },
-                  { text: 'Cancel', style: 'cancel' },
-                ]
-              );
+              Alert.alert('Language', 'Select your preferred language', [
+                {
+                  text: 'English',
+                  onPress: () =>
+                    setSettings(prev => ({ ...prev, language: 'en' })),
+                },
+                {
+                  text: 'Spanish',
+                  onPress: () =>
+                    setSettings(prev => ({ ...prev, language: 'es' })),
+                },
+                {
+                  text: 'French',
+                  onPress: () =>
+                    setSettings(prev => ({ ...prev, language: 'fr' })),
+                },
+                {
+                  text: 'German',
+                  onPress: () =>
+                    setSettings(prev => ({ ...prev, language: 'de' })),
+                },
+                { text: 'Cancel', style: 'cancel' },
+              ]);
             }}
           >
             <View style={styles.languageSelectorLeft}>
@@ -341,15 +405,20 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.languageSelectorRight}>
               <Text style={styles.languageValue}>
-                {settings.language === 'en' ? 'English' : 
-                 settings.language === 'es' ? 'Spanish' : 
-                 settings.language === 'fr' ? 'French' : 
-                 settings.language === 'de' ? 'German' : 'English'}
+                {settings.language === 'en'
+                  ? 'English'
+                  : settings.language === 'es'
+                    ? 'Spanish'
+                    : settings.language === 'fr'
+                      ? 'French'
+                      : settings.language === 'de'
+                        ? 'German'
+                        : 'English'}
               </Text>
               <ChevronRight size={20} color={Colors.text.tertiary} />
             </View>
           </TouchableOpacity>
-          
+
           {/* Other Settings */}
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -361,11 +430,14 @@ export default function SettingsScreen() {
             <Switch
               value={settings.autoSave}
               onValueChange={() => handleToggle('autoSave')}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Cache Images</Text>
@@ -376,23 +448,26 @@ export default function SettingsScreen() {
             <Switch
               value={settings.cacheImages}
               onValueChange={() => handleToggle('cacheImages')}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
         </View>
-        
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Trash2 size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Storage & Cache</Text>
           </View>
-          
+
           <View style={styles.storageInfo}>
             <Text style={styles.storageInfoTitle}>Cache Size</Text>
             <Text style={styles.storageInfoValue}>{cacheSize}</Text>
           </View>
-          
+
           <TouchableOpacity
             style={styles.clearCacheButton}
             onPress={handleClearCache}
@@ -400,51 +475,52 @@ export default function SettingsScreen() {
             <Trash2 size={20} color={Colors.white} />
             <Text style={styles.clearCacheButtonText}>Clear Cache</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.cacheDescription}>
-            Clearing the cache will remove all temporarily stored images and data. This won't delete any of your wardrobe items or outfits.
+            Clearing the cache will remove all temporarily stored images and
+            data. This will not delete any of your wardrobe items or outfits.
           </Text>
         </View>
-        
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <SettingsIcon size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>About</Text>
           </View>
-          
+
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Version</Text>
             <Text style={styles.aboutValue}>1.0.0</Text>
           </View>
-          
+
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Build</Text>
             <Text style={styles.aboutValue}>2025.06.24</Text>
           </View>
-          
+
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Platform</Text>
             <Text style={styles.aboutValue}>{Platform.OS}</Text>
           </View>
-          
+
           <TouchableOpacity
             style={styles.aboutButton}
             onPress={() => {
               // In a real app, this would open the about screen
-              Alert.alert('About', 'This would open the about screen in a real app.');
+              Alert.alert(
+                'About',
+                'This would open the about screen in a real app.'
+              );
             }}
           >
             <Text style={styles.aboutButtonText}>About Stylisto</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
+
       {hasChanges && (
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-          >
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Save size={20} color={Colors.white} />
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>

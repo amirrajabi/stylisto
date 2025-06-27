@@ -2291,13 +2291,36 @@ export const useOutfitGenerator = () => {
     return outfitGenerator.createOutfit(items, name);
   };
 
-  const calculateOutfitScore = (items: ClothingItem[]): OutfitScore => {
-    return outfitGenerator['scoreOutfit'](items, {});
+  const calculateOutfitScore = (
+    items: ClothingItem[],
+    options?: OutfitGenerationOptions
+  ): OutfitScore => {
+    return outfitGenerator['scoreOutfit'](items, options || {});
+  };
+
+  const calculateManualOutfitScore = (
+    items: ClothingItem[],
+    context?: {
+      occasion?: Occasion;
+      season?: Season;
+      weather?: WeatherData;
+      userPreferences?: string[];
+    }
+  ): OutfitScore => {
+    const options: OutfitGenerationOptions = {
+      occasion: context?.occasion || null,
+      season: context?.season || null,
+      weather: context?.weather || null,
+      preferredColors: context?.userPreferences || [],
+    };
+
+    return outfitGenerator['scoreOutfit'](items, options);
   };
 
   return {
     generateOutfits,
     createOutfit,
     calculateOutfitScore,
+    calculateManualOutfitScore,
   };
 };
