@@ -24,11 +24,10 @@ import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
-import { useSavedOutfits } from '../../../hooks/useSavedOutfits';
 import { useWardrobe } from '../../../hooks/useWardrobe';
 
 import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
-import { ClearOutfitCache } from '../../../components/wardrobe/ClearOutfitCache';
+import { useManualOutfits } from '../../../hooks/useManualOutfits';
 import { Occasion } from '../../../types/wardrobe';
 
 const getOccasionLabel = (occasion: Occasion): string => {
@@ -89,11 +88,14 @@ const getColorLabel = (color: string): string => {
 
 export default function StylistScreen() {
   const { filteredItems } = useWardrobe();
+
+  // Use new hook for manual outfits - direct from database without cache
   const {
-    outfits: savedOutfits,
-    loading: savedOutfitsLoading,
-    refreshOutfits,
-  } = useSavedOutfits();
+    manualOutfits: manualOutfitsFromDB,
+    loading: manualOutfitsLoading,
+    refreshManualOutfits,
+  } = useManualOutfits();
+
   const [screenReady, setScreenReady] = useState(false);
 
   // Ref to prevent infinite refreshing
@@ -532,7 +534,7 @@ export default function StylistScreen() {
           );
           if (savedOutfitId) {
             // Refresh saved outfits from database after saving
-            await refreshOutfits();
+            await refreshManualOutfits();
 
             router.push({
               pathname: '/profile/saved' as any,
@@ -544,7 +546,7 @@ export default function StylistScreen() {
       // Handle manual outfits
       else if (outfitId.startsWith('manual-db-')) {
         const originalId = outfitId.replace('manual-db-', '');
-        const outfit = savedOutfits?.find(o => o.id === originalId);
+        const outfit = manualOutfitsFromDB.find(o => o.id === originalId);
         if (outfit) {
           // Manual outfits are already saved, just navigate to saved page
           router.push({
@@ -554,7 +556,7 @@ export default function StylistScreen() {
         }
       }
     },
-    [outfits, saveCurrentOutfit, refreshOutfits, savedOutfits]
+    [outfits, saveCurrentOutfit, refreshManualOutfits, manualOutfitsFromDB]
   );
 
   const handleOutfitEdit = useCallback(
@@ -594,7 +596,7 @@ export default function StylistScreen() {
         const savedOutfitId = saveCurrentOutfit(updatedOutfit.name);
         if (savedOutfitId) {
           // Refresh saved outfits from database after updating
-          await refreshOutfits();
+          await refreshManualOutfits();
 
           router.push({
             pathname: '/profile/saved' as any,
@@ -603,7 +605,7 @@ export default function StylistScreen() {
         }
       }
     },
-    [saveCurrentOutfit, refreshOutfits]
+    [saveCurrentOutfit, refreshManualOutfits]
   );
 
   const handleManualOutfitBuilder = useCallback(() => {
@@ -649,42 +651,12 @@ export default function StylistScreen() {
     }));
   }, []);
 
-  // Get manual outfits from database via useSavedOutfits
-  const manualOutfitsFromDB = React.useMemo(() => {
-    if (!savedOutfits || savedOutfits.length === 0) return [];
-
-    // Filter only manual outfits from savedOutfits
-    const manualOnly = savedOutfits.filter(outfit =>
-      outfit.tags?.includes('manual')
-    );
-
-    console.log('Manual outfits from DB:', manualOnly.length, manualOnly);
-
-    return manualOnly.map(outfit => ({
-      id: `manual-db-${outfit.id}`,
-      name: outfit.name || 'Unnamed Manual Outfit',
-      items: outfit.items || [],
-      score: {
-        total: 1.0,
-        color: 1.0,
-        style: 1.0,
-        season: 1.0,
-        occasion: 1.0,
-      },
-      type: 'manual',
-      originalData: outfit,
-      isFavorite: outfit.isFavorite,
-      createdAt: outfit.createdAt,
-      updatedAt: outfit.updatedAt,
-    }));
-  }, [savedOutfits]);
-
   // Refresh saved outfits when screen comes into focus (only once per focus)
   useFocusEffect(
     useCallback(() => {
       if (!hasRefreshedOnFocus.current) {
         console.log('🔄 Stylist screen focused, refreshing saved outfits...');
-        refreshOutfits();
+        refreshManualOutfits();
         hasRefreshedOnFocus.current = true;
       }
 
@@ -954,7 +926,7 @@ export default function StylistScreen() {
               Outfits you&apos;ve manually created to train the AI
             </Text>
 
-            {savedOutfitsLoading ? (
+            {manualOutfitsLoading ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -967,20 +939,40 @@ export default function StylistScreen() {
               </ScrollView>
             ) : manualOutfitsFromDB.length > 0 ? (
               <OutfitCard
-                outfits={manualOutfitsFromDB}
+                outfits={manualOutfitsFromDB.map(outfit => ({
+                  id: `manual-db-${outfit.id}`,
+                  name: outfit.name,
+                  items: outfit.items,
+                  score: outfit.score,
+                  type: 'manual',
+                  originalData: outfit,
+                  isFavorite: false,
+                  createdAt: outfit.createdAt,
+                  updatedAt: outfit.updatedAt,
+                }))}
                 onOutfitPress={(outfitId: string) => {
-                  const outfit = manualOutfitsFromDB.find(
-                    o => o.id === outfitId
-                  );
+                  const id = outfitId.replace('manual-db-', '');
+                  const outfit = manualOutfitsFromDB.find(o => o.id === id);
                   if (outfit) {
-                    setSelectedOutfit(outfit);
+                    setSelectedOutfit({
+                      id: `manual-db-${outfit.id}`,
+                      name: outfit.name,
+                      items: outfit.items,
+                      score: outfit.score,
+                      type: 'manual',
+                      originalData: outfit,
+                      isFavorite: false,
+                      createdAt: outfit.createdAt,
+                      updatedAt: outfit.updatedAt,
+                    });
                     setModalVisible(true);
                   }
                 }}
                 onSaveOutfit={handleOutfitSave}
                 onEditOutfit={(outfit: any) => {
+                  const id = outfit.id.replace('manual-db-', '');
                   const foundOutfit = manualOutfitsFromDB.find(
-                    o => o.id === outfit.id
+                    o => o.id === id
                   );
                   if (foundOutfit) {
                     setOutfitToEdit({
@@ -1015,23 +1007,6 @@ export default function StylistScreen() {
             )}
           </View>
         )}
-
-        {/* Clear Outfit Cache Section - for debugging */}
-        <View style={styles.clearCacheSection}>
-          <Text style={styles.clearCacheTitle}>
-            Having issues with outdated outfits?
-          </Text>
-          <Text style={styles.clearCacheDescription}>
-            If you see outfits that should no longer appear, clear the cache to
-            refresh from database.
-          </Text>
-          <ClearOutfitCache
-            onCacheCleared={() => {
-              // Refresh the outfits after cache is cleared
-              refreshOutfits();
-            }}
-          />
-        </View>
 
         {/* Manual Outfit Builder */}
         <View style={styles.manualBuilderContainer}>
@@ -1518,21 +1493,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.sm,
     fontStyle: 'italic',
-  },
-  clearCacheSection: {
-    marginBottom: Spacing.xl,
-    padding: Spacing.md,
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    ...Shadows.sm,
-  },
-  clearCacheTitle: {
-    ...Typography.heading.h5,
-    color: Colors.text.primary,
-    marginBottom: Spacing.sm,
-  },
-  clearCacheDescription: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
   },
 });
