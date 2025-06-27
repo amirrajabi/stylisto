@@ -13,9 +13,7 @@ interface FavoriteOutfit {
   name: string;
   items: ClothingItem[];
   created_at: string;
-  image_url?: string;
   occasion?: string;
-  weather_condition?: string;
   source_type?: 'ai_generated' | 'manual';
 }
 

@@ -16,9 +16,7 @@ interface FavoriteOutfit {
   name: string;
   items: ClothingItem[];
   created_at: string;
-  image_url?: string;
   occasion?: string;
-  weather_condition?: string;
   source_type?: 'ai_generated' | 'manual';
 }
 
@@ -40,7 +38,6 @@ export default function GalleryScreen() {
           id,
           name,
           created_at,
-          image_url,
           occasions,
           source_type,
           outfit_items (
@@ -80,7 +77,6 @@ export default function GalleryScreen() {
         id: outfit.id,
         name: outfit.name,
         created_at: outfit.created_at,
-        image_url: outfit.image_url,
         occasion: outfit.occasions?.[0] || undefined,
         source_type: outfit.source_type,
         items: outfit.outfit_items
