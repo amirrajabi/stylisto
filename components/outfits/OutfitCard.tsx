@@ -72,7 +72,60 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     setFavoriteLoading(prev => ({ ...prev, [outfitId]: true }));
 
     try {
-      const result = await OutfitService.toggleOutfitFavorite(outfitId);
+      let realOutfitId = outfitId;
+
+      // Handle AI generated outfits - need to save them first
+      if (outfitId.startsWith('outfit-')) {
+        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+        const outfit = outfits[outfitIndex];
+
+        if (!outfit) {
+          console.error('Outfit not found at index:', outfitIndex);
+          return;
+        }
+
+        // Save the outfit first using the new method
+        const saveResult = await OutfitService.saveSingleGeneratedOutfit(
+          outfit,
+          `Generated Outfit ${outfitIndex + 1}`
+        );
+
+        if (saveResult.error || !saveResult.outfitId) {
+          console.error(
+            'Failed to save outfit before favoriting:',
+            saveResult.error
+          );
+          return;
+        }
+
+        // Now favorite the saved outfit
+        const favoriteResult = await OutfitService.toggleOutfitFavorite(
+          saveResult.outfitId
+        );
+
+        if (favoriteResult.error) {
+          console.error(
+            'Failed to favorite saved outfit:',
+            favoriteResult.error
+          );
+          return;
+        }
+
+        const newFavoriteStatus = favoriteResult.isFavorite || false;
+        setFavorites(prev => ({ ...prev, [outfitId]: newFavoriteStatus }));
+
+        if (onFavoriteToggled) {
+          onFavoriteToggled(outfitId, newFavoriteStatus);
+        }
+        return;
+      }
+
+      // Handle manual outfits - extract real ID
+      if (outfitId.startsWith('manual-db-')) {
+        realOutfitId = outfitId.replace('manual-db-', '');
+      }
+
+      const result = await OutfitService.toggleOutfitFavorite(realOutfitId);
 
       if (result.error) {
         console.error('Failed to toggle favorite:', result.error);

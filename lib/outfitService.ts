@@ -180,6 +180,85 @@ export class OutfitService {
     }
   }
 
+  static async saveSingleGeneratedOutfit(
+    outfit: any,
+    name: string
+  ): Promise<{ error: string | null; outfitId?: string }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { error: 'User not authenticated' };
+      }
+
+      const outfitToSave = {
+        user_id: user.id,
+        name: name,
+        occasions: [],
+        seasons: [],
+        tags: [this.GENERATED_OUTFIT_TAG],
+        source_type: 'ai_generated',
+        is_favorite: false,
+        notes: `AI-generated outfit with ${outfit.items?.length || 0} items. Score: ${Math.round(outfit.score.total * 100)}%`,
+      };
+
+      const { data: savedOutfit, error: outfitError } = await supabase
+        .from('saved_outfits')
+        .insert([outfitToSave])
+        .select()
+        .single();
+
+      if (outfitError) {
+        return { error: outfitError.message };
+      }
+
+      const outfitItems = outfit.items.map((item: ClothingItem) => ({
+        outfit_id: savedOutfit.id,
+        clothing_item_id: item.id,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('outfit_items')
+        .insert(outfitItems);
+
+      if (itemsError) {
+        return { error: itemsError.message };
+      }
+
+      // Create Outfit object for Redux store
+      const outfitForRedux: Outfit = {
+        id: savedOutfit.id,
+        name: savedOutfit.name,
+        items: outfit.items,
+        occasion: [],
+        season: [],
+        tags: savedOutfit.tags || [],
+        isFavorite: savedOutfit.is_favorite || false,
+        timesWorn: 0,
+        lastWorn: undefined,
+        notes: savedOutfit.notes || '',
+        createdAt: savedOutfit.created_at || new Date().toISOString(),
+        updatedAt: savedOutfit.updated_at || new Date().toISOString(),
+      };
+
+      // Add to Redux store
+      store.dispatch(addOutfit(outfitForRedux));
+
+      console.log(
+        '✅ Single generated outfit saved to database and Redux store:',
+        savedOutfit.id
+      );
+
+      return { error: null, outfitId: savedOutfit.id };
+    } catch (error) {
+      console.error('❌ Error saving single generated outfit:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
   static async loadGeneratedOutfits(): Promise<GeneratedOutfitRecord[]> {
     try {
       const {
