@@ -61,6 +61,7 @@ export const useOutfitRecommendation = (
   useEffect(() => {
     if (screenReady && !hasInitialGeneration.current) {
       checkForExistingOutfits();
+      hasInitialGeneration.current = true;
     }
   }, [screenReady]);
 
@@ -101,7 +102,6 @@ export const useOutfitRecommendation = (
 
       // Always auto-generate AI outfits (they are not saved to database)
       console.log('🎯 Will auto-generate fresh AI outfits');
-      hasInitialGeneration.current = false; // Allow generation
     } catch (error) {
       console.error('❌ Error checking for existing outfits:', error);
     }
@@ -258,21 +258,25 @@ export const useOutfitRecommendation = (
     }
   }, [generateRecommendations]);
 
-  // Auto-generate AI outfits since they are not saved to database
-  const autoGenerateIfNeeded = useCallback(async () => {
-    if (
-      screenReady &&
-      !hasInitialGeneration.current &&
-      filteredItems.length >= 2 &&
-      !state.loading &&
-      state.outfits.length === 0
-    ) {
-      console.log(
-        '🎯 Auto-generating AI outfits (fresh generation every time)'
-      );
-      hasInitialGeneration.current = true;
-      await generateRecommendations();
-    }
+  // Auto-generate AI outfits when screen is ready and items are available
+  useEffect(() => {
+    const autoGenerateIfNeeded = async () => {
+      if (
+        screenReady &&
+        !hasInitialGeneration.current &&
+        filteredItems.length >= 2 &&
+        !state.loading &&
+        state.outfits.length === 0
+      ) {
+        console.log(
+          '🎯 Auto-generating AI outfits (fresh generation every time)'
+        );
+        hasInitialGeneration.current = true;
+        await generateRecommendations();
+      }
+    };
+
+    autoGenerateIfNeeded();
   }, [
     screenReady,
     filteredItems.length,
@@ -280,11 +284,6 @@ export const useOutfitRecommendation = (
     state.outfits.length,
     generateRecommendations,
   ]);
-
-  // Only auto-generate if no persisted outfits exist and we haven't generated yet
-  useEffect(() => {
-    autoGenerateIfNeeded();
-  }, [autoGenerateIfNeeded]);
 
   const nextOutfit = useCallback(() => {
     setState(prev => ({

@@ -14,7 +14,6 @@ import { BodyMedium, Button, H1, H3, Input } from '../components/ui';
 import { ClothingItemCard } from '../components/wardrobe/ClothingItemCard';
 import { Colors } from '../constants/Colors';
 import { Layout, Spacing } from '../constants/Spacing';
-import { useOutfitRecommendation } from '../hooks/useOutfitRecommendation';
 import { useSavedOutfits } from '../hooks/useSavedOutfits';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { ClothingItem, Outfit } from '../types/wardrobe';
@@ -22,9 +21,11 @@ import { ClothingItem, Outfit } from '../types/wardrobe';
 export default function OutfitBuilderScreen() {
   const { editOutfitId } = useLocalSearchParams<{ editOutfitId?: string }>();
   const { items, outfits, selectedItems, actions } = useWardrobe();
-  const { saveOutfit: saveOutfitToHook, updateOutfit: updateOutfitInHook } =
-    useSavedOutfits();
-  const { refreshManualOutfits } = useOutfitRecommendation();
+  const {
+    saveOutfit: saveOutfitToHook,
+    updateOutfit: updateOutfitInHook,
+    refreshOutfits,
+  } = useSavedOutfits();
 
   const editOutfit = editOutfitId
     ? outfits.find(o => o.id === editOutfitId)
@@ -98,8 +99,8 @@ export default function OutfitBuilderScreen() {
         // Save new manual outfit using the hook (which handles both local state and database)
         await saveOutfitToHook(newOutfit);
 
-        // Refresh manual outfits in the Stylist screen
-        await refreshManualOutfits();
+        // Refresh saved outfits (including manual outfits) in the Stylist screen
+        await refreshOutfits();
 
         Alert.alert(
           'Success',

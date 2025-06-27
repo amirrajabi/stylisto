@@ -44,6 +44,7 @@ Before executing any task, you **MUST** adhere to these operational protocols:
   - **Environment**:
       - Connect only to the cloud-hosted Supabase instance using the provided credentials.
       - Do not use a local Supabase instance or emulator.
+  - **UseEffect**: Please be careful when you are writing use effects. Don't go to make an infinity loop.
   - **icon**: Never use emoji, just use flat and modern icon.
   - **Terminal Usage**:
       - Terminal use is restricted. Do not run servers, tests, or deployments.

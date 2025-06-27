@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Filter, Plus, Sparkles, X } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
@@ -95,6 +95,9 @@ export default function StylistScreen() {
   } = useSavedOutfits();
   const [screenReady, setScreenReady] = useState(false);
 
+  // Ref to prevent infinite refreshing
+  const hasRefreshedOnFocus = React.useRef(false);
+
   const {
     loading,
     error,
@@ -189,6 +192,29 @@ export default function StylistScreen() {
 
   // Auto-generation is handled by useOutfitRecommendation hook
 
+  // Manual trigger for initial outfit generation if needed
+  React.useEffect(() => {
+    if (
+      screenReady &&
+      filteredItems.length >= 2 &&
+      outfits.length === 0 &&
+      !loading
+    ) {
+      console.log('🎯 Manual trigger: Generating initial outfits');
+      generateRecommendations({
+        maxResults: Math.min(30, Math.max(8, filteredItems.length)),
+        minScore: 0.45,
+        useAllItems: true,
+      });
+    }
+  }, [
+    screenReady,
+    filteredItems.length,
+    outfits.length,
+    loading,
+    generateRecommendations,
+  ]);
+
   // Debug logging
   React.useEffect(() => {
     if (__DEV__) {
@@ -203,7 +229,9 @@ export default function StylistScreen() {
 
   // Reset current outfit index when outfits change
   React.useEffect(() => {
-    setCurrentOutfitIndex(0);
+    if (outfits.length > 0) {
+      setCurrentOutfitIndex(0);
+    }
   }, [outfits.length]);
 
   const handleFiltersApply = useCallback(
@@ -317,6 +345,7 @@ export default function StylistScreen() {
       getWeatherBasedRecommendation,
       getOccasionBasedRecommendation,
       generateRecommendations,
+      filteredItems.length,
     ]
   );
 
@@ -451,7 +480,7 @@ export default function StylistScreen() {
     } catch (error) {
       console.error('Error generating outfits after clearing filters:', error);
     }
-  }, [generateRecommendations]);
+  }, [generateRecommendations, filteredItems.length]);
 
   const handleSaveOutfit = useCallback(() => {
     const outfitId = saveCurrentOutfit();
@@ -633,6 +662,22 @@ export default function StylistScreen() {
       updatedAt: outfit.updatedAt,
     }));
   }, [savedOutfits]);
+
+  // Refresh saved outfits when screen comes into focus (only once per focus)
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasRefreshedOnFocus.current) {
+        console.log('🔄 Stylist screen focused, refreshing saved outfits...');
+        refreshOutfits();
+        hasRefreshedOnFocus.current = true;
+      }
+
+      return () => {
+        // Reset the flag when screen loses focus
+        hasRefreshedOnFocus.current = false;
+      };
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -827,11 +872,30 @@ export default function StylistScreen() {
           </View>
         ) : showQuickFilters && !hasActiveFilters ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateTitle}>Choose Your Style</Text>
+            <Text style={styles.emptyStateTitle}>AI Stylist Ready</Text>
             <Text style={styles.emptyStateDescription}>
-              Select an occasion and style above to get started with your
-              personal AI stylist recommendations.
+              Your AI stylist is ready to create amazing outfit combinations.
+              Choose a style above or generate general recommendations.
             </Text>
+            <TouchableOpacity
+              style={styles.generateButton}
+              onPress={() =>
+                generateRecommendations({
+                  maxResults: Math.min(30, Math.max(8, filteredItems.length)),
+                  minScore: 0.45,
+                  useAllItems: true,
+                })
+              }
+              disabled={loading || filteredItems.length < 2}
+            >
+              <Sparkles size={20} color={Colors.background.primary} />
+              <Text style={styles.generateButtonText}>Generate AI Outfits</Text>
+            </TouchableOpacity>
+            {filteredItems.length < 2 && (
+              <Text style={styles.warningText}>
+                Add at least 2 items to your wardrobe to generate outfits
+              </Text>
+            )}
           </View>
         ) : hasActiveFilters && !loading && outfits.length === 0 ? (
           <View style={styles.emptyState}>
@@ -1400,5 +1464,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary[500],
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: Layout.borderRadius.lg,
+    marginTop: Spacing.lg,
+    ...Shadows.sm,
+  },
+  generateButtonText: {
+    ...Typography.body.medium,
+    color: Colors.background.primary,
+    fontWeight: '600',
+    marginLeft: Spacing.sm,
+  },
+  warningText: {
+    ...Typography.body.small,
+    color: Colors.warning[600],
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
   },
 });
