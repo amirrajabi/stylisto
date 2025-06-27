@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { Filter, Plus, X } from 'lucide-react-native';
+import { Filter, Plus, Sparkles, X } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
+  Animated,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -23,6 +24,7 @@ import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
+import { useSavedOutfits } from '../../../hooks/useSavedOutfits';
 import { useWardrobe } from '../../../hooks/useWardrobe';
 
 import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
@@ -86,12 +88,17 @@ const getColorLabel = (color: string): string => {
 
 export default function StylistScreen() {
   const { filteredItems } = useWardrobe();
+  const {
+    outfits: savedOutfits,
+    loading: savedOutfitsLoading,
+    refreshOutfits,
+  } = useSavedOutfits();
   const [screenReady, setScreenReady] = useState(false);
 
   const {
     loading,
+    error,
     outfits,
-    manualOutfits,
     selectedOutfitIndex,
     saveCurrentOutfit,
     nextOutfit,
@@ -100,7 +107,6 @@ export default function StylistScreen() {
     getOccasionBasedRecommendation,
     generateRecommendations,
     generationProgress,
-    hasPersistedOutfits,
     hasPersistedManualOutfits,
     clearAndRegenerateOutfits,
   } = useOutfitRecommendation(undefined, screenReady);
@@ -136,6 +142,42 @@ export default function StylistScreen() {
       location: undefined,
     },
   });
+
+  // Skeleton animation
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [animatedValue]);
+
+  const SkeletonCard = ({ index }: { index: number }) => {
+    const opacity = animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 0.7],
+    });
+
+    return (
+      <Animated.View style={[styles.skeletonCard, { opacity }]}>
+        <Animated.View style={[styles.skeletonPreview, { opacity }]} />
+        <Animated.View style={[styles.skeletonText, { opacity }]} />
+      </Animated.View>
+    );
+  };
 
   // Ensure screen renders before any heavy processing
   React.useEffect(() => {
@@ -450,13 +492,16 @@ export default function StylistScreen() {
   }, []);
 
   const handleOutfitSave = useCallback(
-    (outfitId: string) => {
+    async (outfitId: string) => {
       const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
       if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
         const savedOutfitId = saveCurrentOutfit(
           `Generated Outfit ${outfitIndex + 1}`
         );
         if (savedOutfitId) {
+          // Refresh saved outfits from database after saving
+          await refreshOutfits();
+
           router.push({
             pathname: '/profile/saved' as any,
             params: { highlight: savedOutfitId },
@@ -464,7 +509,7 @@ export default function StylistScreen() {
         }
       }
     },
-    [outfits, saveCurrentOutfit]
+    [outfits, saveCurrentOutfit, refreshOutfits]
   );
 
   const handleOutfitEdit = useCallback(
@@ -497,12 +542,15 @@ export default function StylistScreen() {
   }, []);
 
   const handleOutfitUpdate = useCallback(
-    (updatedOutfit: any) => {
+    async (updatedOutfit: any) => {
       console.log('Updated outfit:', updatedOutfit);
       const outfitIndex = parseInt(updatedOutfit.id.replace('outfit-', ''), 10);
       if (!isNaN(outfitIndex)) {
         const savedOutfitId = saveCurrentOutfit(updatedOutfit.name);
         if (savedOutfitId) {
+          // Refresh saved outfits from database after updating
+          await refreshOutfits();
+
           router.push({
             pathname: '/profile/saved' as any,
             params: { highlight: savedOutfitId },
@@ -510,7 +558,7 @@ export default function StylistScreen() {
         }
       }
     },
-    [saveCurrentOutfit]
+    [saveCurrentOutfit, refreshOutfits]
   );
 
   const handleManualOutfitBuilder = useCallback(() => {
@@ -555,6 +603,36 @@ export default function StylistScreen() {
       weatherConditions: weatherData.conditions,
     }));
   }, []);
+
+  // Get manual outfits from database via useSavedOutfits
+  const manualOutfitsFromDB = React.useMemo(() => {
+    if (!savedOutfits || savedOutfits.length === 0) return [];
+
+    // Filter only manual outfits from savedOutfits
+    const manualOnly = savedOutfits.filter(outfit =>
+      outfit.tags?.includes('manual')
+    );
+
+    console.log('Manual outfits from DB:', manualOnly.length, manualOnly);
+
+    return manualOnly.map(outfit => ({
+      id: `manual-db-${outfit.id}`,
+      name: outfit.name || 'Unnamed Manual Outfit',
+      items: outfit.items || [],
+      score: {
+        total: 1.0,
+        color: 1.0,
+        style: 1.0,
+        season: 1.0,
+        occasion: 1.0,
+      },
+      type: 'manual',
+      originalData: outfit,
+      isFavorite: outfit.isFavorite,
+      createdAt: outfit.createdAt,
+      updatedAt: outfit.updatedAt,
+    }));
+  }, [savedOutfits]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -686,7 +764,7 @@ export default function StylistScreen() {
           }
         />
 
-        {/* Generated Outfits Display */}
+        {/* AI Generated Outfits Section */}
         {!screenReady ? (
           <OutfitGenerationProgress
             isGenerating={true}
@@ -703,10 +781,13 @@ export default function StylistScreen() {
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
-                <H3 style={styles.sectionTitle}>Your Styled Outfits</H3>
+                <View style={styles.sectionTitleWithIcon}>
+                  <Sparkles size={20} color={Colors.primary[600]} />
+                  <H3 style={styles.sectionTitle}>AI Generated Outfits</H3>
+                </View>
                 <Text style={styles.outfitCount}>({outfits.length})</Text>
               </View>
-              {hasPersistedOutfits && (
+              {hasPersistedManualOutfits && (
                 <TouchableOpacity
                   style={styles.regenerateButton}
                   onPress={clearAndRegenerateOutfits}
@@ -717,6 +798,10 @@ export default function StylistScreen() {
                 </TouchableOpacity>
               )}
             </View>
+            <Text style={styles.sectionDescription}>
+              Fresh outfit suggestions generated by AI based on your preferences
+              and wardrobe
+            </Text>
             <OutfitCard
               outfits={outfits.map((outfit, index) => ({
                 id: `outfit-${index}`,
@@ -775,54 +860,82 @@ export default function StylistScreen() {
         )}
 
         {/* Manual Outfits Section */}
-        {manualOutfits.length > 0 && (
+        {(manualOutfitsFromDB.length > 0 ||
+          (!savedOutfitsLoading && screenReady)) && (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <H3 style={styles.sectionTitle}>Your Manual Outfits</H3>
-                <Text style={styles.outfitCount}>({manualOutfits.length})</Text>
+                <Text style={styles.outfitCount}>
+                  ({manualOutfitsFromDB.length})
+                </Text>
               </View>
             </View>
-            <OutfitCard
-              outfits={manualOutfits.map((outfit, index) => ({
-                id: `manual-outfit-${index}`,
-                name: `Manual Outfit ${index + 1}`,
-                items: outfit.items,
-                score: {
-                  total: outfit.score.total,
-                  color: outfit.score.breakdown?.colorHarmony || 1.0,
-                  style: outfit.score.breakdown?.styleMatching || 1.0,
-                  season: outfit.score.breakdown?.seasonSuitability || 1.0,
-                  occasion: outfit.score.breakdown?.occasionSuitability || 1.0,
-                },
-              }))}
-              onOutfitPress={(outfitId: string) => {
-                const index = parseInt(
-                  outfitId.replace('manual-outfit-', ''),
-                  10
-                );
-                const manualOutfit = manualOutfits[index];
-                if (manualOutfit) {
-                  setSelectedOutfit({
-                    id: outfitId,
-                    name: `Manual Outfit ${index + 1}`,
-                    items: manualOutfit.items,
-                    score: manualOutfit.score,
-                  });
-                  setModalVisible(true);
-                }
-              }}
-              onSaveOutfit={() => {}}
-              onEditOutfit={(outfit: any) => {
-                setOutfitToEdit({
-                  ...outfit,
-                  isManual: true,
-                });
-                setEditModalVisible(true);
-              }}
-              onCurrentIndexChange={setCurrentOutfitIndex}
-              currentIndex={0}
-            />
+            <Text style={styles.sectionDescription}>
+              Outfits you&apos;ve manually created to train the AI
+            </Text>
+
+            {savedOutfitsLoading ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.recentOutfitsContainer}
+                contentContainerStyle={styles.recentOutfitsContent}
+              >
+                {[1, 2, 3, 4].map(item => (
+                  <SkeletonCard key={item} index={item} />
+                ))}
+              </ScrollView>
+            ) : manualOutfitsFromDB.length > 0 ? (
+              <OutfitCard
+                outfits={manualOutfitsFromDB}
+                onOutfitPress={(outfitId: string) => {
+                  const outfit = manualOutfitsFromDB.find(
+                    o => o.id === outfitId
+                  );
+                  if (outfit) {
+                    router.push({
+                      pathname: '/outfit-detail',
+                      params: { outfitId: outfit.originalData.id },
+                    });
+                  }
+                }}
+                onSaveOutfit={() => {}}
+                onEditOutfit={(outfit: any) => {
+                  const foundOutfit = manualOutfitsFromDB.find(
+                    o => o.id === outfit.id
+                  );
+                  if (foundOutfit) {
+                    setOutfitToEdit({
+                      ...outfit,
+                      isManual: true,
+                    });
+                    setEditModalVisible(true);
+                  }
+                }}
+                onCurrentIndexChange={setCurrentOutfitIndex}
+                currentIndex={0}
+              />
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.recentOutfitsContainer}
+                contentContainerStyle={styles.recentOutfitsContent}
+              >
+                <TouchableOpacity
+                  style={styles.addOutfitCard}
+                  onPress={() => router.push('/outfit-builder')}
+                >
+                  <View style={styles.addOutfitIcon}>
+                    <Plus size={20} color={Colors.primary[600]} />
+                  </View>
+                  <Text style={styles.addOutfitText}>
+                    Create Your First Outfit
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
           </View>
         )}
 
@@ -1135,5 +1248,157 @@ const styles = StyleSheet.create({
     color: Colors.primary[700],
     fontWeight: '600',
     marginLeft: Spacing.xs,
+  },
+  recentOutfitsSection: {
+    marginBottom: Spacing.xl,
+  },
+  viewAllButton: {
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.surface.secondary,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  viewAllText: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  recentOutfitsContainer: {
+    flex: 1,
+  },
+  recentOutfitsContent: {
+    paddingRight: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  recentOutfitCard: {
+    width: 120,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
+    marginRight: Spacing.sm,
+    ...Shadows.sm,
+    position: 'relative',
+  },
+  recentOutfitPreview: {
+    width: '100%',
+    height: 80,
+    borderRadius: Layout.borderRadius.sm,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  outfitItemsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outfitItemMini: {
+    width: 16,
+    height: 16,
+    borderRadius: Layout.borderRadius.sm,
+    margin: 1,
+  },
+  outfitPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: Layout.borderRadius.sm,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outfitPlaceholderText: {
+    ...Typography.heading.h4,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  recentOutfitName: {
+    ...Typography.body.small,
+    color: Colors.text.primary,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  favoriteIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.error[500],
+    borderRadius: Layout.borderRadius.full,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  favoriteIcon: {
+    fontSize: 12,
+    color: Colors.white,
+  },
+  addOutfitCard: {
+    width: 120,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
+    marginRight: Spacing.sm,
+    ...Shadows.sm,
+    borderWidth: 2,
+    borderColor: Colors.border.primary,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  addOutfitIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  addOutfitText: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  skeletonCard: {
+    width: 120,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
+    marginRight: Spacing.sm,
+    ...Shadows.sm,
+    position: 'relative',
+  },
+  skeletonPreview: {
+    width: '100%',
+    height: 80,
+    borderRadius: Layout.borderRadius.sm,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  skeletonText: {
+    width: '100%',
+    height: 16,
+    backgroundColor: Colors.surface.secondary,
+    borderRadius: Layout.borderRadius.full,
+  },
+  sectionDescription: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
+  },
+  sectionTitleWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
 });
