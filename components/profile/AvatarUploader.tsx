@@ -1,6 +1,7 @@
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, User } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +27,14 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 }) => {
   const { user, updateUserProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
+
+  // Sync with prop changes
+  useEffect(() => {
+    if (avatarUrl !== currentAvatarUrl) {
+      setCurrentAvatarUrl(avatarUrl);
+    }
+  }, [avatarUrl]);
 
   const pickImageFromGallery = async () => {
     const permissionResult =
@@ -91,6 +100,21 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     ]);
   };
 
+  const clearImageCache = (imageUrl: string) => {
+    try {
+      // Clear Expo Image cache for the specific image
+      if (Image.clearMemoryCache) {
+        Image.clearMemoryCache();
+      }
+      if (Image.clearDiskCache) {
+        Image.clearDiskCache();
+      }
+      console.log('Image cache cleared for avatar update');
+    } catch (error) {
+      console.warn('Failed to clear image cache:', error);
+    }
+  };
+
   const uploadImage = async (uri: string) => {
     if (!user?.id) return;
 
@@ -142,11 +166,28 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         data: { publicUrl },
       } = supabase.storage.from('user-avatars').getPublicUrl(filePath);
 
+      // Add cache busting parameter to force refresh
+      const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+
       // Update user profile with new avatar URL
       try {
         await updateUserProfile({ avatar_url: publicUrl });
-        onImageUpdate?.(publicUrl);
+
+        // Clear image cache to force refresh
+        if (currentAvatarUrl) {
+          clearImageCache(currentAvatarUrl);
+        }
+        clearImageCache(publicUrl);
+
+        // Update local state immediately
+        setCurrentAvatarUrl(cacheBustedUrl);
+
+        // Notify parent component
+        onImageUpdate?.(cacheBustedUrl);
+
         Alert.alert('Success', 'Profile picture updated successfully!');
+
+        console.log('Avatar updated successfully:', publicUrl);
       } catch (profileError: any) {
         console.error('Error updating profile:', profileError);
 
@@ -161,11 +202,16 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
           console.warn(
             'Database column not ready yet, but image uploaded successfully'
           );
+
+          // Still update local state and clear cache
+          setCurrentAvatarUrl(cacheBustedUrl);
+          onImageUpdate?.(cacheBustedUrl);
+          clearImageCache(publicUrl);
+
           Alert.alert(
             'Upload Complete',
             'Profile picture uploaded successfully! The database will be updated once the migration is applied.'
           );
-          onImageUpdate?.(publicUrl);
         } else if (
           errorMessage.includes('row-level security') ||
           errorMessage.includes('Unauthorized') ||
@@ -174,11 +220,16 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
           console.warn(
             'RLS policy issue - image uploaded but profile not updated'
           );
+
+          // Still update local state and clear cache
+          setCurrentAvatarUrl(cacheBustedUrl);
+          onImageUpdate?.(cacheBustedUrl);
+          clearImageCache(publicUrl);
+
           Alert.alert(
             'Upload Complete',
             'Your profile picture has been uploaded successfully! Profile database update is pending - please contact support if this persists.'
           );
-          onImageUpdate?.(publicUrl);
         } else {
           throw profileError;
         }
@@ -201,15 +252,15 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       accessibilityLabel="Update profile picture"
       accessibilityHint="Double tap to update your profile picture"
     >
-      {avatarUrl ? (
+      {currentAvatarUrl || avatarUrl ? (
         <OptimizedImage
-          source={{ uri: avatarUrl }}
+          source={{ uri: currentAvatarUrl || avatarUrl || '' }}
           style={styles.avatar}
           contentFit="cover"
           accessibilityLabel="Profile picture"
           priority="high"
-          cachePolicy="memory-disk"
-          placeholder={{ uri: avatarUrl }}
+          cachePolicy="none" // Force reload to get updated image
+          recyclingKey={currentAvatarUrl || avatarUrl || undefined} // Force re-render when URL changes
         />
       ) : (
         <View style={styles.avatarPlaceholder}>

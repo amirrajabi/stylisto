@@ -52,6 +52,8 @@ export default function ProfileScreen() {
   const { trackScreenView, trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(theme === 'dark');
+  const [avatarRefreshKey, setAvatarRefreshKey] = useState(0);
+  const [fullBodyRefreshKey, setFullBodyRefreshKey] = useState(0);
   const [userPreferences, setUserPreferences] = useState({
     notifications: {
       outfitReminders: true,
@@ -168,6 +170,24 @@ export default function ProfileScreen() {
       privacy_setting: key,
       value: value,
     });
+  };
+
+  // Handle avatar update
+  const handleAvatarUpdate = (url: string) => {
+    console.log('Avatar updated:', url);
+    // Force refresh by updating the key
+    setAvatarRefreshKey(prev => prev + 1);
+    // Track event
+    trackEvent('profile_avatar_updated');
+  };
+
+  // Handle full body image update
+  const handleFullBodyImageUpdate = (url: string) => {
+    console.log('Full body image updated:', url);
+    // Force refresh by updating the key
+    setFullBodyRefreshKey(prev => prev + 1);
+    // Track event
+    trackEvent('profile_full_body_image_updated');
   };
 
   // Handle sign out
@@ -458,10 +478,9 @@ export default function ProfileScreen() {
           ]}
         >
           <AvatarUploader
+            key={`avatar-${avatarRefreshKey}`}
             avatarUrl={user?.avatar_url}
-            onImageUpdate={url => {
-              console.log('Avatar updated:', url);
-            }}
+            onImageUpdate={handleAvatarUpdate}
           />
 
           <Text style={[styles.userName, { color: colors.text.primary }]}>
@@ -474,10 +493,9 @@ export default function ProfileScreen() {
 
         {/* Full Body Image Uploader */}
         <FullBodyImageUploader
+          key={`fullbody-${fullBodyRefreshKey}`}
           fullBodyImageUrl={user?.full_body_image_url}
-          onImageUpdate={url => {
-            console.log('Full body image updated:', url);
-          }}
+          onImageUpdate={handleFullBodyImageUpdate}
         />
 
         {/* Accessibility Settings Card */}
