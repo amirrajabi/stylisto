@@ -3,11 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
+import { OutfitDetailModal } from '../../components/outfits/OutfitDetailModal';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
 import { Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
 import { useAuth } from '../../hooks/useAuth';
+import { useOutfitScoring } from '../../hooks/useOutfitScoring';
 import { supabase } from '../../lib/supabase';
 import { ClothingItem } from '../../types/wardrobe';
 
@@ -23,9 +25,23 @@ interface FavoriteOutfit {
 export default function GalleryScreen() {
   const { colors } = useAccessibility();
   const { user } = useAuth();
+  const { calculateDetailedScore, formatScoreForDatabase } = useOutfitScoring();
   const [favoriteOutfits, setFavoriteOutfits] = useState<FavoriteOutfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedOutfit, setSelectedOutfit] = useState<{
+    id: string;
+    name: string;
+    items: ClothingItem[];
+    score: {
+      total: number;
+      color: number;
+      style: number;
+      season: number;
+      occasion: number;
+    };
+  } | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const fetchFavoriteOutfits = async () => {
     if (!user) return;
@@ -126,6 +142,30 @@ export default function GalleryScreen() {
 
   const handleOutfitPress = (outfit: FavoriteOutfit) => {
     console.log('Outfit pressed:', outfit.name);
+
+    const detailedScore = calculateDetailedScore(outfit.items);
+    const dbScore = formatScoreForDatabase(detailedScore);
+
+    setSelectedOutfit({
+      id: outfit.id,
+      name: outfit.name,
+      items: outfit.items,
+      score: dbScore,
+    });
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedOutfit(null);
+  };
+
+  const handleSaveOutfit = async (outfitId: string) => {
+    console.log('Save outfit:', outfitId);
+  };
+
+  const handleShareOutfit = async (outfitId: string) => {
+    console.log('Share outfit:', outfitId);
   };
 
   const handleRemoveFromFavorites = async (outfitId: string) => {
@@ -214,6 +254,14 @@ export default function GalleryScreen() {
         }
         ListEmptyComponent={!loading ? renderEmptyState : null}
         accessibilityLabel="Favorite outfits grid"
+      />
+
+      <OutfitDetailModal
+        visible={modalVisible}
+        onClose={handleCloseModal}
+        outfit={selectedOutfit}
+        onSave={handleSaveOutfit}
+        onShare={handleShareOutfit}
       />
     </SafeAreaView>
   );
