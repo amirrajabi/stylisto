@@ -54,7 +54,9 @@ export default function OutfitDetailScreen() {
     if (!outfit) return;
 
     try {
-      const message = `Check out my "${outfit.name}" outfit from Stylisto!\n\nIt includes:\n${outfit.items
+      const message = `Check out my "${outfit.name}" outfit from Stylisto!\n\nIt includes:\n${(
+        outfit.items || []
+      )
         .map(item => `• ${item.name} (${item.category})`)
         .join('\n')}`;
 
@@ -123,16 +125,18 @@ export default function OutfitDetailScreen() {
 
   // Get primary item for display
   const primaryItem =
-    outfit.items.find(
+    outfit.items?.find(
       item => item.category === 'tops' || item.category === 'dresses'
-    ) || outfit.items[0];
+    ) || outfit.items?.[0];
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header with primary item image */}
       <View style={styles.header}>
         <Image
-          source={{ uri: primaryItem.imageUrl }}
+          source={{
+            uri: primaryItem?.imageUrl || 'https://via.placeholder.com/300x300',
+          }}
           style={styles.headerImage}
           contentFit="cover"
         />
@@ -220,7 +224,7 @@ export default function OutfitDetailScreen() {
         </View>
 
         {/* Tags Section */}
-        {outfit.tags.length > 0 && (
+        {outfit.tags && outfit.tags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Tag size={18} color={Colors.text.primary} />
@@ -238,7 +242,7 @@ export default function OutfitDetailScreen() {
         )}
 
         {/* Seasons Section */}
-        {outfit.season.length > 0 && (
+        {outfit.season && outfit.season.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Calendar size={18} color={Colors.text.primary} />
@@ -262,7 +266,7 @@ export default function OutfitDetailScreen() {
         )}
 
         {/* Occasions Section */}
-        {outfit.occasion.length > 0 && (
+        {outfit.occasion && outfit.occasion.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Calendar size={18} color={Colors.text.primary} />
@@ -299,34 +303,35 @@ export default function OutfitDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Outfit Items</Text>
 
-          {outfit.items.map(item => (
-            <View key={item.id} style={styles.itemCard}>
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.itemImage}
-                contentFit="cover"
-              />
+          {outfit.items &&
+            outfit.items.map(item => (
+              <View key={item.id} style={styles.itemCard}>
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.itemImage}
+                  contentFit="cover"
+                />
 
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemCategory}>{item.category}</Text>
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemCategory}>{item.category}</Text>
 
-                {item.brand && (
-                  <Text style={styles.itemBrand}>{item.brand}</Text>
-                )}
+                  {item.brand && (
+                    <Text style={styles.itemBrand}>{item.brand}</Text>
+                  )}
 
-                <View style={styles.itemColorContainer}>
-                  <View
-                    style={[
-                      styles.itemColorDot,
-                      { backgroundColor: item.color },
-                    ]}
-                  />
-                  <Text style={styles.itemColorName}>{item.color}</Text>
+                  <View style={styles.itemColorContainer}>
+                    <View
+                      style={[
+                        styles.itemColorDot,
+                        { backgroundColor: item.color },
+                      ]}
+                    />
+                    <Text style={styles.itemColorName}>{item.color}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            ))}
         </View>
       </View>
     </ScrollView>

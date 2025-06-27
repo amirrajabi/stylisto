@@ -184,10 +184,10 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
           {/* Outfit Items */}
           <View style={styles.itemsSection}>
             <Text style={styles.sectionTitle}>
-              Outfit Items ({outfit.items.length})
+              Outfit Items ({outfit.items?.length || 0})
             </Text>
             <View style={styles.itemsGrid}>
-              {outfit.items.map((item: ClothingItem, index: number) => (
+              {(outfit.items || []).map((item: ClothingItem, index: number) => (
                 <View key={item.id} style={styles.itemCard}>
                   <View style={styles.itemImageContainer}>
                     <Image

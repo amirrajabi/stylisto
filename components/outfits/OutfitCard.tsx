@@ -82,7 +82,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   };
 
   const renderOutfitItem = ({ item: outfit }: { item: any }) => {
-    const displayItems = outfit.items.slice(0, 3);
+    const displayItems = (outfit.items || []).slice(0, 3);
 
     return (
       <TouchableOpacity
@@ -134,7 +134,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             </View>
           ))}
 
-          {outfit.items.length > 3 && (
+          {outfit.items && outfit.items.length > 3 && (
             <View style={styles.moreItemsIndicator}>
               <Text style={styles.moreItemsText}>
                 +{outfit.items.length - 3}

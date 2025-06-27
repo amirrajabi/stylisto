@@ -33,6 +33,17 @@ export interface OutfitFilters {
 const OUTFITS_STORAGE_KEY = '@stylisto_saved_outfits';
 const LAST_SYNC_KEY = '@stylisto_outfits_last_sync';
 
+// Helper function to normalize outfit data and ensure arrays are always defined
+const normalizeOutfit = (outfit: any): Outfit => {
+  return {
+    ...outfit,
+    items: outfit.items || [],
+    occasion: outfit.occasion || [],
+    season: outfit.season || [],
+    tags: outfit.tags || [],
+  };
+};
+
 export const useSavedOutfits = (): UseSavedOutfitsState &
   UseSavedOutfitsActions => {
   const [state, setState] = useState<UseSavedOutfitsState>({
@@ -51,9 +62,11 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
         const lastSyncTimeStr = await AsyncStorage.getItem(LAST_SYNC_KEY);
 
         if (storedOutfits) {
+          const parsedOutfits = JSON.parse(storedOutfits);
+          const normalizedOutfits = parsedOutfits.map(normalizeOutfit);
           setState(prev => ({
             ...prev,
-            outfits: JSON.parse(storedOutfits),
+            outfits: normalizedOutfits,
             lastSyncTime: lastSyncTimeStr ? new Date(lastSyncTimeStr) : null,
             loading: false,
           }));
@@ -124,7 +137,7 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
             filteredOutfits.map(outfit => [outfit.id, outfit])
           );
           updatedOutfits.forEach((outfit: Outfit) => {
-            outfitMap.set(outfit.id, outfit);
+            outfitMap.set(outfit.id, normalizeOutfit(outfit));
           });
 
           const mergedOutfits = Array.from(outfitMap.values());
@@ -485,9 +498,11 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
       // Load from local storage first
       const storedOutfits = await AsyncStorage.getItem(OUTFITS_STORAGE_KEY);
       if (storedOutfits) {
+        const parsedOutfits = JSON.parse(storedOutfits);
+        const normalizedOutfits = parsedOutfits.map(normalizeOutfit);
         setState(prev => ({
           ...prev,
-          outfits: JSON.parse(storedOutfits),
+          outfits: normalizedOutfits,
         }));
       }
 
@@ -506,7 +521,8 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
   // Get outfit by ID
   const getOutfitById = useCallback(
     (outfitId: string): Outfit | undefined => {
-      return state.outfits.find(outfit => outfit.id === outfitId);
+      const outfit = state.outfits.find(outfit => outfit.id === outfitId);
+      return outfit ? normalizeOutfit(outfit) : undefined;
     },
     [state.outfits]
   );
@@ -518,7 +534,9 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
         // Filter by seasons
         if (filters.seasons && filters.seasons.length > 0) {
           if (
-            !outfit.season.some(season => filters.seasons?.includes(season))
+            !(outfit.season || []).some(season =>
+              filters.seasons?.includes(season)
+            )
           ) {
             return false;
           }
@@ -527,7 +545,7 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
         // Filter by occasions
         if (filters.occasions && filters.occasions.length > 0) {
           if (
-            !outfit.occasion.some(occasion =>
+            !(outfit.occasion || []).some(occasion =>
               filters.occasions?.includes(occasion)
             )
           ) {
@@ -544,7 +562,7 @@ export const useSavedOutfits = (): UseSavedOutfitsState &
         if (filters.searchQuery) {
           const query = filters.searchQuery.toLowerCase();
           const matchesName = outfit.name.toLowerCase().includes(query);
-          const matchesTags = outfit.tags.some(tag =>
+          const matchesTags = (outfit.tags || []).some(tag =>
             tag.toLowerCase().includes(query)
           );
 

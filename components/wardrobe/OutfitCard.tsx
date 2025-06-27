@@ -1,20 +1,32 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
+import {
+  Calendar,
+  Clock,
+  Heart,
+  MoveVertical as MoreVertical,
+  Users,
+} from 'lucide-react-native';
+import React from 'react';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
   withSequence,
-  withDelay
+  withSpring,
 } from 'react-native-reanimated';
-import { Heart, MoveVertical as MoreVertical, Users, Calendar, Clock } from 'lucide-react-native';
+import { Colors } from '../../constants/Colors';
+import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 import { Outfit } from '../../types/wardrobe';
 import { formatDate, getOccasionColor } from '../../utils/wardrobeUtils';
-import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
-import { Shadows } from '../../constants/Shadows';
 
 interface OutfitCardProps {
   outfit: Outfit;
@@ -28,7 +40,8 @@ interface OutfitCardProps {
 const { width } = Dimensions.get('window');
 const cardWidth = width - 32;
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 export const OutfitCard: React.FC<OutfitCardProps> = ({
   outfit,
@@ -38,13 +51,13 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   showStats = false,
   isHighlighted = false,
 }) => {
-  const mainImage = outfit.items[0]?.imageUrl;
-  const itemCount = outfit.items.length;
-  
+  const mainImage = outfit.items?.[0]?.imageUrl;
+  const itemCount = outfit.items?.length || 0;
+
   // Animation values
   const scale = useSharedValue(isHighlighted ? 0.95 : 1);
   const highlight = useSharedValue(isHighlighted ? 1 : 0);
-  
+
   // Apply highlight animation if needed
   React.useEffect(() => {
     if (isHighlighted) {
@@ -52,21 +65,22 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         withSpring(0.95, { damping: 10 }),
         withDelay(300, withSpring(1, { damping: 15 }))
       );
-      
+
       highlight.value = withSequence(
         withSpring(1),
         withDelay(1000, withSpring(0, { damping: 20 }))
       );
     }
   }, [isHighlighted]);
-  
+
   // Animated styles
   const cardAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: scale.value }],
-      borderColor: highlight.value > 0 
-        ? `rgba(59, 130, 246, ${highlight.value})` 
-        : 'transparent',
+      borderColor:
+        highlight.value > 0
+          ? `rgba(59, 130, 246, ${highlight.value})`
+          : 'transparent',
       borderWidth: highlight.value > 0 ? 2 : 0,
     };
   });
@@ -90,7 +104,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             <Users size={40} color="#9ca3af" />
           </View>
         )}
-        
+
         <View style={styles.overlay}>
           <TouchableOpacity
             style={styles.favoriteButton}
@@ -103,7 +117,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
               fill={outfit.isFavorite ? '#ef4444' : 'transparent'}
             />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.moreButton}
             onPress={onMoreOptions}
@@ -116,15 +130,15 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         <View style={styles.itemCountBadge}>
           <Text style={styles.itemCountText}>{itemCount} items</Text>
         </View>
-        
+
         {/* Preview of other items in outfit */}
-        {outfit.items.length > 1 && (
+        {outfit.items && outfit.items.length > 1 && (
           <View style={styles.itemsPreview}>
             {outfit.items.slice(1, 4).map((item, index) => (
-              <View key={item.id} style={[
-                styles.previewItem,
-                { right: index * 20 }
-              ]}>
+              <View
+                key={item.id}
+                style={[styles.previewItem, { right: index * 20 }]}
+              >
                 <Image
                   source={{ uri: item.imageUrl }}
                   style={styles.previewImage}
@@ -132,11 +146,13 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                 />
               </View>
             ))}
-            
+
             {outfit.items.length > 4 && (
               <View style={[styles.previewItem, { right: 3 * 20 }]}>
                 <View style={styles.moreItemsIndicator}>
-                  <Text style={styles.moreItemsText}>+{outfit.items.length - 4}</Text>
+                  <Text style={styles.moreItemsText}>
+                    +{outfit.items.length - 4}
+                  </Text>
                 </View>
               </View>
             )}
@@ -150,18 +166,24 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         </Text>
 
         <View style={styles.occasionContainer}>
-          {outfit.occasion.slice(0, 3).map((occasion, index) => (
-            <View
-              key={occasion}
-              style={[styles.occasionTag, { backgroundColor: getOccasionColor(occasion) }]}
-            >
-              <Text style={styles.occasionText}>{occasion}</Text>
-            </View>
-          ))}
-          
-          {outfit.occasion.length > 3 && (
+          {outfit.occasion &&
+            outfit.occasion.slice(0, 3).map((occasion, index) => (
+              <View
+                key={occasion}
+                style={[
+                  styles.occasionTag,
+                  { backgroundColor: getOccasionColor(occasion) },
+                ]}
+              >
+                <Text style={styles.occasionText}>{occasion}</Text>
+              </View>
+            ))}
+
+          {outfit.occasion && outfit.occasion.length > 3 && (
             <View style={styles.moreOccasionsTag}>
-              <Text style={styles.moreOccasionsText}>+{outfit.occasion.length - 3}</Text>
+              <Text style={styles.moreOccasionsText}>
+                +{outfit.occasion.length - 3}
+              </Text>
             </View>
           )}
         </View>

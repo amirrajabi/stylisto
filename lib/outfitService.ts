@@ -1,4 +1,6 @@
-import { ClothingItem } from '../types/wardrobe';
+import { store } from '../store/store';
+import { addOutfit } from '../store/wardrobeSlice';
+import { ClothingItem, Outfit } from '../types/wardrobe';
 import { supabase } from './supabase';
 
 export interface GeneratedOutfitRecord {
@@ -37,7 +39,7 @@ export class OutfitService {
         tags: [this.GENERATED_OUTFIT_TAG],
         source_type: 'ai_generated',
         is_favorite: false,
-        notes: `AI-generated outfit with ${outfit.items.length} items. Score: ${Math.round(outfit.score.total * 100)}%`,
+        notes: `AI-generated outfit with ${outfit.items?.length || 0} items. Score: ${Math.round(outfit.score.total * 100)}%`,
       }));
 
       const { data: savedOutfits, error: outfitError } = await supabase
@@ -60,7 +62,28 @@ export class OutfitService {
 
       if (itemsError) throw itemsError;
 
-      console.log('✅ Generated outfits saved to database');
+      // Add to Redux store
+      savedOutfits.forEach((savedOutfit, index) => {
+        const originalOutfit = outfits[index];
+        const outfitForRedux: Outfit = {
+          id: savedOutfit.id,
+          name: savedOutfit.name,
+          items: originalOutfit.items,
+          occasion: savedOutfit.occasions as any[],
+          season: savedOutfit.seasons as any[],
+          tags: savedOutfit.tags || [],
+          isFavorite: savedOutfit.is_favorite || false,
+          timesWorn: 0,
+          lastWorn: undefined,
+          notes: savedOutfit.notes || '',
+          createdAt: savedOutfit.created_at || new Date().toISOString(),
+          updatedAt: savedOutfit.updated_at || new Date().toISOString(),
+        };
+
+        store.dispatch(addOutfit(outfitForRedux));
+      });
+
+      console.log('✅ Generated outfits saved to database and Redux store');
     } catch (error) {
       console.error('❌ Error saving generated outfits:', error);
       throw error;
@@ -72,7 +95,8 @@ export class OutfitService {
     items: ClothingItem[],
     occasions: string[] = [],
     seasons: string[] = [],
-    notes: string = ''
+    notes: string = '',
+    onSaved?: (outfitId: string) => void
   ): Promise<string> {
     try {
       const {
@@ -110,7 +134,32 @@ export class OutfitService {
 
       if (itemsError) throw itemsError;
 
-      console.log('✅ Manual outfit saved to database:', savedOutfit.id);
+      // Create Outfit object for Redux store
+      const outfitForRedux: Outfit = {
+        id: savedOutfit.id,
+        name: savedOutfit.name,
+        items: items,
+        occasion: occasions as any[],
+        season: seasons as any[],
+        tags: savedOutfit.tags || [],
+        isFavorite: savedOutfit.is_favorite || false,
+        timesWorn: 0,
+        lastWorn: undefined,
+        notes: savedOutfit.notes || '',
+        createdAt: savedOutfit.created_at || new Date().toISOString(),
+        updatedAt: savedOutfit.updated_at || new Date().toISOString(),
+      };
+
+      // Add to Redux store
+      store.dispatch(addOutfit(outfitForRedux));
+
+      console.log(
+        '✅ Manual outfit saved to database and Redux store:',
+        savedOutfit.id
+      );
+      if (onSaved) {
+        onSaved(savedOutfit.id);
+      }
       return savedOutfit.id;
     } catch (error) {
       console.error('❌ Error saving manual outfit:', error);
