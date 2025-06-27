@@ -43,14 +43,6 @@ export class OutfitService {
         source_type: 'ai_generated',
         is_favorite: false,
         notes: `AI-generated outfit with ${outfit.items?.length || 0} items. Score: ${Math.round(outfit.score.total * 100)}%`,
-        total_score: outfit.score.total,
-        style_harmony_score: outfit.score.breakdown.styleMatching,
-        color_match_score: outfit.score.breakdown.colorHarmony,
-        season_fit_score: outfit.score.breakdown.seasonSuitability,
-        occasion_score: outfit.score.breakdown.occasionSuitability,
-        weather_score: outfit.score.breakdown.weatherSuitability,
-        user_preference_score: outfit.score.breakdown.userPreference,
-        variety_score: outfit.score.breakdown.variety,
       }));
 
       const { data: savedOutfits, error: outfitError } = await supabase
@@ -134,14 +126,6 @@ export class OutfitService {
         source_type: 'manual',
         is_favorite: false,
         notes: notes || `Manual outfit with ${items.length} items`,
-        total_score: score?.total || 0.85,
-        style_harmony_score: score?.style || 0.85,
-        color_match_score: score?.color || 0.85,
-        season_fit_score: score?.season || 0.85,
-        occasion_score: score?.occasion || 0.85,
-        weather_score: score?.weather || null,
-        user_preference_score: score?.userPreference || 0.8,
-        variety_score: score?.variety || 0.75,
       };
 
       const { data: savedOutfit, error: outfitError } = await supabase
@@ -218,14 +202,6 @@ export class OutfitService {
           notes,
           created_at,
           updated_at,
-          total_score,
-          style_harmony_score,
-          color_match_score,
-          season_fit_score,
-          occasion_score,
-          weather_score,
-          user_preference_score,
-          variety_score,
           outfit_items (
             clothing_items (
               id,
@@ -295,24 +271,14 @@ export class OutfitService {
             updatedAt: new Date().toISOString(),
           })),
         score: {
-          total:
-            outfit.total_score ||
-            this.extractScoreFromNotes(outfit.notes).total,
-          color:
-            outfit.color_match_score ||
-            this.extractScoreFromNotes(outfit.notes).color,
-          style:
-            outfit.style_harmony_score ||
-            this.extractScoreFromNotes(outfit.notes).style,
-          season:
-            outfit.season_fit_score ||
-            this.extractScoreFromNotes(outfit.notes).season,
-          occasion:
-            outfit.occasion_score ||
-            this.extractScoreFromNotes(outfit.notes).occasion,
-          weather: outfit.weather_score || undefined,
-          userPreference: outfit.user_preference_score || undefined,
-          variety: outfit.variety_score || undefined,
+          total: this.extractScoreFromNotes(outfit.notes).total,
+          color: this.extractScoreFromNotes(outfit.notes).color,
+          style: this.extractScoreFromNotes(outfit.notes).style,
+          season: this.extractScoreFromNotes(outfit.notes).season,
+          occasion: this.extractScoreFromNotes(outfit.notes).occasion,
+          weather: undefined,
+          userPreference: undefined,
+          variety: undefined,
         },
         tags: outfit.tags,
         createdAt: outfit.created_at,
@@ -348,14 +314,6 @@ export class OutfitService {
           seasons,
           created_at,
           updated_at,
-          total_score,
-          style_harmony_score,
-          color_match_score,
-          season_fit_score,
-          occasion_score,
-          weather_score,
-          user_preference_score,
-          variety_score,
           outfit_items (
             clothing_items (
               id,
@@ -421,14 +379,14 @@ export class OutfitService {
             updatedAt: new Date().toISOString(),
           })),
         score: {
-          total: outfit.total_score || 0.85,
-          color: outfit.color_match_score || 0.85,
-          style: outfit.style_harmony_score || 0.85,
-          season: outfit.season_fit_score || 0.85,
-          occasion: outfit.occasion_score || 0.85,
-          weather: outfit.weather_score || undefined,
-          userPreference: outfit.user_preference_score || undefined,
-          variety: outfit.variety_score || undefined,
+          total: 0.85,
+          color: 0.85,
+          style: 0.85,
+          season: 0.85,
+          occasion: 0.85,
+          weather: undefined,
+          userPreference: 0.8,
+          variety: 0.75,
         },
         tags: outfit.tags,
         createdAt: outfit.created_at,
