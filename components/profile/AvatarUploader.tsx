@@ -14,7 +14,6 @@ import { Spacing } from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { CompressionPresets, compressImage } from '../../utils/imageProcessing';
-import OptimizedImage from '../ui/OptimizedImage';
 
 interface AvatarUploaderProps {
   avatarUrl?: string | null;
@@ -28,11 +27,15 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   const { user, updateUserProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Sync with prop changes
   useEffect(() => {
     if (avatarUrl !== currentAvatarUrl) {
       setCurrentAvatarUrl(avatarUrl);
+      setImageError(false);
+      setImageLoading(!!avatarUrl); // Set loading only if there's a URL
     }
   }, [avatarUrl]);
 
@@ -100,9 +103,9 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     ]);
   };
 
-  const clearImageCache = (imageUrl: string) => {
+  const clearImageCache = () => {
     try {
-      // Clear Expo Image cache for the specific image
+      // Clear Expo Image cache
       if (Image.clearMemoryCache) {
         Image.clearMemoryCache();
       }
@@ -132,21 +135,13 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       console.log(
         `Avatar compressed: ${compressionResult.compressionRatio * 100}% of original size`
       );
-      console.log(
-        `Original: ${compressionResult.originalSize.width}x${compressionResult.originalSize.height}`
-      );
-      console.log(
-        `Compressed: ${compressionResult.compressedSize.width}x${compressionResult.compressedSize.height}`
-      );
 
-      const fileExt = 'jpg'; // Always use JPEG for compressed images
+      const fileExt = 'jpg';
       const fileName = `avatar_${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/profile/${fileName}`;
 
-      let fileData: ArrayBuffer;
-
       const response = await fetch(compressedUri);
-      fileData = await response.arrayBuffer();
+      const fileData = await response.arrayBuffer();
 
       console.log(`Uploading compressed avatar: ${fileData.byteLength} bytes`);
 
@@ -166,48 +161,55 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         data: { publicUrl },
       } = supabase.storage.from('user-avatars').getPublicUrl(filePath);
 
-      // Add cache busting parameter to force refresh
-      const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+      console.log('Generated public URL:', publicUrl);
+
+      // Clear cache before setting new URL
+      clearImageCache();
+
+      // Test if the URL is accessible
+      try {
+        const testResponse = await fetch(publicUrl, { method: 'HEAD' });
+        console.log(
+          'URL accessibility test:',
+          testResponse.status,
+          testResponse.statusText
+        );
+      } catch (testError) {
+        console.warn('URL accessibility test failed:', testError);
+      }
 
       // Update user profile with new avatar URL
       try {
         await updateUserProfile({ avatar_url: publicUrl });
 
-        // Clear image cache to force refresh
-        if (currentAvatarUrl) {
-          clearImageCache(currentAvatarUrl);
-        }
-        clearImageCache(publicUrl);
-
-        // Update local state immediately
-        setCurrentAvatarUrl(cacheBustedUrl);
-
-        // Notify parent component
-        onImageUpdate?.(cacheBustedUrl);
+        // Set a delay to ensure the image is available
+        setTimeout(() => {
+          setCurrentAvatarUrl(publicUrl);
+          setImageLoading(true);
+          setImageError(false);
+          onImageUpdate?.(publicUrl);
+        }, 1000);
 
         Alert.alert('Success', 'Profile picture updated successfully!');
-
         console.log('Avatar updated successfully:', publicUrl);
       } catch (profileError: any) {
         console.error('Error updating profile:', profileError);
 
-        // Handle different types of errors gracefully
         const errorMessage = profileError.message || '';
         const statusCode = profileError.statusCode || '';
+
+        // Handle gracefully and still update UI
+        setTimeout(() => {
+          setCurrentAvatarUrl(publicUrl);
+          setImageLoading(true);
+          setImageError(false);
+          onImageUpdate?.(publicUrl);
+        }, 1000);
 
         if (
           errorMessage.includes('avatar_url') ||
           errorMessage.includes('column')
         ) {
-          console.warn(
-            'Database column not ready yet, but image uploaded successfully'
-          );
-
-          // Still update local state and clear cache
-          setCurrentAvatarUrl(cacheBustedUrl);
-          onImageUpdate?.(cacheBustedUrl);
-          clearImageCache(publicUrl);
-
           Alert.alert(
             'Upload Complete',
             'Profile picture uploaded successfully! The database will be updated once the migration is applied.'
@@ -217,18 +219,9 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
           errorMessage.includes('Unauthorized') ||
           statusCode === '403'
         ) {
-          console.warn(
-            'RLS policy issue - image uploaded but profile not updated'
-          );
-
-          // Still update local state and clear cache
-          setCurrentAvatarUrl(cacheBustedUrl);
-          onImageUpdate?.(cacheBustedUrl);
-          clearImageCache(publicUrl);
-
           Alert.alert(
             'Upload Complete',
-            'Your profile picture has been uploaded successfully! Profile database update is pending - please contact support if this persists.'
+            'Your profile picture has been uploaded successfully! Profile database update is pending.'
           );
         } else {
           throw profileError;
@@ -242,6 +235,80 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     }
   };
 
+  const handleImageLoad = () => {
+    console.log('Avatar image loaded successfully');
+    setImageLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = (error: any) => {
+    console.error('Avatar image failed to load:', error);
+    console.error('Current avatar URL:', currentAvatarUrl);
+    console.error('Prop avatar URL:', avatarUrl);
+
+    setImageLoading(false);
+    setImageError(true);
+
+    // If this is a newly uploaded image that failed to load,
+    // try falling back to the original avatar URL
+    if (currentAvatarUrl && avatarUrl && currentAvatarUrl !== avatarUrl) {
+      console.log('Falling back to original avatar URL');
+      setTimeout(() => {
+        setCurrentAvatarUrl(avatarUrl);
+        setImageLoading(true);
+        setImageError(false);
+      }, 2000);
+    }
+  };
+
+  const renderAvatarContent = () => {
+    const hasAvatarUrl = currentAvatarUrl || avatarUrl;
+
+    console.log('Rendering avatar content - hasAvatarUrl:', hasAvatarUrl);
+    console.log('Current avatar URL:', currentAvatarUrl);
+    console.log('Prop avatar URL:', avatarUrl);
+    console.log('Image loading:', imageLoading);
+    console.log('Image error:', imageError);
+
+    if (!hasAvatarUrl) {
+      return (
+        <View style={styles.avatarPlaceholder}>
+          <User size={48} color={Colors.primary[500]} />
+        </View>
+      );
+    }
+
+    // Show placeholder if error and no loading state
+    if (imageError && !imageLoading) {
+      return (
+        <View style={styles.avatarPlaceholder}>
+          <User size={48} color={Colors.primary[500]} />
+        </View>
+      );
+    }
+
+    return (
+      <>
+        <Image
+          source={{ uri: hasAvatarUrl }}
+          style={styles.avatar}
+          contentFit="cover"
+          transition={200}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          accessibilityIgnoresInvertColors
+          cachePolicy="none" // Don't cache to always get fresh image
+        />
+
+        {imageLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="small" color={Colors.white} />
+          </View>
+        )}
+      </>
+    );
+  };
+
   return (
     <TouchableOpacity
       style={styles.avatarContainer}
@@ -252,21 +319,7 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       accessibilityLabel="Update profile picture"
       accessibilityHint="Double tap to update your profile picture"
     >
-      {currentAvatarUrl || avatarUrl ? (
-        <OptimizedImage
-          source={{ uri: currentAvatarUrl || avatarUrl || '' }}
-          style={styles.avatar}
-          contentFit="cover"
-          accessibilityLabel="Profile picture"
-          priority="high"
-          cachePolicy="none" // Force reload to get updated image
-          recyclingKey={currentAvatarUrl || avatarUrl || undefined} // Force re-render when URL changes
-        />
-      ) : (
-        <View style={styles.avatarPlaceholder}>
-          <User size={48} color={Colors.primary[500]} />
-        </View>
-      )}
+      {renderAvatarContent()}
 
       <View style={styles.cameraButton}>
         {uploading ? (
@@ -298,6 +351,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 60,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
   cameraButton: {
     position: 'absolute',
