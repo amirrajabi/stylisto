@@ -1,6 +1,10 @@
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+import {
+  CompressionPresets,
+  compressImage as compressImageUtil,
+} from '../utils/imageProcessing';
 import { supabase } from './supabase';
 
 export interface UploadOptions {
@@ -11,6 +15,7 @@ export interface UploadOptions {
   cacheControl?: string;
   upsert?: boolean;
   metadata?: Record<string, any>;
+  compress?: boolean; // New option to enable/disable compression
 }
 
 export interface UploadResult {
@@ -50,7 +55,7 @@ class StorageService {
   }
 
   /**
-   * Upload image to Supabase Storage with automatic path organization
+   * Upload image with optional compression
    */
   async uploadImage(
     imageUri: string,
@@ -60,30 +65,87 @@ class StorageService {
     options: Partial<UploadOptions> = {}
   ): Promise<UploadResult> {
     try {
-      const bucket = 'wardrobe-images';
+      let finalImageUri = imageUri;
+
+      // Compress image if requested (default: true)
+      if (options.compress !== false) {
+        try {
+          // Choose compression preset based on item type
+          const compressionOptions =
+            itemType === 'profile'
+              ? CompressionPresets.profile
+              : itemType === 'outfit'
+                ? CompressionPresets.wardrobe
+                : CompressionPresets.wardrobe;
+
+          const compressionResult = await compressImageUtil(
+            imageUri,
+            compressionOptions
+          );
+          finalImageUri = compressionResult.uri;
+
+          console.log(
+            `Image compressed for ${itemType}: ${compressionResult.compressionRatio * 100}% of original size`
+          );
+        } catch (compressionError) {
+          console.warn(
+            'Image compression failed, using original:',
+            compressionError
+          );
+          // Continue with original image if compression fails
+        }
+      }
+
+      // Use user-avatars bucket for profile images, wardrobe-images for others
+      const bucket =
+        itemType === 'profile' ? 'user-avatars' : 'wardrobe-images';
       const timestamp = Date.now();
-      const fileExtension = this.getFileExtension(imageUri);
+      const fileExtension =
+        options.compress !== false
+          ? 'jpg'
+          : this.getFileExtension(finalImageUri);
 
       // Organize storage paths by user and item type
-      const basePath = `${userId}/${itemType}`;
-      const fileName = itemId
-        ? `${itemId}_${timestamp}.${fileExtension}`
-        : `${timestamp}.${fileExtension}`;
-      const fullPath = `${basePath}/${fileName}`;
+      let basePath: string;
+      let fileName: string;
+      let fullPath: string;
+
+      if (itemType === 'profile') {
+        // Profile images go to user-avatars/[user-id]/profile/
+        basePath = `${userId}/profile`;
+        fileName = itemId
+          ? `${itemId}_${timestamp}.${fileExtension}`
+          : `avatar_${timestamp}.${fileExtension}`;
+        fullPath = `${basePath}/${fileName}`;
+      } else {
+        // Other images go to wardrobe-images/[user-id]/[item-type]/
+        basePath = `${userId}/${itemType}`;
+        fileName = itemId
+          ? `${itemId}_${timestamp}.${fileExtension}`
+          : `${timestamp}.${fileExtension}`;
+        fullPath = `${basePath}/${fileName}`;
+      }
 
       let fileData: ArrayBuffer;
-      let contentType = options.contentType || this.getMimeType(fileExtension);
+      let contentType =
+        options.contentType ||
+        (options.compress !== false
+          ? 'image/jpeg'
+          : this.getMimeType(fileExtension));
 
       if (Platform.OS === 'web') {
         // Web: Convert data URL to blob
-        const response = await fetch(imageUri);
+        const response = await fetch(finalImageUri);
         fileData = await response.arrayBuffer();
       } else {
         // Mobile: Handle different URI types
-        if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
+        if (
+          finalImageUri.startsWith('http://') ||
+          finalImageUri.startsWith('https://')
+        ) {
           // Remote URL: Download first, then read
           const downloadResult = await FileSystem.downloadAsync(
-            imageUri,
+            finalImageUri,
             FileSystem.documentDirectory +
               'temp_' +
               Date.now() +
@@ -102,23 +164,26 @@ class StorageService {
           await FileSystem.deleteAsync(downloadResult.uri, {
             idempotent: true,
           });
-        } else if (imageUri.startsWith('file://') || imageUri.startsWith('/')) {
+        } else if (
+          finalImageUri.startsWith('file://') ||
+          finalImageUri.startsWith('/')
+        ) {
           // Local file: Read directly
-          const fileInfo = await FileSystem.getInfoAsync(imageUri);
+          const fileInfo = await FileSystem.getInfoAsync(finalImageUri);
           if (!fileInfo.exists) {
-            throw new Error(`File not found: ${imageUri}`);
+            throw new Error(`File not found: ${finalImageUri}`);
           }
 
-          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          const base64 = await FileSystem.readAsStringAsync(finalImageUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
           fileData = decode(base64);
-        } else if (imageUri.startsWith('data:')) {
+        } else if (finalImageUri.startsWith('data:')) {
           // Data URL: Extract base64
-          const base64 = imageUri.split(',')[1];
+          const base64 = finalImageUri.split(',')[1];
           fileData = decode(base64);
         } else {
-          throw new Error(`Unsupported URI format: ${imageUri}`);
+          throw new Error(`Unsupported URI format: ${finalImageUri}`);
         }
       }
 
@@ -134,6 +199,8 @@ class StorageService {
             itemId,
             uploadedAt: new Date().toISOString(),
             platform: Platform.OS,
+            compressed: options.compress !== false,
+            originalUri: imageUri !== finalImageUri ? imageUri : undefined,
             ...options.metadata,
           },
         });
@@ -141,6 +208,10 @@ class StorageService {
       if (error) {
         throw error;
       }
+
+      console.log(
+        `Image uploaded successfully: ${fullPath} (${fileData.byteLength} bytes)`
+      );
 
       return {
         data: data
@@ -162,14 +233,15 @@ class StorageService {
   }
 
   /**
-   * Upload multiple images with progress tracking
+   * Upload multiple images with progress tracking and compression
    */
   async uploadBatch(
     imageUris: string[],
     userId: string,
     itemType: 'clothing' | 'outfit' | 'profile',
     itemId?: string,
-    onProgress?: (completed: number, total: number) => void
+    onProgress?: (completed: number, total: number) => void,
+    options: Partial<UploadOptions> = {}
   ): Promise<UploadResult[]> {
     const results: UploadResult[] = [];
 
@@ -181,7 +253,8 @@ class StorageService {
           imageUri,
           userId,
           itemType,
-          itemId
+          itemId,
+          options
         );
         results.push(result);
 
@@ -236,11 +309,26 @@ class StorageService {
   getOptimizedImageUrl(
     path: string,
     type: 'thumbnail' | 'medium' | 'large' | 'original' = 'medium',
-    bucket: string = 'wardrobe-images'
+    bucket?: string
   ): string {
+    // Auto-detect bucket based on path if not provided
+    const finalBucket = bucket || this.getBucketFromPath(path);
+
     // Use simple URLs without transformations to avoid render/image endpoint 400 errors
     // Client-side optimization will handle resizing as needed
-    return this.getSimpleImageUrl(path, bucket);
+    return this.getSimpleImageUrl(path, finalBucket);
+  }
+
+  /**
+   * Determine the appropriate bucket based on the file path
+   */
+  private getBucketFromPath(path: string): string {
+    // If path contains profile images pattern, use user-avatars bucket
+    if (path.includes('/profile/') || path.includes('avatar_')) {
+      return 'user-avatars';
+    }
+    // Default to wardrobe-images for clothing/outfit items
+    return 'wardrobe-images';
   }
 
   /**
@@ -366,13 +454,12 @@ class StorageService {
         .eq('user_id', userId)
         .not('deleted_at', 'is', null);
 
-      const { data: userProfile } = await supabase
+      const { data: userProfiles } = await supabase
         .from('users')
-        .select('avatar_url')
-        .eq('id', userId)
-        .single();
+        .select('avatar_url, full_body_image_url')
+        .eq('id', userId);
 
-      // Collect all referenced paths
+      // Extract referenced paths
       const referencedPaths = new Set<string>();
 
       clothingItems?.forEach(item => {
@@ -389,38 +476,36 @@ class StorageService {
         }
       });
 
-      if (userProfile?.avatar_url) {
-        const path = this.extractPathFromUrl(userProfile.avatar_url);
-        if (path) referencedPaths.add(path);
-      }
-
-      // Find orphaned files
-      const orphanedFiles = files.filter(file => {
-        const fullPath = `${userId}/${file.name}`;
-        return !referencedPaths.has(fullPath);
+      userProfiles?.forEach(profile => {
+        if (profile.avatar_url) {
+          const path = this.extractPathFromUrl(profile.avatar_url);
+          if (path) referencedPaths.add(path);
+        }
+        if (profile.full_body_image_url) {
+          const path = this.extractPathFromUrl(profile.full_body_image_url);
+          if (path) referencedPaths.add(path);
+        }
       });
 
-      if (!dryRun && orphanedFiles.length > 0) {
-        // Delete orphaned files
-        const pathsToDelete = orphanedFiles.map(
-          file => `${userId}/${file.name}`
-        );
-        const { error: deleteError } = await this.deleteBatch(pathsToDelete);
-
-        if (deleteError) {
-          errors.push(`Failed to delete files: ${deleteError.message}`);
-        } else {
-          deletedFiles.push(...pathsToDelete);
+      // Find orphaned files
+      for (const file of files) {
+        const fullPath = `${userId}/${file.name}`;
+        if (!referencedPaths.has(fullPath)) {
+          if (!dryRun) {
+            const { error } = await this.deleteImage(fullPath);
+            if (error) {
+              errors.push(`Failed to delete ${fullPath}: ${error.message}`);
+            } else {
+              deletedFiles.push(fullPath);
+            }
+          } else {
+            deletedFiles.push(fullPath); // In dry run, just track what would be deleted
+          }
         }
-      } else {
-        // Dry run - just return what would be deleted
-        deletedFiles.push(
-          ...orphanedFiles.map(file => `${userId}/${file.name}`)
-        );
       }
     } catch (error) {
       errors.push(
-        `Cleanup error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Cleanup failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
 
@@ -428,7 +513,7 @@ class StorageService {
   }
 
   /**
-   * Get storage usage statistics for a user
+   * Get storage statistics for a user
    */
   async getStorageStats(userId: string): Promise<{
     totalFiles: number;
@@ -436,48 +521,38 @@ class StorageService {
     filesByType: Record<string, number>;
     sizeByType: Record<string, number>;
   }> {
+    const stats = {
+      totalFiles: 0,
+      totalSize: 0,
+      filesByType: {} as Record<string, number>,
+      sizeByType: {} as Record<string, number>,
+    };
+
     try {
       const { data: files } = await this.listFiles(`${userId}/`);
 
-      if (!files) {
-        return {
-          totalFiles: 0,
-          totalSize: 0,
-          filesByType: {},
-          sizeByType: {},
-        };
+      if (files) {
+        for (const file of files) {
+          const fileType = this.getItemTypeFromPath(file.name);
+          const fileSize = file.metadata?.size || 0;
+
+          stats.totalFiles++;
+          stats.totalSize += fileSize;
+
+          stats.filesByType[fileType] = (stats.filesByType[fileType] || 0) + 1;
+          stats.sizeByType[fileType] =
+            (stats.sizeByType[fileType] || 0) + fileSize;
+        }
       }
-
-      const stats = {
-        totalFiles: files.length,
-        totalSize: 0,
-        filesByType: {} as Record<string, number>,
-        sizeByType: {} as Record<string, number>,
-      };
-
-      files.forEach(file => {
-        const type = this.getItemTypeFromPath(file.name);
-        const size = file.metadata?.size || 0;
-
-        stats.totalSize += size;
-        stats.filesByType[type] = (stats.filesByType[type] || 0) + 1;
-        stats.sizeByType[type] = (stats.sizeByType[type] || 0) + size;
-      });
-
-      return stats;
     } catch (error) {
-      console.error('Storage stats error:', error);
-      return {
-        totalFiles: 0,
-        totalSize: 0,
-        filesByType: {},
-        sizeByType: {},
-      };
+      console.error('Error getting storage stats:', error);
     }
+
+    return stats;
   }
 
   /**
-   * Create signed URL for temporary access
+   * Create a signed URL for temporary access to a file
    */
   async createSignedUrl(
     path: string,
@@ -491,13 +566,13 @@ class StorageService {
 
       return { data, error };
     } catch (error) {
-      console.error('Signed URL error:', error);
+      console.error('Error creating signed URL:', error);
       return { data: null, error: error as Error };
     }
   }
 
   /**
-   * Move file to different location
+   * Move a file from one location to another
    */
   async moveFile(
     fromPath: string,
@@ -511,13 +586,13 @@ class StorageService {
 
       return { error };
     } catch (error) {
-      console.error('Move file error:', error);
+      console.error('Error moving file:', error);
       return { error: error as Error };
     }
   }
 
   /**
-   * Copy file to different location
+   * Copy a file from one location to another
    */
   async copyFile(
     fromPath: string,
@@ -531,46 +606,43 @@ class StorageService {
 
       return { error };
     } catch (error) {
-      console.error('Copy file error:', error);
+      console.error('Error copying file:', error);
       return { error: error as Error };
     }
   }
 
-  // Helper methods
   private getFileExtension(uri: string): string {
-    const extension = uri.split('.').pop()?.toLowerCase();
-    return extension || 'jpg';
+    return uri.split('.').pop()?.toLowerCase() || 'jpg';
   }
 
   private getMimeType(extension: string): string {
-    const mimeTypes: Record<string, string> = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      gif: 'image/gif',
-      webp: 'image/webp',
-      bmp: 'image/bmp',
-      tiff: 'image/tiff',
-      svg: 'image/svg+xml',
-    };
-
-    return mimeTypes[extension.toLowerCase()] || 'image/jpeg';
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
+    }
   }
 
   extractPathFromUrl(url: string): string | null {
     try {
       const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/');
-      const bucketIndex = pathParts.findIndex(
-        part => part === 'wardrobe-images'
+      const pathname = urlObj.pathname;
+
+      // Extract path after /storage/v1/object/public/bucket-name/
+      const match = pathname.match(
+        /\/storage\/v1\/object\/public\/[^\/]+\/(.+)/
       );
-
-      if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
-        return pathParts.slice(bucketIndex + 1).join('/');
-      }
-
-      return null;
-    } catch {
+      return match ? match[1] : null;
+    } catch (error) {
+      console.error('Error extracting path from URL:', error);
       return null;
     }
   }

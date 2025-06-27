@@ -5,6 +5,17 @@ export async function fixRLSPolicies() {
     console.log('🔧 Starting RLS policy fixes...');
 
     const updates = [
+      // Fix users table INSERT policy - CRITICAL for profile creation
+      `DROP POLICY IF EXISTS "Users can insert own profile" ON users;`,
+
+      `CREATE POLICY "Users can insert own profile" ON users
+        FOR INSERT
+        TO authenticated
+        WITH CHECK (auth.uid() = id);`,
+
+      // Ensure RLS is enabled on users table
+      `ALTER TABLE users ENABLE ROW LEVEL SECURITY;`,
+
       // Drop and recreate the update policy for saved_outfits to allow soft delete
       `DROP POLICY IF EXISTS "Users can update own saved outfits" ON saved_outfits;`,
 

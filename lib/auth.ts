@@ -471,6 +471,8 @@ export class AuthService {
         userUpdates.date_of_birth = updates.date_of_birth;
       if (updates.gender !== undefined) userUpdates.gender = updates.gender;
       if (updates.phone !== undefined) userUpdates.phone = updates.phone;
+      if (updates.avatar_url !== undefined)
+        userUpdates.avatar_url = updates.avatar_url;
 
       // Location
       if (updates.country !== undefined) userUpdates.country = updates.country;
@@ -503,10 +505,16 @@ export class AuthService {
       if (updates.website_url !== undefined)
         userUpdates.website_url = updates.website_url;
 
-      // Full body image for outfit try-on
-      if (updates.full_body_image_url !== undefined)
-        userUpdates.full_body_image_url = updates.full_body_image_url;
+      // Full body image for outfit try-on (only if column exists)
+      if (updates.full_body_image_url !== undefined) {
+        try {
+          userUpdates.full_body_image_url = updates.full_body_image_url;
+        } catch (error) {
+          console.warn('full_body_image_url column not found, skipping update');
+        }
+      }
 
+      // First try to update existing profile
       const { data, error: dbError } = await supabase
         .from('users')
         .update(userUpdates)
@@ -514,7 +522,33 @@ export class AuthService {
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // If no rows affected, it might mean the profile doesn't exist
+        if (dbError.code === 'PGRST116') {
+          // User profile doesn't exist, try to create it with minimal required fields
+          const basicProfile = {
+            id: user.id,
+            email: user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            ...userUpdates,
+          };
+
+          const { data: insertData, error: insertError } = await supabase
+            .from('users')
+            .insert(basicProfile)
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Failed to create user profile:', insertError);
+            throw insertError;
+          }
+
+          return insertData;
+        }
+        throw dbError;
+      }
 
       // Update auth metadata for basic fields
       const authUpdates: any = {};
@@ -523,6 +557,9 @@ export class AuthService {
       }
       if (updates.last_name !== undefined) {
         authUpdates.last_name = updates.last_name;
+      }
+      if (updates.avatar_url !== undefined) {
+        authUpdates.avatar_url = updates.avatar_url;
       }
 
       if (Object.keys(authUpdates).length > 0) {

@@ -1,10 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import {
   BarChart,
   Bell,
-  Camera,
   ChevronRight,
   DollarSign,
   Download,
@@ -32,6 +30,7 @@ import {
   View,
 } from 'react-native';
 import { AccessibilitySettingsCard } from '../../../components/profile/AccessibilitySettingsCard';
+import { AvatarUploader } from '../../../components/profile/AvatarUploader';
 import { FullBodyImageUploader } from '../../../components/profile/FullBodyImageUploader';
 import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
 import {
@@ -332,51 +331,6 @@ export default function ProfileScreen() {
     }
   };
 
-  // Handle profile picture update
-  const handleUpdateProfilePicture = () => {
-    Alert.alert('Update Profile Picture', 'Choose an option', [
-      {
-        text: 'Take Photo',
-        onPress: () => {
-          // Track camera usage
-          trackEvent('camera_opened', {
-            purpose: 'profile_picture',
-          });
-
-          router.push({
-            pathname: '/camera',
-            params: {
-              mode: 'camera',
-              maxPhotos: '1',
-              returnTo: '/profile',
-              itemType: 'profile',
-            },
-          });
-        },
-      },
-      {
-        text: 'Choose from Gallery',
-        onPress: () => {
-          // Track gallery usage
-          trackEvent('gallery_opened', {
-            purpose: 'profile_picture',
-          });
-
-          router.push({
-            pathname: '/camera',
-            params: {
-              mode: 'gallery',
-              maxPhotos: '1',
-              returnTo: '/profile',
-              itemType: 'profile',
-            },
-          });
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
   const MenuSection: React.FC<{
     title: string;
     children: React.ReactNode;
@@ -503,42 +457,12 @@ export default function ProfileScreen() {
             { backgroundColor: colors.surface.primary },
           ]}
         >
-          <TouchableOpacity
-            style={styles.avatarContainer}
-            onPress={handleUpdateProfilePicture}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel="Update profile picture"
-            accessibilityHint="Double tap to update your profile picture"
-          >
-            {user?.avatar_url ? (
-              <Image
-                source={{ uri: user.avatar_url }}
-                style={styles.avatar}
-                contentFit="cover"
-                transition={200}
-                accessibilityIgnoresInvertColors
-              />
-            ) : (
-              <View
-                style={[
-                  styles.avatarPlaceholder,
-                  { backgroundColor: colors.primary[100] },
-                ]}
-              >
-                <User size={48} color={colors.primary[500]} />
-              </View>
-            )}
-
-            <View
-              style={[
-                styles.cameraButton,
-                { backgroundColor: colors.primary[500] },
-              ]}
-            >
-              <Camera size={16} color={colors.white} />
-            </View>
-          </TouchableOpacity>
+          <AvatarUploader
+            avatarUrl={user?.avatar_url}
+            onImageUpdate={url => {
+              console.log('Avatar updated:', url);
+            }}
+          />
 
           <Text style={[styles.userName, { color: colors.text.primary }]}>
             {user?.first_name && user?.last_name

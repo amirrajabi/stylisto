@@ -1,6 +1,6 @@
-import { Platform } from 'react-native';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 
 export interface ImageProcessingOptions {
   maxWidth?: number;
@@ -30,6 +30,19 @@ export interface BatchProcessingProgress {
   errors: string[];
 }
 
+export interface ImageCompressionOptions {
+  maxDimension?: number;
+  quality?: number;
+  format?: ImageManipulator.SaveFormat;
+}
+
+export interface CompressionResult {
+  uri: string;
+  originalSize: { width: number; height: number };
+  compressedSize: { width: number; height: number };
+  compressionRatio: number;
+}
+
 class ImageProcessingService {
   private static instance: ImageProcessingService;
 
@@ -44,7 +57,7 @@ class ImageProcessingService {
    * Process a single image with optimization and optional cropping
    */
   async processImage(
-    imageUri: string, 
+    imageUri: string,
     options: ImageProcessingOptions = {}
   ): Promise<ProcessedImage> {
     const {
@@ -57,22 +70,21 @@ class ImageProcessingService {
 
     try {
       // Get original image info
-      const imageInfo = await ImageManipulator.manipulateAsync(
-        imageUri,
-        [],
-        { format: ImageManipulator.SaveFormat.JPEG }
-      );
+      const imageInfo = await ImageManipulator.manipulateAsync(imageUri, [], {
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
 
       const originalWidth = imageInfo.width;
       const originalHeight = imageInfo.height;
 
       // Calculate resize dimensions while maintaining aspect ratio
-      const { width: targetWidth, height: targetHeight } = this.calculateResizeDimensions(
-        originalWidth,
-        originalHeight,
-        maxWidth,
-        maxHeight
-      );
+      const { width: targetWidth, height: targetHeight } =
+        this.calculateResizeDimensions(
+          originalWidth,
+          originalHeight,
+          maxWidth,
+          maxHeight
+        );
 
       // Build manipulation actions
       const actions: ImageManipulator.Action[] = [];
@@ -100,15 +112,11 @@ class ImageProcessingService {
       }
 
       // Process the image
-      const result = await ImageManipulator.manipulateAsync(
-        imageUri,
-        actions,
-        {
-          compress: quality,
-          format: this.getImageManipulatorFormat(format),
-          base64: false,
-        }
-      );
+      const result = await ImageManipulator.manipulateAsync(imageUri, actions, {
+        compress: quality,
+        format: this.getImageManipulatorFormat(format),
+        base64: false,
+      });
 
       // Get file size
       const fileInfo = await FileSystem.getInfoAsync(result.uri);
@@ -123,7 +131,9 @@ class ImageProcessingService {
       };
     } catch (error) {
       console.error('Image processing error:', error);
-      throw new Error(`Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -140,7 +150,7 @@ class ImageProcessingService {
 
     for (let i = 0; i < imageUris.length; i++) {
       const imageUri = imageUris[i];
-      
+
       try {
         // Update progress
         onProgress?.({
@@ -196,11 +206,9 @@ class ImageProcessingService {
   ): Promise<ProcessedImage> {
     try {
       // Get original dimensions
-      const imageInfo = await ImageManipulator.manipulateAsync(
-        imageUri,
-        [],
-        { format: ImageManipulator.SaveFormat.JPEG }
-      );
+      const imageInfo = await ImageManipulator.manipulateAsync(imageUri, [], {
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
 
       const { width: originalWidth, height: originalHeight } = imageInfo;
       const originalAspectRatio = originalWidth / originalHeight;
@@ -235,7 +243,9 @@ class ImageProcessingService {
       });
     } catch (error) {
       console.error('Crop error:', error);
-      throw new Error(`Failed to crop image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to crop image: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -246,7 +256,7 @@ class ImageProcessingService {
     imageUri: string,
     quality: number = 0.8
   ): Promise<ProcessedImage> {
-    return this.cropToAspectRatio(imageUri, 3/4, quality);
+    return this.cropToAspectRatio(imageUri, 3 / 4, quality);
   }
 
   /**
@@ -283,12 +293,16 @@ class ImageProcessingService {
   /**
    * Convert format string to ImageManipulator format
    */
-  private getImageManipulatorFormat(format: string): ImageManipulator.SaveFormat {
+  private getImageManipulatorFormat(
+    format: string
+  ): ImageManipulator.SaveFormat {
     switch (format.toLowerCase()) {
       case 'png':
         return ImageManipulator.SaveFormat.PNG;
       case 'webp':
-        return Platform.OS === 'web' ? ImageManipulator.SaveFormat.WEBP : ImageManipulator.SaveFormat.JPEG;
+        return Platform.OS === 'web'
+          ? ImageManipulator.SaveFormat.WEBP
+          : ImageManipulator.SaveFormat.JPEG;
       default:
         return ImageManipulator.SaveFormat.JPEG;
     }
@@ -310,10 +324,12 @@ class ImageProcessingService {
   /**
    * Validate image file
    */
-  async validateImage(imageUri: string): Promise<{ isValid: boolean; error?: string }> {
+  async validateImage(
+    imageUri: string
+  ): Promise<{ isValid: boolean; error?: string }> {
     try {
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      
+
       if (!fileInfo.exists) {
         return { isValid: false, error: 'File does not exist' };
       }
@@ -321,20 +337,116 @@ class ImageProcessingService {
       // Check file size (max 10MB)
       const maxSize = 10 * 1024 * 1024; // 10MB
       if (fileInfo.size && fileInfo.size > maxSize) {
-        return { 
-          isValid: false, 
-          error: `File too large (${this.formatFileSize(fileInfo.size)}). Maximum size is ${this.formatFileSize(maxSize)}` 
+        return {
+          isValid: false,
+          error: `File too large (${this.formatFileSize(fileInfo.size)}). Maximum size is ${this.formatFileSize(maxSize)}`,
         };
       }
 
       // Try to get image dimensions to validate it's a valid image
-      await ImageManipulator.manipulateAsync(imageUri, [], { format: ImageManipulator.SaveFormat.JPEG });
+      await ImageManipulator.manipulateAsync(imageUri, [], {
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
 
       return { isValid: true };
     } catch (error) {
-      return { 
-        isValid: false, 
-        error: `Invalid image file: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      return {
+        isValid: false,
+        error: `Invalid image file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  async compressImage(
+    uri: string,
+    options: ImageCompressionOptions = {}
+  ): Promise<CompressionResult> {
+    const {
+      maxDimension = 1200,
+      quality = 0.8,
+      format = ImageManipulator.SaveFormat.JPEG,
+    } = options;
+
+    try {
+      // Get original image info
+      const imageInfo = await ImageManipulator.manipulateAsync(uri, [], {
+        format,
+      });
+
+      const { width: originalWidth, height: originalHeight } = imageInfo;
+
+      // Calculate optimal dimensions while maintaining aspect ratio
+      let newWidth = originalWidth;
+      let newHeight = originalHeight;
+
+      if (originalWidth > originalHeight) {
+        if (originalWidth > maxDimension) {
+          newWidth = maxDimension;
+          newHeight = (originalHeight * maxDimension) / originalWidth;
+        }
+      } else {
+        if (originalHeight > maxDimension) {
+          newHeight = maxDimension;
+          newWidth = (originalWidth * maxDimension) / originalHeight;
+        }
+      }
+
+      // Only resize if dimensions are different
+      const needsResize =
+        Math.round(newWidth) !== originalWidth ||
+        Math.round(newHeight) !== originalHeight;
+
+      const manipulations = needsResize
+        ? [
+            {
+              resize: {
+                width: Math.round(newWidth),
+                height: Math.round(newHeight),
+              },
+            },
+          ]
+        : [];
+
+      // Compress and optionally resize image
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        manipulations,
+        {
+          compress: quality,
+          format,
+        }
+      );
+
+      const compressionRatio = needsResize
+        ? (newWidth * newHeight) / (originalWidth * originalHeight)
+        : 1;
+
+      console.log(`Image compression complete:`);
+      console.log(`  Original: ${originalWidth}x${originalHeight}`);
+      console.log(
+        `  Compressed: ${Math.round(newWidth)}x${Math.round(newHeight)}`
+      );
+      console.log(
+        `  Compression ratio: ${(compressionRatio * 100).toFixed(1)}%`
+      );
+
+      return {
+        uri: manipulatedImage.uri,
+        originalSize: { width: originalWidth, height: originalHeight },
+        compressedSize: {
+          width: Math.round(newWidth),
+          height: Math.round(newHeight),
+        },
+        compressionRatio,
+      };
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      // Return original image info if compression fails
+      return {
+        uri,
+        originalSize: { width: 0, height: 0 },
+        compressedSize: { width: 0, height: 0 },
+        compressionRatio: 1,
       };
     }
   }
@@ -349,14 +461,18 @@ export const useImageProcessing = () => {
   };
 
   const processBatch = (
-    imageUris: string[], 
+    imageUris: string[],
     options?: ImageProcessingOptions,
     onProgress?: (progress: BatchProcessingProgress) => void
   ) => {
     return imageProcessing.processBatch(imageUris, options, onProgress);
   };
 
-  const createThumbnail = (imageUri: string, size?: number, quality?: number) => {
+  const createThumbnail = (
+    imageUri: string,
+    size?: number,
+    quality?: number
+  ) => {
     return imageProcessing.createThumbnail(imageUri, size, quality);
   };
 
@@ -372,6 +488,13 @@ export const useImageProcessing = () => {
     return imageProcessing.formatFileSize(bytes);
   };
 
+  const compressImage = (
+    uri: string,
+    options: ImageCompressionOptions = {}
+  ) => {
+    return imageProcessing.compressImage(uri, options);
+  };
+
   return {
     processImage,
     processBatch,
@@ -379,5 +502,88 @@ export const useImageProcessing = () => {
     optimizeForClothing,
     validateImage,
     formatFileSize,
+    compressImage,
   };
+};
+
+// Export standalone functions for direct use
+export const compressImage = (
+  uri: string,
+  options: ImageCompressionOptions = {}
+): Promise<CompressionResult> => {
+  return imageProcessing.compressImage(uri, options);
+};
+
+export const processImage = (
+  imageUri: string,
+  options: ImageProcessingOptions = {}
+): Promise<ProcessedImage> => {
+  return imageProcessing.processImage(imageUri, options);
+};
+
+export const createThumbnail = (
+  imageUri: string,
+  size: number = 200,
+  quality: number = 0.7
+): Promise<ProcessedImage> => {
+  return imageProcessing.createThumbnail(imageUri, size, quality);
+};
+
+export const validateImage = (
+  imageUri: string
+): Promise<{ isValid: boolean; error?: string }> => {
+  return imageProcessing.validateImage(imageUri);
+};
+
+export const formatFileSize = (bytes: number): string => {
+  return imageProcessing.formatFileSize(bytes);
+};
+
+// Preset compression options for different use cases
+export const CompressionPresets = {
+  // For profile images and avatars - smaller size, good quality
+  profile: {
+    maxDimension: 800,
+    quality: 0.85,
+    format: ImageManipulator.SaveFormat.JPEG,
+  },
+
+  // For full body images - larger size, good quality
+  fullBody: {
+    maxDimension: 1200,
+    quality: 0.8,
+    format: ImageManipulator.SaveFormat.JPEG,
+  },
+
+  // For clothing items in wardrobe - medium size, high quality
+  wardrobe: {
+    maxDimension: 1000,
+    quality: 0.85,
+    format: ImageManipulator.SaveFormat.JPEG,
+  },
+
+  // For thumbnails - very small size, lower quality acceptable
+  thumbnail: {
+    maxDimension: 300,
+    quality: 0.7,
+    format: ImageManipulator.SaveFormat.JPEG,
+  },
+
+  // For high quality photos - larger size, highest quality
+  highQuality: {
+    maxDimension: 1600,
+    quality: 0.9,
+    format: ImageManipulator.SaveFormat.JPEG,
+  },
+} as const;
+
+export const getFileSize = async (uri: string): Promise<number> => {
+  try {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return blob.size;
+  } catch (error) {
+    console.error('Error getting file size:', error);
+    return 0;
+  }
 };

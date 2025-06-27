@@ -162,6 +162,7 @@ export interface ProfileUpdateFormData {
   date_of_birth?: string;
   gender?: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say';
   phone?: string;
+  avatar_url?: string;
   country?: string;
   city?: string;
   timezone?: string;
