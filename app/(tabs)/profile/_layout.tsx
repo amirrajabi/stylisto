@@ -36,12 +36,7 @@ export default function ProfileLayout() {
           headerShown: false,
         }}
       />
-      <Stack.Screen
-        name="saved"
-        options={{
-          headerShown: false,
-        }}
-      />
+
       <Stack.Screen
         name="personal-info"
         options={{

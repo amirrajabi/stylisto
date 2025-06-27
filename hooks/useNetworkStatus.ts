@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
 import * as Network from 'expo-network';
+import { useCallback, useEffect, useState } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
-import { errorHandling, ErrorSeverity, ErrorCategory } from '../lib/errorHandling';
+import {
+  ErrorCategory,
+  errorHandling,
+  ErrorSeverity,
+} from '../lib/errorHandling';
 
 interface NetworkStatus {
   isConnected: boolean;
@@ -19,11 +23,12 @@ interface UseNetworkStatusOptions {
 
 export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
   const {
-    checkServerUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.stylisto.app',
+    checkServerUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ||
+      'https://ywbbsdqdkucrvyowukcs.supabase.co',
     checkInterval = 30000, // 30 seconds
     onStatusChange,
   } = options;
-  
+
   const [status, setStatus] = useState<NetworkStatus>({
     isConnected: true,
     isInternetReachable: null,
@@ -31,31 +36,40 @@ export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
     isServerReachable: null,
     lastChecked: new Date(),
   });
-  
+
   const checkNetworkStatus = useCallback(async () => {
     try {
       // Get network state
       const networkState = await Network.getNetworkStateAsync();
-      
+
       // Check server reachability if connected
       let isServerReachable = null;
-      if (networkState.isConnected && networkState.isInternetReachable !== false) {
+      if (
+        networkState.isConnected &&
+        networkState.isInternetReachable !== false
+      ) {
         try {
           // Use a lightweight endpoint to check server connectivity
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
-          
-          const response = await fetch(`${checkServerUrl}/health`, { 
-            method: 'HEAD',
-            headers: { 'Cache-Control': 'no-cache' },
-            signal: controller.signal,
-          });
-          
+
+          const response = await fetch(
+            `${checkServerUrl}/rest/v1/health_checks?select=status&limit=1`,
+            {
+              method: 'HEAD',
+              headers: {
+                'Cache-Control': 'no-cache',
+                apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+              },
+              signal: controller.signal,
+            }
+          );
+
           clearTimeout(timeoutId);
           isServerReachable = response.ok;
         } catch (error) {
           isServerReachable = false;
-          
+
           // Log server connectivity issue
           errorHandling.captureMessage('Server connectivity issue', {
             severity: ErrorSeverity.WARNING,
@@ -71,7 +85,7 @@ export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
           });
         }
       }
-      
+
       // Update status
       const newStatus = {
         isConnected: networkState.isConnected,
@@ -80,22 +94,24 @@ export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
         isServerReachable,
         lastChecked: new Date(),
       };
-      
+
       setStatus(newStatus);
-      
+
       // Notify callback if provided
       if (onStatusChange) {
         onStatusChange(newStatus);
       }
-      
+
       // Update error handling service
       errorHandling.updateNetworkStatus();
     } catch (error) {
       console.error('Failed to check network status:', error);
-      
+
       // Log network check error
       errorHandling.captureError(
-        error instanceof Error ? error : new Error('Failed to check network status'),
+        error instanceof Error
+          ? error
+          : new Error('Failed to check network status'),
         {
           severity: ErrorSeverity.ERROR,
           category: ErrorCategory.NETWORK,
@@ -103,26 +119,32 @@ export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
       );
     }
   }, [checkServerUrl, onStatusChange]);
-  
+
   // Handle app state changes
-  const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
-    if (nextAppState === 'active') {
-      // App has come to the foreground, check network status
-      checkNetworkStatus();
-    }
-  }, [checkNetworkStatus]);
-  
+  const handleAppStateChange = useCallback(
+    (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // App has come to the foreground, check network status
+        checkNetworkStatus();
+      }
+    },
+    [checkNetworkStatus]
+  );
+
   // Set up network status monitoring
   useEffect(() => {
     let networkListener: any;
     let intervalId: NodeJS.Timeout;
-    
+
     // Initial check
     checkNetworkStatus();
-    
+
     // Set up app state change listener
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange
+    );
+
     // Set up network change listener
     if (Platform.OS !== 'web') {
       // For native platforms, use event listener
@@ -136,14 +158,14 @@ export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
       window.addEventListener('online', checkNetworkStatus);
       window.addEventListener('offline', checkNetworkStatus);
     }
-    
+
     // Set up periodic checks
     intervalId = setInterval(checkNetworkStatus, checkInterval);
-    
+
     return () => {
       subscription.remove();
       clearInterval(intervalId);
-      
+
       if (Platform.OS !== 'web') {
         if (networkListener && Network.removeNetworkStateListener) {
           Network.removeNetworkStateListener(networkListener);
@@ -154,7 +176,7 @@ export const useNetworkStatus = (options: UseNetworkStatusOptions = {}) => {
       }
     };
   }, [checkNetworkStatus, checkInterval, handleAppStateChange]);
-  
+
   return {
     ...status,
     checkNetworkStatus,

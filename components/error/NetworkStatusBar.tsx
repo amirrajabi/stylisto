@@ -50,7 +50,8 @@ export const NetworkStatusBar: React.FC<NetworkStatusBarProps> = ({
         try {
           // Use a lightweight endpoint to check server connectivity
           const apiUrl =
-            process.env.EXPO_PUBLIC_API_URL || 'https://api.stylisto.app';
+            process.env.EXPO_PUBLIC_SUPABASE_URL ||
+            'https://ywbbsdqdkucrvyowukcs.supabase.co';
 
           // Create AbortController for timeout instead of AbortSignal.timeout which is not supported in React Native
           const abortController = new AbortController();

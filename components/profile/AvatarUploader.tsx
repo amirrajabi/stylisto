@@ -250,44 +250,28 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   };
 
   const handleImageLoad = () => {
-    console.log('Avatar image loaded successfully');
     setImageLoading(false);
     setImageError(false);
   };
 
   const handleImageError = (error: any) => {
-    console.error('Avatar image failed to load:', error);
-    console.error('Current avatar URL:', currentAvatarUrl);
-    console.error('Prop avatar URL:', avatarUrl);
-
     setImageLoading(false);
     setImageError(true);
 
     // If this is a newly uploaded image that failed to load,
     // and we have a different prop URL, try falling back to it
     if (currentAvatarUrl && avatarUrl && currentAvatarUrl !== avatarUrl) {
-      console.log('Falling back to prop avatar URL after 2 seconds...');
       setTimeout(() => {
-        console.log('Executing fallback to prop URL:', avatarUrl);
         setCurrentAvatarUrl(avatarUrl);
         setImageLoading(true);
         setImageError(false);
       }, 2000);
-    } else {
-      // If no fallback available, try refreshing the current URL
-      console.log('No fallback available, will show placeholder');
     }
   };
 
   const renderAvatarContent = () => {
     // Prioritize current avatar URL (which might be newer) over prop
     const displayUrl = currentAvatarUrl || avatarUrl;
-
-    console.log('Rendering avatar content - displayUrl:', displayUrl);
-    console.log('Current avatar URL:', currentAvatarUrl);
-    console.log('Prop avatar URL:', avatarUrl);
-    console.log('Image loading:', imageLoading);
-    console.log('Image error:', imageError);
 
     if (!displayUrl) {
       return (

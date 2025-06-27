@@ -85,15 +85,7 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   onProve,
   onTry,
 }) => {
-  console.log(
-    '🔍 OutfitDetailModal render - visible:',
-    visible,
-    'outfit:',
-    outfit
-  );
-
   if (!outfit) {
-    console.log('❌ OutfitDetailModal: No outfit data provided');
     return null;
   }
 
@@ -118,9 +110,7 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
     }
   };
 
-  console.log('🔍 Outfit score structure:', outfit.score);
   const totalScore = Math.round((outfit.score?.total || 0) * 100);
-  console.log('🔍 Calculated total score:', totalScore);
 
   return (
     <Modal
