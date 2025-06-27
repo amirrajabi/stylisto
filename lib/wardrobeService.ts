@@ -608,6 +608,65 @@ class WardrobeService {
     }
   }
 
+  async getFavoriteItems(): Promise<{
+    data: ClothingItem[] | null;
+    error: string | null;
+  }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { data: null, error: 'User not authenticated' };
+      }
+
+      const { data, error } = await supabase
+        .from('clothing_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_favorite', true)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        return { data: null, error: error.message };
+      }
+
+      const items: ClothingItem[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        subcategory: item.subcategory || '',
+        color: item.color,
+        brand: item.brand || '',
+        size: item.size || '',
+        season: item.seasons || [],
+        occasion: item.occasions || [],
+        imageUrl: this.fixImageUrl(item.image_url),
+        tags: item.tags || [],
+        isFavorite: item.is_favorite || false,
+        lastWorn: item.last_worn,
+        timesWorn: item.times_worn || 0,
+        purchaseDate: item.purchase_date,
+        price: item.price,
+        notes: item.notes || '',
+        originalPrice: item.original_price,
+        currentValue: item.current_value,
+        sellingPrice: item.selling_price,
+        condition: item.condition || 'good',
+        isForSale: item.is_for_sale || false,
+        saleListing: item.sale_listing || {},
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+      }));
+
+      return { data: items, error: null };
+    } catch (error) {
+      console.error('Error fetching favorite items:', error);
+      return { data: null, error: (error as Error).message };
+    }
+  }
+
   async toggleFavorite(itemId: string): Promise<{ error: string | null }> {
     try {
       const {

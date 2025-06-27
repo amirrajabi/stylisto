@@ -161,6 +161,28 @@ export const useWardrobe = () => {
     }
   };
 
+  const loadFavoriteItems = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await wardrobeService.getFavoriteItems();
+      if (result.error) {
+        setError(result.error);
+        return { data: null, error: result.error };
+      } else {
+        return { data: result.data, error: null };
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      return { data: null, error: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const toggleFavorite = async (itemId: string) => {
     setIsLoading(true);
     setError(null);
@@ -390,6 +412,7 @@ export const useWardrobe = () => {
       updateItem,
       deleteItem,
       permanentlyDeleteItem,
+      loadFavoriteItems,
       toggleFavorite,
       loadClothingItems,
       refreshData: loadClothingItems, // Alias for manual refresh

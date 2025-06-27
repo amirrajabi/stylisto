@@ -1,6 +1,34 @@
+/*
+ * OutfitDetailModal Component
+ *
+ * Features:
+ * - Displays detailed outfit information including match scores
+ * - Shows individual clothing items with their details
+ * - Provides action buttons for save, share operations
+ * - Shows "Try" button above Match Details section when onTry callback is provided
+ * - Shows big attractive "Prove This Outfit" button for favorite outfits (isFavorite = true)
+ *
+ * Props:
+ * - onTry: Callback function when Try button is pressed
+ * - onProve: Callback function when Prove button is pressed for favorite outfits
+ * - outfit.isFavorite: Boolean flag to determine if outfit is favorited
+ *
+ * Usage:
+ * <OutfitDetailModal
+ *   visible={showModal}
+ *   onClose={() => setShowModal(false)}
+ *   outfit={{ ...outfitData, isFavorite: true }}
+ *   onTry={(outfitId) => handleTryOutfit(outfitId)}
+ *   onProve={(outfitId) => handleProveOutfit(outfitId)}
+ *   onSave={(outfitId) => handleSaveOutfit(outfitId)}
+ *   onShare={(outfitId) => handleShareOutfit(outfitId)}
+ * />
+ */
+
 import { Image } from 'expo-image';
 import {
   Calendar,
+  CheckCircle,
   Heart,
   Palette,
   Share2,
@@ -38,9 +66,12 @@ interface OutfitDetailModalProps {
       season: number;
       occasion: number;
     };
+    isFavorite?: boolean;
   } | null;
   onSave?: (outfitId: string) => void;
   onShare?: (outfitId: string) => void;
+  onProve?: (outfitId: string) => void;
+  onTry?: (outfitId: string) => void;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -51,6 +82,8 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   outfit,
   onSave,
   onShare,
+  onProve,
+  onTry,
 }) => {
   console.log(
     '🔍 OutfitDetailModal render - visible:',
@@ -129,6 +162,7 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
                 <Heart size={20} color={Colors.error[500]} />
               </TouchableOpacity>
             )}
+
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
@@ -136,9 +170,35 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Try Button */}
+          {onTry && (
+            <TouchableOpacity
+              style={styles.tryButton}
+              onPress={() => onTry(outfit.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.tryButtonText}>Try</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Score Breakdown */}
           <View style={styles.scoresSection}>
             <Text style={styles.sectionTitle}>Match Details</Text>
+
+            {/* Big Prove Button for Favorites */}
+            {onProve && outfit.isFavorite && (
+              <TouchableOpacity
+                style={styles.bigProveButton}
+                onPress={() => onProve(outfit.id)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.bigProveContent}>
+                  <CheckCircle size={24} color={Colors.surface.primary} />
+                  <Text style={styles.bigProveText}>Prove This Outfit</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
             <View style={styles.scoreGrid}>
               {[
                 {
@@ -297,6 +357,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  proveButton: {
+    backgroundColor: Colors.success[50],
+    borderWidth: 1,
+    borderColor: Colors.success[200],
+  },
   closeButton: {
     width: 40,
     height: 40,
@@ -309,6 +374,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.md,
   },
+  tryButton: {
+    backgroundColor: Colors.primary[500],
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+    elevation: 2,
+  },
+  tryButtonText: {
+    ...Typography.body.medium,
+    color: Colors.surface.primary,
+    fontWeight: '600',
+  },
   scoresSection: {
     marginBottom: Spacing.xl,
   },
@@ -317,6 +398,26 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontWeight: '600',
     marginBottom: Spacing.md,
+  },
+  bigProveButton: {
+    backgroundColor: Colors.success[500],
+    borderRadius: Layout.borderRadius.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
+    elevation: 4,
+  },
+  bigProveContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  bigProveText: {
+    ...Typography.heading.h4,
+    color: Colors.surface.primary,
+    fontWeight: '700',
   },
   scoreGrid: {
     gap: Spacing.md,

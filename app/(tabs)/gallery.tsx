@@ -1,11 +1,19 @@
-import { Heart } from 'lucide-react-native';
+import { Heart, Shirt } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import {
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
 import { OutfitDetailModal } from '../../components/outfits/OutfitDetailModal';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
+import { FavoriteItemsGallery } from '../../components/wardrobe/FavoriteItemsGallery';
+import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
 import { useAuth } from '../../hooks/useAuth';
@@ -22,10 +30,13 @@ interface FavoriteOutfit {
   source_type?: 'ai_generated' | 'manual';
 }
 
+type TabType = 'outfits' | 'items';
+
 export default function GalleryScreen() {
   const { colors } = useAccessibility();
   const { user } = useAuth();
   const { calculateDetailedScore, formatScoreForDatabase } = useOutfitScoring();
+  const [activeTab, setActiveTab] = useState<TabType>('outfits');
   const [favoriteOutfits, setFavoriteOutfits] = useState<FavoriteOutfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -132,12 +143,18 @@ export default function GalleryScreen() {
   };
 
   useEffect(() => {
-    fetchFavoriteOutfits();
-  }, [user]);
+    if (activeTab === 'outfits') {
+      fetchFavoriteOutfits();
+    }
+  }, [user, activeTab]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchFavoriteOutfits();
+    if (activeTab === 'outfits') {
+      fetchFavoriteOutfits();
+    } else {
+      setRefreshing(false);
+    }
   };
 
   const handleOutfitPress = (outfit: FavoriteOutfit) => {
@@ -186,6 +203,33 @@ export default function GalleryScreen() {
     }
   };
 
+  const handleItemPress = (item: ClothingItem) => {
+    console.log('Item pressed:', item.name);
+  };
+
+  const renderTabButton = (tabType: TabType, label: string, icon: any) => (
+    <TouchableOpacity
+      style={[
+        styles.tabButton,
+        activeTab === tabType && styles.activeTabButton,
+      ]}
+      onPress={() => setActiveTab(tabType)}
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ selected: activeTab === tabType }}
+    >
+      {icon}
+      <AccessibleText
+        style={[
+          styles.tabButtonText,
+          activeTab === tabType && styles.activeTabButtonText,
+        ]}
+      >
+        {label}
+      </AccessibleText>
+    </TouchableOpacity>
+  );
+
   const renderOutfitItem = ({ item }: { item: FavoriteOutfit }) => (
     <FavoriteOutfitCard
       outfit={item}
@@ -195,25 +239,18 @@ export default function GalleryScreen() {
     />
   );
 
-  const renderEmptyState = () => (
+  const renderEmptyOutfitsState = () => (
     <View style={styles.emptyState}>
-      <Heart
-        size={64}
-        color={colors.text.tertiary}
-        strokeWidth={1.5}
-        style={styles.emptyIcon}
-      />
+      <Heart size={64} color={colors.text.secondary} style={styles.emptyIcon} />
       <AccessibleText
         style={[styles.emptyTitle, { color: colors.text.primary }]}
-        accessibilityRole="header"
       >
         No Favorite Outfits
       </AccessibleText>
       <AccessibleText
         style={[styles.emptyDescription, { color: colors.text.secondary }]}
       >
-        Start adding outfits to your favorites from the Stylist tab to see them
-        here.
+        Mark outfits as favorites to see them here
       </AccessibleText>
     </View>
   );
@@ -223,46 +260,69 @@ export default function GalleryScreen() {
       style={[styles.container, { backgroundColor: colors.background.primary }]}
     >
       <View style={styles.header}>
-        <AccessibleText
-          style={[styles.title, { color: colors.text.primary }]}
-          accessibilityRole="header"
-        >
-          Favorite Outfits
-        </AccessibleText>
-        <AccessibleText
-          style={[styles.subtitle, { color: colors.text.secondary }]}
-        >
-          Your curated collection of favorite looks
+        <AccessibleText style={[styles.title, { color: colors.text.primary }]}>
+          Favorites
         </AccessibleText>
       </View>
 
-      <FlatList
-        data={favoriteOutfits}
-        renderItem={renderOutfitItem}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.listContainer}
-        columnWrapperStyle={styles.row}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary[600]}
-            colors={[colors.primary[600]]}
+      <View style={styles.tabContainer}>
+        {renderTabButton(
+          'outfits',
+          'Outfits',
+          <Heart
+            size={20}
+            color={
+              activeTab === 'outfits'
+                ? colors.primary[600]
+                : Colors.text.tertiary
+            }
           />
-        }
-        ListEmptyComponent={!loading ? renderEmptyState : null}
-        accessibilityLabel="Favorite outfits grid"
-      />
+        )}
+        {renderTabButton(
+          'items',
+          'Items',
+          <Shirt
+            size={20}
+            color={
+              activeTab === 'items' ? colors.primary[600] : Colors.text.tertiary
+            }
+          />
+        )}
+      </View>
 
-      <OutfitDetailModal
-        visible={modalVisible}
-        onClose={handleCloseModal}
-        outfit={selectedOutfit}
-        onSave={handleSaveOutfit}
-        onShare={handleShareOutfit}
-      />
+      <View style={styles.content}>
+        {activeTab === 'outfits' ? (
+          <FlatList
+            data={favoriteOutfits}
+            keyExtractor={item => item.id}
+            renderItem={renderOutfitItem}
+            numColumns={2}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={renderEmptyOutfitsState}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary[600]]}
+                tintColor={colors.primary[600]}
+              />
+            }
+          />
+        ) : (
+          <FavoriteItemsGallery onItemPress={handleItemPress} numColumns={2} />
+        )}
+      </View>
+
+      {selectedOutfit && (
+        <OutfitDetailModal
+          visible={modalVisible}
+          outfit={selectedOutfit}
+          onClose={handleCloseModal}
+          onSave={handleSaveOutfit}
+          onShare={handleShareOutfit}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -273,52 +333,74 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.secondary,
   },
   title: {
-    fontSize: Typography.heading.h2.fontSize,
-    fontWeight: Typography.heading.h2.fontWeight,
-    fontFamily: Typography.heading.h2.fontFamily,
-    marginBottom: Spacing.xs,
+    ...Typography.heading.h2,
+    fontWeight: 'bold',
   },
-  subtitle: {
-    fontSize: Typography.body.medium.fontSize,
-    fontFamily: Typography.body.medium.fontFamily,
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.background.secondary,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.secondary,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 8,
+    marginHorizontal: Spacing.xs,
+  },
+  activeTabButton: {
+    backgroundColor: Colors.primary[50],
+  },
+  tabButtonText: {
+    ...Typography.body.medium,
+    color: Colors.text.tertiary,
+    marginLeft: Spacing.xs,
+  },
+  activeTabButtonText: {
+    color: Colors.primary[600],
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
   },
   listContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['6xl'],
-  },
-  row: {
-    justifyContent: 'space-between',
+    padding: Spacing.md,
+    flexGrow: 1,
   },
   outfitCard: {
-    width: '48%',
-    marginBottom: Spacing.lg,
+    flex: 1,
+    margin: Spacing.xs,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing['6xl'],
+    paddingVertical: Spacing['3xl'],
   },
   emptyIcon: {
-    marginBottom: Spacing.lg,
-    opacity: 0.6,
+    opacity: 0.5,
   },
   emptyTitle: {
-    fontSize: Typography.heading.h3.fontSize,
-    fontWeight: Typography.heading.h3.fontWeight,
-    fontFamily: Typography.heading.h3.fontFamily,
-    marginBottom: Spacing.sm,
+    ...Typography.heading.h3,
+    marginTop: Spacing.lg,
     textAlign: 'center',
   },
   emptyDescription: {
-    fontSize: Typography.body.medium.fontSize,
-    fontFamily: Typography.body.medium.fontFamily,
+    ...Typography.body.medium,
+    marginTop: Spacing.sm,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
   },
 });
