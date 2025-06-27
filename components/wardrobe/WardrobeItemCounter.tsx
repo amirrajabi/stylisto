@@ -71,7 +71,7 @@ export const WardrobeItemCounter: React.FC<WardrobeItemCounterProps> = ({
       {filteredItems.length < 2 && (
         <View style={styles.warningContainer}>
           <Text style={styles.warningText}>
-            ⚠️ Need at least 2 items to generate outfits
+            ⚠️ Need at least 2 items for AI styling
           </Text>
           {hasActiveFilters && (
             <Text style={styles.suggestionText}>

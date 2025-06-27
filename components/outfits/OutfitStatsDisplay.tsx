@@ -42,7 +42,7 @@ export const OutfitStatsDisplay: React.FC<OutfitStatsDisplayProps> = ({
             <Heart size={20} color={Colors.primary[500]} />
           </View>
           <Text style={styles.statValue}>{generatedOutfits}</Text>
-          <Text style={styles.statLabel}>Generated Outfits</Text>
+          <Text style={styles.statLabel}>Styled Outfits</Text>
         </View>
 
         <View style={styles.statCard}>

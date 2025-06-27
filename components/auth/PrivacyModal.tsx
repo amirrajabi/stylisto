@@ -100,7 +100,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
             </BodyMedium>
             <View style={styles.bulletContainer}>
               <BodySmall style={styles.bulletPoint}>
-                • Generate personalized outfit recommendations
+                • Create personalized styling recommendations
               </BodySmall>
               <BodySmall style={styles.bulletPoint}>
                 • Analyze your wardrobe and style preferences

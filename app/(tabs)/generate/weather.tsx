@@ -1,23 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-  TextInput,
-  Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, MapPin, Cloud, Thermometer, Wind, Droplets } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WeatherData } from '../../../lib/outfitGenerator';
+import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  Cloud,
+  Droplets,
+  MapPin,
+  Thermometer,
+  Wind,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BodyMedium, Button, H1 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
+import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
-import { H1, BodyMedium, Button } from '../../../components/ui';
+import { WeatherData } from '../../../lib/outfitGenerator';
 
 // Mock weather data for demonstration
 const MOCK_WEATHER: WeatherData = {
@@ -34,34 +41,36 @@ export default function WeatherScreen() {
   const [useCurrentLocation, setUseCurrentLocation] = useState(true);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [apiKey, setApiKey] = useState('');
-  
+
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const useWeatherSetting = await AsyncStorage.getItem('@use_weather');
         setUseWeather(useWeatherSetting !== 'false');
-        
+
         const savedLocation = await AsyncStorage.getItem('@weather_location');
         if (savedLocation) {
           setLocation(savedLocation);
         }
-        
-        const useCurrentLocationSetting = await AsyncStorage.getItem('@use_current_location');
+
+        const useCurrentLocationSetting = await AsyncStorage.getItem(
+          '@use_current_location'
+        );
         setUseCurrentLocation(useCurrentLocationSetting !== 'false');
-        
+
         const savedApiKey = await AsyncStorage.getItem('@weather_api_key');
         if (savedApiKey) {
           setApiKey(savedApiKey);
         }
-        
+
         // For demo purposes, always set mock weather data
         setWeatherData(MOCK_WEATHER);
       } catch (error) {
         console.error('Failed to load weather settings:', error);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -69,12 +78,15 @@ export default function WeatherScreen() {
     try {
       await AsyncStorage.setItem('@use_weather', useWeather ? 'true' : 'false');
       await AsyncStorage.setItem('@weather_location', location);
-      await AsyncStorage.setItem('@use_current_location', useCurrentLocation ? 'true' : 'false');
-      
+      await AsyncStorage.setItem(
+        '@use_current_location',
+        useCurrentLocation ? 'true' : 'false'
+      );
+
       if (apiKey) {
         await AsyncStorage.setItem('@weather_api_key', apiKey);
       }
-      
+
       Alert.alert('Success', 'Weather settings saved successfully');
       router.back();
     } catch (error) {
@@ -90,7 +102,7 @@ export default function WeatherScreen() {
       ...MOCK_WEATHER,
       temperature: MOCK_WEATHER.temperature + (Math.random() * 4 - 2), // +/- 2 degrees
     });
-    
+
     Alert.alert('Weather Updated', 'Weather data has been refreshed');
   };
 
@@ -113,13 +125,16 @@ export default function WeatherScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Use Weather for Outfits</Text>
               <Text style={styles.settingDescription}>
-                Generate outfits based on current weather conditions
+                Style outfits based on current weather conditions
               </Text>
             </View>
             <Switch
               value={useWeather}
               onValueChange={setUseWeather}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
@@ -133,7 +148,7 @@ export default function WeatherScreen() {
                 <MapPin size={20} color={Colors.text.primary} />
                 <Text style={styles.sectionTitle}>Location Settings</Text>
               </View>
-              
+
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingTitle}>Use Current Location</Text>
@@ -144,11 +159,14 @@ export default function WeatherScreen() {
                 <Switch
                   value={useCurrentLocation}
                   onValueChange={setUseCurrentLocation}
-                  trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+                  trackColor={{
+                    false: Colors.neutral[300],
+                    true: Colors.primary[500],
+                  }}
                   thumbColor={Colors.white}
                 />
               </View>
-              
+
               {!useCurrentLocation && (
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Location</Text>
@@ -169,7 +187,7 @@ export default function WeatherScreen() {
                 <Cloud size={20} color={Colors.text.primary} />
                 <Text style={styles.sectionTitle}>Current Weather</Text>
               </View>
-              
+
               {weatherData ? (
                 <View style={styles.weatherCard}>
                   <View style={styles.weatherHeader}>
@@ -183,7 +201,7 @@ export default function WeatherScreen() {
                       <Text style={styles.refreshButtonText}>Refresh</Text>
                     </TouchableOpacity>
                   </View>
-                  
+
                   <View style={styles.weatherDetails}>
                     <View style={styles.weatherDetail}>
                       <Thermometer size={20} color={Colors.text.secondary} />
@@ -192,7 +210,7 @@ export default function WeatherScreen() {
                       </Text>
                       <Text style={styles.weatherLabel}>Temperature</Text>
                     </View>
-                    
+
                     <View style={styles.weatherDetail}>
                       <Cloud size={20} color={Colors.text.secondary} />
                       <Text style={styles.weatherValue}>
@@ -200,7 +218,7 @@ export default function WeatherScreen() {
                       </Text>
                       <Text style={styles.weatherLabel}>Conditions</Text>
                     </View>
-                    
+
                     <View style={styles.weatherDetail}>
                       <Wind size={20} color={Colors.text.secondary} />
                       <Text style={styles.weatherValue}>
@@ -208,7 +226,7 @@ export default function WeatherScreen() {
                       </Text>
                       <Text style={styles.weatherLabel}>Wind</Text>
                     </View>
-                    
+
                     <View style={styles.weatherDetail}>
                       <Droplets size={20} color={Colors.text.secondary} />
                       <Text style={styles.weatherValue}>
@@ -239,11 +257,11 @@ export default function WeatherScreen() {
                 <Cloud size={20} color={Colors.text.primary} />
                 <Text style={styles.sectionTitle}>Weather API Settings</Text>
               </View>
-              
+
               <BodyMedium color="secondary" style={styles.sectionDescription}>
                 Enter your weather API key to enable real-time weather data.
               </BodyMedium>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>API Key (Optional)</Text>
                 <TextInput
@@ -255,9 +273,10 @@ export default function WeatherScreen() {
                   secureTextEntry
                 />
               </View>
-              
+
               <Text style={styles.apiNote}>
-                We support OpenWeatherMap and WeatherAPI. Your API key is stored securely on your device.
+                We support OpenWeatherMap and WeatherAPI. Your API key is stored
+                securely on your device.
               </Text>
             </View>
           </>

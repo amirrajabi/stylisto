@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Shirt, Sparkles, User, Wand2 } from 'lucide-react-native';
+import { Shirt, Sparkles, User } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
@@ -57,23 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="generate"
         options={{
-          title: 'Generate',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Wand2
-              size={size}
-              color={color}
-              strokeWidth={focused ? 2.5 : 2}
-              accessibilityLabel=""
-            />
-          ),
-          tabBarAccessibilityLabel: 'Generate outfits tab',
-        }}
-      />
-
-      <Tabs.Screen
-        name="outfits"
-        options={{
-          title: 'Outfits',
+          title: 'Stylist',
           tabBarIcon: ({ color, size, focused }) => (
             <Sparkles
               size={size}
@@ -82,7 +66,7 @@ export default function TabLayout() {
               accessibilityLabel=""
             />
           ),
-          tabBarAccessibilityLabel: 'Outfits tab',
+          tabBarAccessibilityLabel: 'AI Stylist tab',
         }}
       />
       <Tabs.Screen

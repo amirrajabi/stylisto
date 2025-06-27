@@ -21,10 +21,10 @@ import {
 } from 'react-native';
 import { BodyMedium, Button, H1 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
+import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
-import { StylePreference } from '../../../components/outfits/OutfitGenerator';
-import { Shadows } from '../../../constants/Shadows';
+import { StylePreference } from '../../../lib/outfitGenerator';
 
 const STYLE_PREFERENCE_KEY = '@style_preferences';
 
@@ -270,7 +270,7 @@ export default function PreferencesScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Save Generation History</Text>
               <Text style={styles.settingDescription}>
-                Remember previously generated outfits to ensure variety
+                Remember previously styled outfits to ensure variety
               </Text>
             </View>
             <Switch

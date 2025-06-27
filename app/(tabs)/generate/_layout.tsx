@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { Colors } from '../../../constants/Colors';
 import { Typography } from '../../../constants/Typography';
 
-export default function GenerateLayout() {
+export default function StylistLayout() {
   return (
     <Stack
       screenOptions={{
@@ -20,7 +20,7 @@ export default function GenerateLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Generate Outfits',
+          title: 'AI Stylist',
           headerShown: false,
         }}
       />

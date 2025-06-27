@@ -84,7 +84,7 @@ const getColorLabel = (color: string): string => {
   return labels[color] || color;
 };
 
-export default function GenerateScreen() {
+export default function StylistScreen() {
   const { filteredItems } = useWardrobe();
   const [screenReady, setScreenReady] = useState(false);
 
@@ -558,9 +558,9 @@ export default function GenerateScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.titleSection}>
-            <H1 style={styles.title}>Generate Outfits</H1>
+            <H1 style={styles.title}>AI Stylist</H1>
             <BodyMedium style={styles.headerSubtitle}>
-              AI-powered outfit recommendations based on your wardrobe
+              Your personal AI stylist powered by advanced fashion intelligence
             </BodyMedium>
           </View>
           <TouchableOpacity
@@ -698,7 +698,7 @@ export default function GenerateScreen() {
         ) : outfits.length > 0 ? (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
-              <H3 style={styles.sectionTitle}>Your AI-Generated Outfits</H3>
+              <H3 style={styles.sectionTitle}>Your Styled Outfits</H3>
               <Text style={styles.outfitCount}>({outfits.length})</Text>
             </View>
             <OutfitCard
@@ -728,8 +728,8 @@ export default function GenerateScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>Choose Your Style</Text>
             <Text style={styles.emptyStateDescription}>
-              Select an occasion and style above to get started with AI-powered
-              outfit recommendations.
+              Select an occasion and style above to get started with your
+              personal AI stylist recommendations.
             </Text>
           </View>
         ) : hasActiveFilters && !loading && outfits.length === 0 ? (
@@ -750,12 +750,10 @@ export default function GenerateScreen() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateTitle}>
-              Ready to Generate Outfits?
-            </Text>
+            <Text style={styles.emptyStateTitle}>Ready for Styling?</Text>
             <Text style={styles.emptyStateDescription}>
-              Click Generate Outfit to get AI-powered outfit recommendations
-              based on your selected filters.
+              Use the filters above to get personalized styling recommendations
+              based on your preferences.
             </Text>
           </View>
         )}
