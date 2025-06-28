@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Colors } from '../../constants/Colors';
 import { ClothingItem } from '../../types/wardrobe';
 import { formatDate, getSeasonColor } from '../../utils/wardrobeUtils';
 import OptimizedImage from '../ui/OptimizedImage';
@@ -154,7 +155,7 @@ export const ClothingItemCard: React.FC<ClothingItemCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     width: cardWidth,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface.primary,
     borderRadius: 16,
     marginBottom: 16,
     marginHorizontal: 4,

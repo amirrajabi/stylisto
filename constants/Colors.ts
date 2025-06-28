@@ -139,7 +139,7 @@ export const Colors = {
 
   // Background Colors
   background: {
-    primary: '#FFFFFF',
+    primary: '#F5F7F9', // Khonsa color
     secondary: '#F5F7F9', // Khonsa color
     tertiary: '#F3F4F6',
     overlay: 'rgba(0, 0, 0, 0.5)',
@@ -147,9 +147,9 @@ export const Colors = {
 
   // Surface Colors
   surface: {
-    primary: '#FFFFFF',
+    primary: '#F5F7F9', // Khonsa color
     secondary: '#F5F7F9', // Khonsa color
-    elevated: '#FFFFFF',
+    elevated: '#F5F7F9', // Khonsa color
     disabled: '#F1F5F9',
   },
 

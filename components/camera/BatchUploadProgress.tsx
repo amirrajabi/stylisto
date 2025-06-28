@@ -20,6 +20,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { Colors } from '../../constants/Colors';
 
 interface UploadItem {
   id: string;
@@ -161,8 +162,8 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
       animationType="fade"
       onRequestClose={canClose ? onClose : undefined}
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View style={styles.modalBackground}>
+        <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
@@ -240,20 +241,26 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalBackground: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
-  container: {
-    backgroundColor: '#FFFFFF',
+  modalContainer: {
+    backgroundColor: Colors.surface.primary,
     borderRadius: 16,
     padding: 24,
-    width: '100%',
+    width: '90%',
     maxWidth: 400,
-    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',

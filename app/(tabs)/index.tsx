@@ -23,6 +23,7 @@ import { FloatingActionButton } from '../../components/ui';
 import { AddItemModal } from '../../components/wardrobe/AddItemModal';
 import { ClothingItemCard } from '../../components/wardrobe/ClothingItemCard';
 import { FilterModal } from '../../components/wardrobe/FilterModal';
+import { Colors } from '../../constants/Colors';
 
 import { useWardrobe } from '../../hooks/useWardrobe';
 import { ClothingItem } from '../../types/wardrobe';
@@ -531,7 +532,7 @@ export default function WardrobeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
@@ -563,7 +564,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface.primary,
     gap: 12,
   },
   searchInputContainer: {

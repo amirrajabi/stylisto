@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Colors } from '../../constants/Colors';
 import { useWardrobe } from '../../hooks/useWardrobe';
 import {
   ClothingCategory,
@@ -859,7 +860,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface.primary,
   },
   header: {
     flexDirection: 'row',
@@ -1011,7 +1012,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface.primary,
   },
   selectedChip: {
     backgroundColor: '#eff6ff',
@@ -1138,5 +1139,26 @@ const styles = StyleSheet.create({
   },
   sellingInputGroup: {
     marginBottom: 16,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '95%',
+    maxWidth: 500,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: 16,
+    maxHeight: '90%',
+    paddingBottom: 20,
+  },
+  modalContent: {
+    backgroundColor: Colors.surface.primary,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '95%',
+    width: '100%',
   },
 });

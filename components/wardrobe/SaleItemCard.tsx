@@ -1,8 +1,18 @@
 import { Image } from 'expo-image';
 import { DollarSign, Tag } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Colors } from '../../constants/Colors';
 import { ClothingItem } from '../../types/wardrobe';
+
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 56) / 2;
 
 interface SaleItemCardProps {
   item: ClothingItem;
@@ -107,18 +117,16 @@ export const SaleItemCard: React.FC<SaleItemCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    width: cardWidth,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: 16,
     marginBottom: 16,
+    marginHorizontal: 4,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
+    shadowRadius: 8,
+    elevation: 4,
   },
   imageContainer: {
     position: 'relative',

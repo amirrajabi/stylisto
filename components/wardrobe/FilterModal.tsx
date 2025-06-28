@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Colors } from '../../constants/Colors';
 import {
   ClothingCategory,
   FilterOptions,
@@ -71,7 +72,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     title: string;
     children: React.ReactNode;
   }> = ({ title, children }) => (
-    <View style={styles.section}>
+    <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
@@ -245,7 +246,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface.primary,
   },
   header: {
     flexDirection: 'row',
@@ -276,8 +277,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  section: {
-    marginVertical: 16,
+  sectionContainer: {
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
@@ -291,15 +292,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-    gap: 4,
+    backgroundColor: Colors.surface.primary,
   },
   selectedChip: {
     backgroundColor: '#eff6ff',
@@ -329,5 +327,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    backgroundColor: Colors.surface.primary,
+    borderRadius: 12,
+    padding: 20,
   },
 });
