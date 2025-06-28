@@ -34,6 +34,15 @@ export const NetworkStatusBar: React.FC<NetworkStatusBarProps> = ({
   const translateY = useRef(new Animated.Value(-50)).current;
   const appState = useRef(AppState.currentState);
 
+  // Check if we're in web development environment
+  const isWebDevelopment = () => {
+    return (
+      typeof window !== 'undefined' &&
+      window.location?.hostname === 'localhost' &&
+      process.env.NODE_ENV === 'development'
+    );
+  };
+
   // Check network status
   const checkNetworkStatus = async () => {
     try {
@@ -44,6 +53,23 @@ export const NetworkStatusBar: React.FC<NetworkStatusBarProps> = ({
       setIsConnected(connected);
       setConnectionType(type);
       setLastChecked(new Date());
+
+      // In web development mode, assume server is reachable if network is connected
+      // This avoids unnecessary API calls that might fail due to CORS or missing keys
+      if (isWebDevelopment()) {
+        setIsServerReachable(connected);
+        onNetworkStatusChange?.(connected);
+
+        // Animate the status bar
+        Animated.timing(translateY, {
+          toValue: !connected ? 0 : -50,
+          duration: 300,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }).start();
+
+        return; // Skip server health check in web development
+      }
 
       // Check server reachability if connected
       if (connected) {
@@ -57,30 +83,52 @@ export const NetworkStatusBar: React.FC<NetworkStatusBarProps> = ({
           const abortController = new AbortController();
           const timeoutId = setTimeout(() => abortController.abort(), 3000);
 
-          const response = await fetch(`${apiUrl}/health`, {
+          // Use the REST API endpoint instead of /health which doesn't exist
+          // This endpoint exists and will return 200 or a proper HTTP status
+          const response = await fetch(`${apiUrl}/rest/v1/`, {
             method: 'HEAD',
-            headers: { 'Cache-Control': 'no-cache' },
+            headers: {
+              'Cache-Control': 'no-cache',
+              apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+            },
             signal: abortController.signal,
           });
 
           clearTimeout(timeoutId);
-          setIsServerReachable(response.ok);
-        } catch (error) {
-          setIsServerReachable(false);
 
-          // Log server connectivity issue
-          errorHandling.captureMessage('Server connectivity issue', {
-            severity: ErrorSeverity.WARNING,
-            category: ErrorCategory.NETWORK,
-            context: {
-              action: 'server_reachability_check',
-              additionalData: {
-                isConnected: connected,
-                connectionType: type,
-                error: error instanceof Error ? error.message : String(error),
+          // Consider 401 as server reachable (just not authenticated)
+          // Consider 200, 401, 403 as server reachable
+          const isReachable =
+            response.status === 200 ||
+            response.status === 401 ||
+            response.status === 403;
+          setIsServerReachable(isReachable);
+        } catch (error) {
+          // Only set unreachable for actual network errors, not auth errors
+          const isNetworkError =
+            error instanceof TypeError ||
+            (error instanceof Error && error.name === 'AbortError');
+
+          if (isNetworkError) {
+            setIsServerReachable(false);
+
+            // Log only actual network connectivity issues
+            errorHandling.captureMessage('Server connectivity issue', {
+              severity: ErrorSeverity.WARNING,
+              category: ErrorCategory.NETWORK,
+              context: {
+                action: 'server_reachability_check',
+                additionalData: {
+                  isConnected: connected,
+                  connectionType: type,
+                  error: error instanceof Error ? error.message : String(error),
+                },
               },
-            },
-          });
+            });
+          } else {
+            // Auth errors mean server is reachable
+            setIsServerReachable(true);
+          }
         }
       } else {
         setIsServerReachable(false);

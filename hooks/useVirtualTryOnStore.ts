@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { supabase } from '../lib/supabase';
 import { TryOnWorkflowState, useVirtualTryOn } from '../lib/virtualTryOn';
 import { RootState } from '../store/store';
 import {
@@ -15,11 +16,13 @@ import {
 } from '../store/virtualTryOnSlice';
 import { ClothingItem } from '../types/wardrobe';
 import { useAuth } from './useAuth';
+import { useVirtualTryOnStorage } from './useVirtualTryOnStorage';
 
 export const useVirtualTryOnStore = () => {
   const dispatch = useDispatch();
   const { user } = useAuth();
   const { processOutfitTryOn } = useVirtualTryOn();
+  const virtualTryOnStorage = useVirtualTryOnStorage();
 
   const virtualTryOnState = useSelector(
     (state: RootState) => state.virtualTryOn
@@ -64,6 +67,34 @@ export const useVirtualTryOnStore = () => {
   }, [dispatch]);
 
   const processVirtualTryOnFromStore = useCallback(async () => {
+    // 🔒 CRITICAL: Verify authentication first
+    console.log('🔐 Checking authentication before virtual try-on...');
+
+    const {
+      data: { user: currentUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error('❌ Auth error:', authError);
+      dispatch(
+        setProcessingError(`Authentication error: ${authError.message}`)
+      );
+      return null;
+    }
+
+    if (!currentUser || !currentUser.id) {
+      console.error('❌ No authenticated user found');
+      dispatch(setProcessingError('Please login to use virtual try-on'));
+      return null;
+    }
+
+    console.log('✅ User authenticated:', {
+      id: currentUser.id,
+      email: currentUser.email,
+      lastSignIn: currentUser.last_sign_in_at,
+    });
+
     if (!virtualTryOnState.userFullBodyImageUrl) {
       dispatch(setProcessingError('User full body image is required'));
       return null;
@@ -79,23 +110,15 @@ export const useVirtualTryOnStore = () => {
       outfitId: virtualTryOnState.currentOutfitId,
       outfitName: virtualTryOnState.currentOutfitName,
       itemCount: virtualTryOnState.currentOutfitItems.length,
+      userId: currentUser.id,
     });
 
     try {
       dispatch(startProcessing());
 
-      console.log('📤 Sending to Virtual Try-On API:', {
-        userImageUrl: virtualTryOnState.userFullBodyImageUrl,
-        itemCount: virtualTryOnState.currentOutfitItems.length,
-        outfitId: virtualTryOnState.currentOutfitId,
-        prompt: generateOutfitPrompt(
-          virtualTryOnState.currentOutfitItems,
-          virtualTryOnState.currentOutfitName || 'Custom Outfit'
-        ),
-      });
-
       const startTime = Date.now();
 
+      // Process virtual try-on
       const result = await processOutfitTryOn(
         virtualTryOnState.currentOutfitId || 'unknown',
         virtualTryOnState.userFullBodyImageUrl,
@@ -120,6 +143,38 @@ export const useVirtualTryOnStore = () => {
         confidence: result.confidence,
       });
 
+      // 💾 Save result using simplified storage service
+      try {
+        console.log('💾 Saving Virtual Try-On result...');
+
+        const saveResult = await virtualTryOnStorage.save(
+          result.generatedImageUrl,
+          virtualTryOnState.currentOutfitName || 'Custom Outfit',
+          {
+            outfitId: virtualTryOnState.currentOutfitId || undefined,
+            userImageUrl: virtualTryOnState.userFullBodyImageUrl,
+            processingTime: result.processingTime,
+            confidence: result.confidence,
+            prompt: result.metadata.prompt,
+            styleInstructions: result.metadata.styleInstructions,
+            itemsUsed: result.metadata.itemsUsed,
+          }
+        );
+
+        if (saveResult.success) {
+          console.log('✅ Virtual Try-On saved successfully!', {
+            storageUrl: saveResult.storageUrl,
+            databaseId: saveResult.databaseId,
+          });
+        } else {
+          console.error('❌ Failed to save Virtual Try-On:', saveResult.error);
+          // Don't fail the whole process - we have the generated image
+        }
+      } catch (saveError) {
+        console.error('❌ Save operation failed:', saveError);
+        // Don't fail the whole process
+      }
+
       dispatch(
         completeProcessing({
           generatedImageUrl: result.generatedImageUrl,
@@ -135,11 +190,19 @@ export const useVirtualTryOnStore = () => {
       dispatch(setProcessingError(errorMessage));
       return null;
     }
-  }, [virtualTryOnState, dispatch, processOutfitTryOn]);
+  }, [virtualTryOnState, dispatch, processOutfitTryOn, virtualTryOnStorage]);
 
   const clearProcessingError = useCallback(() => {
     dispatch(clearError());
   }, [dispatch]);
+
+  // Test storage function
+  const testStorage = useCallback(async () => {
+    console.log('🧪 Testing storage upload...');
+    const result = await virtualTryOnStorage.test();
+    console.log('🧪 Test result:', result);
+    return result;
+  }, [virtualTryOnStorage]);
 
   // Check if ready for virtual try-on
   const isReadyForTryOn = Boolean(
@@ -158,6 +221,11 @@ export const useVirtualTryOnStore = () => {
     clearOutfit,
     processVirtualTryOn: processVirtualTryOnFromStore,
     clearProcessingError,
+    testStorage,
+
+    // Storage state
+    isSaving: virtualTryOnStorage.isSaving,
+    lastSaveResult: virtualTryOnStorage.lastResult,
   };
 };
 

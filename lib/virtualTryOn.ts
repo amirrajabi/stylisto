@@ -1,4 +1,4 @@
-import { ClothingItem } from '@/types/wardrobe';
+import type { ClothingItem } from '../types/wardrobe';
 
 export interface VirtualTryOnRequest {
   initImage: string;
@@ -11,6 +11,7 @@ export interface VirtualTryOnRequest {
 
 export interface VirtualTryOnResult {
   generatedImageUrl: string;
+  collageImageUrl?: string;
   processingTime: number;
   confidence: number;
   metadata: {
@@ -64,6 +65,145 @@ class VirtualTryOnService {
   private readonly STANDARD_PRO_MODEL = 'flux-pro-1.1'; // $0.04 per image - Standard generation
   private readonly DEV_MODEL = 'flux-dev'; // $0.025 per image - Development/testing
 
+  private workflowState: TryOnWorkflowState = {
+    phase: 'input_analysis',
+    progress: 0,
+    message: 'Initializing...',
+  };
+
+  private logApiCommunication(
+    direction: 'REQUEST' | 'RESPONSE',
+    data: {
+      timestamp?: string;
+      endpoint?: string;
+      method?: string;
+      headers?: Record<string, string>;
+      payload?: any;
+      status?: number;
+      statusText?: string;
+      responseData?: any;
+      processingTime?: number;
+      error?: string;
+    }
+  ): void {
+    const timestamp = data.timestamp || new Date().toISOString();
+
+    if (direction === 'REQUEST') {
+      console.log(
+        '\n🚀 ═══════════════════════════════════════════════════════════════'
+      );
+      console.log('📤 AI API REQUEST - VIRTUAL TRY-ON');
+      console.log(
+        '═══════════════════════════════════════════════════════════════'
+      );
+
+      // Request Summary Table
+      const requestSummary = {
+        'زمان ارسال': timestamp,
+        'مقصد API': data.endpoint || 'نامشخص',
+        'نوع درخواست': data.method || 'نامشخص',
+        'سایز Payload': data.payload
+          ? `${JSON.stringify(data.payload).length} bytes`
+          : '0 bytes',
+        'تعداد Headers': data.headers ? Object.keys(data.headers).length : 0,
+      };
+
+      console.table(requestSummary);
+
+      // Headers Table
+      if (data.headers) {
+        console.log('\n📋 HEADERS ارسالی:');
+        const headersTable = Object.entries(data.headers).reduce(
+          (acc, [key, value]) => {
+            acc[key] =
+              key.toLowerCase().includes('key') ||
+              key.toLowerCase().includes('token')
+                ? `${value.substring(0, 8)}...`
+                : value;
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+        console.table(headersTable);
+      }
+
+      // Payload Details
+      if (data.payload) {
+        console.log('\n📦 PAYLOAD جزئیات:');
+        const payloadDetails = {
+          Prompt: data.payload.prompt
+            ? `${data.payload.prompt.substring(0, 100)}...`
+            : 'ندارد',
+          'Image Format': data.payload.image ? 'base64 data URI' : 'ندارد',
+          'Image Size': data.payload.image
+            ? `${data.payload.image.length} chars`
+            : '0',
+          Guidance: data.payload.guidance || 'پیشفرض',
+          'Safety Tolerance': data.payload.safety_tolerance || 'پیشفرض',
+          'Output Format': data.payload.output_format || 'پیشفرض',
+        };
+        console.table(payloadDetails);
+      }
+    } else if (direction === 'RESPONSE') {
+      console.log(
+        '\n📥 ═══════════════════════════════════════════════════════════════'
+      );
+      console.log('📨 AI API RESPONSE - VIRTUAL TRY-ON');
+      console.log(
+        '═══════════════════════════════════════════════════════════════'
+      );
+
+      // Response Summary Table
+      const responseSummary = {
+        'زمان دریافت': timestamp,
+        'وضعیت HTTP': data.status || 'نامشخص',
+        'متن وضعیت': data.statusText || 'نامشخص',
+        'زمان پردازش': data.processingTime
+          ? `${data.processingTime}ms`
+          : 'نامشخص',
+        'نوع پاسخ': data.responseData ? 'موفق' : data.error ? 'خطا' : 'نامشخص',
+        'سایز پاسخ': data.responseData
+          ? `${JSON.stringify(data.responseData).length} bytes`
+          : '0 bytes',
+      };
+
+      console.table(responseSummary);
+
+      // Success Response Details
+      if (data.responseData && !data.error) {
+        console.log('\n✅ جزئیات پاسخ موفق:');
+        const responseDetails = {
+          'Request ID': data.responseData.id || 'ندارد',
+          Status: data.responseData.status || 'نامشخص',
+          'Images Count': data.responseData.result?.images?.length || 0,
+          'Image URL': data.responseData.result?.images?.[0]?.url
+            ? `${data.responseData.result.images[0].url.substring(0, 50)}...`
+            : 'ندارد',
+          'Image Dimensions': data.responseData.result?.images?.[0]
+            ? `${data.responseData.result.images[0].width}x${data.responseData.result.images[0].height}`
+            : 'نامشخص',
+          'Polling URL': data.responseData.polling_url ? 'موجود' : 'ندارد',
+        };
+        console.table(responseDetails);
+      }
+
+      // Error Response Details
+      if (data.error) {
+        console.log('\n❌ جزئیات خطا:');
+        const errorDetails = {
+          'نوع خطا': data.error.substring(0, 100),
+          'HTTP Status': data.status || 'نامشخص',
+          'خطای کامل': data.error,
+        };
+        console.table(errorDetails);
+      }
+
+      console.log(
+        '═══════════════════════════════════════════════════════════════\n'
+      );
+    }
+  }
+
   static getInstance(): VirtualTryOnService {
     if (!VirtualTryOnService.instance) {
       VirtualTryOnService.instance = new VirtualTryOnService();
@@ -78,68 +218,241 @@ class VirtualTryOnService {
       keyStart: this.API_KEY?.substring(0, 8) || 'undefined',
       rawEnvValue:
         process.env.EXPO_PUBLIC_FLUX_API_KEY?.substring(0, 8) || 'not found',
+      platform: this.getPlatform(),
+      isWeb: this.isWebEnvironment(),
+      isDevelopment: process.env.NODE_ENV === 'development',
     });
 
     if (!this.API_KEY) {
       console.warn('FLUX API key not configured');
     }
+
+    // Show helpful development message for web environment
+    if (this.isWebEnvironment() && process.env.NODE_ENV === 'development') {
+      console.info(`
+🌐 Development Mode - Web Environment Detected
+
+CORS Limitation: External API calls are blocked by browsers for security.
+
+Recommended Testing Approaches:
+1. 📱 Test on mobile device/simulator (no CORS restrictions)
+2. 🖥️  Use Expo development build 
+3. 🔧 Run backend server for API proxying
+4. 📖 Continue with mock data for UI development
+
+Platform: ${this.getPlatform()}
+      `);
+    }
+  }
+
+  private isWebEnvironment(): boolean {
+    // Check if we're running in a web browser (Expo web)
+    return typeof window !== 'undefined' && typeof document !== 'undefined';
+  }
+
+  private getPlatform(): string {
+    if (typeof window !== 'undefined') {
+      if (window.location?.hostname === 'localhost') return 'web-dev';
+      return 'web';
+    }
+    return 'native';
+  }
+
+  private isCorsError(error: Error): boolean {
+    const corsIndicators = [
+      'fetch',
+      'cors',
+      'cross-origin',
+      'access-control-allow-origin',
+      'preflight',
+      'network error',
+    ];
+
+    const errorMessage = error.message.toLowerCase();
+    const errorName = error.name.toLowerCase();
+
+    return corsIndicators.some(
+      indicator =>
+        errorMessage.includes(indicator) || errorName.includes(indicator)
+    );
+  }
+
+  private async generateMockVirtualTryOnResult(
+    request: VirtualTryOnRequest
+  ): Promise<FluxApiResponse> {
+    console.log('🎭 Generating mock virtual try-on result for development');
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Create a data URI instead of relying on external services
+    const mockImageDataUri = this.createMockImageDataUri(
+      request.referenceImages.length
+    );
+
+    return {
+      id: 'mock-dev-' + Date.now(),
+      status: 'completed',
+      result: {
+        images: [
+          {
+            url: mockImageDataUri,
+            width: 1024,
+            height: 1024,
+          },
+        ],
+      },
+    };
+  }
+
+  private createMockImageDataUri(itemCount: number): string {
+    // Create a simple SVG placeholder that doesn't rely on external services
+    const svg = `
+      <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#4F46E5"/>
+        <text x="50%" y="30%" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="bold">
+          Virtual Try-On Demo
+        </text>
+        <text x="50%" y="40%" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="32">
+          Web Development Mode
+        </text>
+        <text x="50%" y="50%" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="28">
+          CORS Limitation
+        </text>
+        <text x="50%" y="60%" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="28">
+          Test on Mobile Device
+        </text>
+        <text x="50%" y="70%" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="32">
+          ${itemCount} Items Used
+        </text>
+        <text x="50%" y="85%" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24">
+          🎭 Mock Result - No API Call Made
+        </text>
+      </svg>
+    `;
+
+    // Convert SVG to data URI
+    const encodedSvg = encodeURIComponent(svg);
+    return `data:image/svg+xml,${encodedSvg}`;
   }
 
   async processVirtualTryOn(
     request: VirtualTryOnRequest,
     onProgress?: (state: TryOnWorkflowState) => void
   ): Promise<VirtualTryOnResult> {
-    try {
-      await this.testNetworkConnectivity();
+    console.log('🚀 Starting Virtual Try-On Process');
+    console.log('📋 Request details:', {
+      hasUserImage: !!request.initImage,
+      clothingItemsCount: request.referenceImages.length,
+    });
 
+    let collageUri = ''; // برای ذخیره کولاژ
+
+    try {
+      // Update progress
       onProgress?.({
         phase: 'input_analysis',
         progress: 10,
-        message: 'Analyzing input images and styling requirements...',
+        message: 'Processing images...',
       });
 
-      const analyzedData = await this.analyzeInputs(request);
+      // Check if we already have a collage (from Native UI)
+      // In native environments, the collage is already created and passed as initImage
+      const isNativeCollage =
+        (typeof document === 'undefined' || typeof window === 'undefined') &&
+        request.initImage &&
+        request.referenceImages.length > 0;
 
-      onProgress?.({
-        phase: 'ai_styling',
-        progress: 30,
-        message: 'Executing virtual try-on workflow with AI styling...',
-      });
+      if (isNativeCollage) {
+        console.log('📱 Using pre-created native collage');
+        collageUri = request.initImage;
+      } else {
+        console.log('🌐 Creating web collage');
+        // Web environment - create collage here
+        collageUri = await this.createOpenArtStyleCollage(
+          request.initImage,
+          request.referenceImages
+        );
+      }
 
-      const stylingData = await this.executeAIStyling(analyzedData);
+      console.log('✅ Collage ready for processing');
 
+      // 2. Create a detailed prompt for FLUX
+      const clothingDescriptions = request.referenceImages
+        .map((_, index) => `Item ${index + 1}`)
+        .join(', ');
+
+      const enhancedPrompt = `Virtual Try-On Task:
+
+Take the person in this image and dress them in the following clothing items:
+
+${clothingDescriptions}
+
+IMPORTANT INSTRUCTIONS:
+1. Keep the person's face, hair, body shape, and skin tone EXACTLY the same
+2. Replace their current clothes with ALL the new items listed above
+3. Ensure natural fabric draping and realistic shadows
+4. Maintain professional fashion photography quality
+5. The person should be wearing ALL items in a natural, coordinated way
+
+Style: Professional fashion photography, studio lighting, full body shot
+Background: Clean, neutral studio background
+
+Note: You are seeing the person's current photo. Your task is to digitally dress them in the new outfit items while keeping their identity intact.`;
+
+      console.log('📝 Generated collage prompt');
+
+      // Update progress
       onProgress?.({
         phase: 'api_transmission',
-        progress: 60,
-        message:
-          'Transmitting data to FLUX.1 Kontext API for image generation...',
+        progress: 50,
+        message: 'Sending to AI for processing...',
       });
 
-      const fluxResult = await this.callFluxKontextAPI(stylingData);
+      // 3. Call FLUX API with the collage
+      await this.testNetworkConnectivity();
 
+      const fluxResult = await this.callFluxKontextAPI({
+        initImageMetadata: await this.analyzeImage(collageUri),
+        enhancedPrompt: enhancedPrompt,
+      });
+
+      // Update progress
       onProgress?.({
         phase: 'output_delivery',
         progress: 90,
-        message: 'Finalizing high-resolution output...',
+        message: 'Finalizing result...',
       });
 
+      // 4. Process the output
       const result = await this.processOutput(fluxResult, request);
 
+      // Add collage URL to the result
+      const enhancedResult: VirtualTryOnResult = {
+        ...result,
+        collageImageUrl: collageUri,
+      };
+
+      // Update progress - completed
       onProgress?.({
         phase: 'completed',
         progress: 100,
         message: 'Virtual try-on completed successfully!',
       });
 
-      return result;
+      console.log('✅ Virtual try-on process completed successfully');
+      return enhancedResult;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('❌ Virtual try-on process failed:', error);
+
+      // Update progress - error
       onProgress?.({
         phase: 'error',
         progress: 0,
-        message: `Error: ${errorMessage}`,
+        message:
+          error instanceof Error ? error.message : 'Unknown error occurred',
       });
+
       throw error;
     }
   }
@@ -194,34 +507,112 @@ class VirtualTryOnService {
   private async analyzeInputs(request: VirtualTryOnRequest): Promise<any> {
     const startTime = Date.now();
 
+    // Analyze each clothing item to extract details for OpenArt-style prompt
+    const referenceImagesMetadata = await Promise.all(
+      request.referenceImages.map(async (img: string, index: number) => {
+        const metadata = await this.analyzeImage(img);
+        // Extract clothing type from URL or use generic description
+        const clothingType = this.detectClothingType(img, index);
+        return {
+          ...metadata,
+          description: clothingType,
+          index: index + 1,
+        };
+      })
+    );
+
     const analysis = {
       initImageMetadata: await this.analyzeImage(request.initImage),
-      referenceImagesMetadata: await Promise.all(
-        request.referenceImages.map(img => this.analyzeImage(img))
-      ),
+      referenceImagesMetadata,
       promptAnalysis: this.analyzePrompt(request.prompt),
       styleContext:
         request.styleInstructions ||
         'natural studio lighting, professional fit',
       processingTime: Date.now() - startTime,
+      // OpenArt approach metadata
+      itemCount: request.referenceImages.length,
+      isMultiItem: request.referenceImages.length > 1,
     };
+
+    console.log('📊 Analysis complete:', {
+      userImage: !!analysis.initImageMetadata,
+      clothingItems: analysis.itemCount,
+      isMultiItem: analysis.isMultiItem,
+    });
 
     return analysis;
   }
 
+  private detectClothingType(imageUrl: string, index: number): string {
+    // Simple heuristic to detect clothing type from URL or index
+    const url = imageUrl.toLowerCase();
+
+    if (url.includes('shirt') || url.includes('top')) return 'shirt/top';
+    if (
+      url.includes('pant') ||
+      url.includes('trouser') ||
+      url.includes('bottom')
+    )
+      return 'pants/bottoms';
+    if (url.includes('shoe') || url.includes('sneaker') || url.includes('boot'))
+      return 'shoes/footwear';
+    if (url.includes('dress')) return 'dress';
+    if (url.includes('jacket') || url.includes('coat'))
+      return 'jacket/outerwear';
+    if (url.includes('bag') || url.includes('purse')) return 'bag/accessory';
+
+    // Default based on index
+    const defaults = ['top/shirt', 'bottom/pants', 'shoes', 'accessory'];
+    return defaults[index] || `item ${index + 1}`;
+  }
+
   private async executeAIStyling(analyzedData: any): Promise<any> {
-    const stylingPrompt = this.buildComprehensivePrompt(analyzedData);
+    // OpenArt approach: Enhance the prompt to work with multiple clothing items
+    // They likely use a specific prompt structure that tells FLUX to apply ALL items
+
+    const itemDescriptions = analyzedData.referenceImagesMetadata
+      .map(
+        (item: any, index: number) =>
+          `Item ${index + 1}: ${item.description || 'clothing item'}`
+      )
+      .join(', ');
+
+    const openArtStylePrompt = this.buildOpenArtStylePrompt(
+      analyzedData,
+      itemDescriptions
+    );
 
     return {
       ...analyzedData,
-      enhancedPrompt: stylingPrompt,
+      enhancedPrompt: openArtStylePrompt,
       technicalSpecs: {
         lighting: 'cinematic studio lighting',
         fit: 'natural draping and precise fit',
         quality: 'magazine-quality, high-resolution',
         style: 'professional fashion photography',
+        instruction:
+          'Apply ALL clothing items shown to the person, maintaining exact details of each piece',
       },
     };
+  }
+
+  private buildOpenArtStylePrompt(
+    analyzedData: any,
+    itemDescriptions: string
+  ): string {
+    // OpenArt-style prompt that works with FLUX Kontext
+    const basePrompt = analyzedData.promptAnalysis.original;
+
+    return `Virtual try-on transformation: Take the person from the main image and dress them in ALL the clothing items shown. 
+    ${itemDescriptions}. 
+    CRITICAL INSTRUCTIONS:
+    1. Preserve the person's face, hair, body shape, and pose EXACTLY
+    2. Apply each clothing item with proper layering (shirt, then jacket, etc.)
+    3. Ensure natural fit and realistic fabric draping
+    4. Maintain the exact colors, patterns, and details of each clothing piece
+    5. Keep the original background unchanged
+    6. Professional fashion photography quality with consistent lighting
+    The final result should look like a professional e-commerce or fashion shoot.`;
   }
 
   private async callFluxKontextAPI(stylingData: any): Promise<FluxApiResponse> {
@@ -284,8 +675,49 @@ class VirtualTryOnService {
         kontextError
       );
 
+      // Check if this is a CORS error in web development environment
+      if (
+        kontextError instanceof Error &&
+        this.isCorsError(kontextError) &&
+        this.isWebEnvironment() &&
+        process.env.NODE_ENV === 'development'
+      ) {
+        console.warn('🎭 CORS detected in development - using mock result');
+        return await this.generateMockVirtualTryOnResult({
+          initImage: '',
+          referenceImages:
+            stylingData.referenceImagesMetadata?.map(() => '') || [],
+          prompt: stylingData.enhancedPrompt || '',
+          userId: '',
+          outfitId: '',
+        });
+      }
+
       // Fallback to standard image generation API
-      return await this.callStandardImageGeneration(stylingData);
+      try {
+        return await this.callStandardImageGeneration(stylingData);
+      } catch (standardError) {
+        // If both APIs fail due to CORS in development, provide mock
+        if (
+          standardError instanceof Error &&
+          this.isCorsError(standardError) &&
+          this.isWebEnvironment() &&
+          process.env.NODE_ENV === 'development'
+        ) {
+          console.warn(
+            '🎭 Both APIs blocked by CORS - using mock result for development'
+          );
+          return await this.generateMockVirtualTryOnResult({
+            initImage: '',
+            referenceImages:
+              stylingData.referenceImagesMetadata?.map(() => '') || [],
+            prompt: stylingData.enhancedPrompt || '',
+            userId: '',
+            outfitId: '',
+          });
+        }
+        throw standardError;
+      }
     }
   }
 
@@ -299,16 +731,27 @@ class VirtualTryOnService {
       throw new Error('No input image available for Kontext editing');
     }
 
+    // OpenArt approach: They might be using a special image format
+    // where the user image is the main focus and clothing items are arranged around it
+    console.log('🎨 Using OpenArt-style virtual try-on approach');
+    console.log(
+      '📸 Reference images count:',
+      stylingData.referenceImagesMetadata?.length || 0
+    );
+
     // Use Kontext Pro model (more cost-effective)
     const endpoint = `${this.FLUX_BASE_URL}/${this.KONTEXT_PRO_MODEL}`;
 
     // Prepare the request payload according to BFL API docs
+    // OpenArt likely sends the body image as the main image
     const payload = {
       prompt: stylingData.enhancedPrompt,
       image: `data:image/jpeg;base64,${stylingData.initImageMetadata.base64}`,
-      guidance: 2.5, // BFL uses 'guidance' not 'guidance_scale'
+      guidance: 3.5, // Higher guidance for better prompt following
       safety_tolerance: 2,
       output_format: 'jpeg',
+      // Note: FLUX Kontext doesn't accept multiple images directly
+      // OpenArt's trick is in the prompt engineering
     };
 
     let lastError: Error | null = null;
@@ -330,7 +773,23 @@ class VirtualTryOnService {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
-        }, 45000); // 45 second timeout
+        }, 45000);
+
+        const requestTimestamp = new Date().toISOString();
+        const requestStartTime = Date.now();
+
+        // Log API Request
+        this.logApiCommunication('REQUEST', {
+          timestamp: requestTimestamp,
+          endpoint,
+          method: 'POST',
+          headers: {
+            'x-key': this.API_KEY || '',
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          payload,
+        });
 
         try {
           const response = await fetch(endpoint, {
@@ -345,6 +804,7 @@ class VirtualTryOnService {
           });
 
           clearTimeout(timeoutId);
+          const processingTime = Date.now() - requestStartTime;
 
           console.log(
             '📥 Response Status:',
@@ -359,6 +819,15 @@ class VirtualTryOnService {
           if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Error Response Body:', errorText);
+
+            // Log Error Response
+            this.logApiCommunication('RESPONSE', {
+              timestamp: new Date().toISOString(),
+              status: response.status,
+              statusText: response.statusText,
+              processingTime,
+              error: errorText,
+            });
 
             if (response.status === 401 || response.status === 403) {
               throw new Error(
@@ -382,6 +851,15 @@ class VirtualTryOnService {
           const result = await response.json();
           console.log('✅ FLUX Kontext API Response:', result);
 
+          // Log Success Response
+          this.logApiCommunication('RESPONSE', {
+            timestamp: new Date().toISOString(),
+            status: response.status,
+            statusText: response.statusText,
+            processingTime,
+            responseData: result,
+          });
+
           // BFL API returns an ID that we need to poll for results
           if (!result.id) {
             throw new Error('Invalid response from FLUX API - missing task ID');
@@ -396,6 +874,22 @@ class VirtualTryOnService {
       } catch (error) {
         lastError =
           error instanceof Error ? error : new Error('Unknown error occurred');
+
+        // Check for CORS errors specifically
+        if (this.isCorsError(lastError) && this.isWebEnvironment()) {
+          console.error('🚫 CORS Error Detected in Web Environment');
+          throw new Error(
+            `CORS error: The FLUX API cannot be called directly from a web browser due to security restrictions. 
+            
+Solutions:
+1. Test on a mobile device where CORS doesn't apply (recommended)
+2. Use a backend server to proxy API calls
+3. Wait for backend implementation
+4. Use Expo development build instead of web
+
+Current environment: ${this.getPlatform()}`
+          );
+        }
 
         console.error(
           `❌ FLUX Kontext API Attempt ${attempt} failed:`,
@@ -467,6 +961,22 @@ class VirtualTryOnService {
           controller.abort();
         }, 45000);
 
+        const requestTimestamp = new Date().toISOString();
+        const requestStartTime = Date.now();
+
+        // Log API Request
+        this.logApiCommunication('REQUEST', {
+          timestamp: requestTimestamp,
+          endpoint,
+          method: 'POST',
+          headers: {
+            'x-key': this.API_KEY || '',
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          payload,
+        });
+
         try {
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -480,6 +990,7 @@ class VirtualTryOnService {
           });
 
           clearTimeout(timeoutId);
+          const processingTime = Date.now() - requestStartTime;
 
           console.log(
             '📥 Response Status:',
@@ -490,6 +1001,15 @@ class VirtualTryOnService {
           if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Error Response Body:', errorText);
+
+            // Log Error Response
+            this.logApiCommunication('RESPONSE', {
+              timestamp: new Date().toISOString(),
+              status: response.status,
+              statusText: response.statusText,
+              processingTime,
+              error: errorText,
+            });
 
             if (response.status === 401 || response.status === 403) {
               throw new Error(
@@ -513,6 +1033,15 @@ class VirtualTryOnService {
           const submitResult = await response.json();
           console.log('✅ FLUX Submit Response:', submitResult);
 
+          // Log Success Response
+          this.logApiCommunication('RESPONSE', {
+            timestamp: new Date().toISOString(),
+            status: response.status,
+            statusText: response.statusText,
+            processingTime,
+            responseData: submitResult,
+          });
+
           if (!submitResult.id) {
             throw new Error('Invalid response from FLUX API - missing task ID');
           }
@@ -526,6 +1055,22 @@ class VirtualTryOnService {
       } catch (error) {
         lastError =
           error instanceof Error ? error : new Error('Unknown error occurred');
+
+        // Check for CORS errors specifically
+        if (this.isCorsError(lastError) && this.isWebEnvironment()) {
+          console.error('🚫 CORS Error Detected in Web Environment');
+          throw new Error(
+            `CORS error: The FLUX API cannot be called directly from a web browser due to security restrictions. 
+            
+Solutions:
+1. Test on a mobile device where CORS doesn't apply (recommended)
+2. Use a backend server to proxy API calls
+3. Wait for backend implementation
+4. Use Expo development build instead of web
+
+Current environment: ${this.getPlatform()}`
+          );
+        }
 
         console.error(
           `❌ FLUX Standard API Attempt ${attempt} failed:`,
@@ -559,31 +1104,64 @@ class VirtualTryOnService {
           controller.abort();
         }, 15000);
 
+        const requestTimestamp = new Date().toISOString();
+        const requestStartTime = Date.now();
+        const pollEndpoint = `${this.FLUX_BASE_URL}/get_result?id=${taskId}`;
+
+        // Log Polling Request
+        this.logApiCommunication('REQUEST', {
+          timestamp: requestTimestamp,
+          endpoint: pollEndpoint,
+          method: 'GET',
+          headers: {
+            'x-key': this.API_KEY || '',
+            Accept: 'application/json',
+          },
+          payload: { taskId },
+        });
+
         try {
-          const response = await fetch(
-            `${this.FLUX_BASE_URL}/get_result?id=${taskId}`,
-            {
-              method: 'GET',
-              headers: {
-                'x-key': this.API_KEY || '',
-                Accept: 'application/json',
-              },
-              signal: controller.signal,
-            }
-          );
+          const response = await fetch(pollEndpoint, {
+            method: 'GET',
+            headers: {
+              'x-key': this.API_KEY || '',
+              Accept: 'application/json',
+            },
+            signal: controller.signal,
+          });
 
           clearTimeout(timeoutId);
+          const processingTime = Date.now() - requestStartTime;
 
           if (!response.ok) {
             const errorText = await response.text();
             console.warn(
               `📊 Status check failed: ${response.status} - ${errorText}`
             );
+
+            // Log Polling Error Response
+            this.logApiCommunication('RESPONSE', {
+              timestamp: new Date().toISOString(),
+              status: response.status,
+              statusText: response.statusText,
+              processingTime,
+              error: errorText,
+            });
+
             throw new Error(`Status check failed: ${response.status}`);
           }
 
           const result: FluxApiResponse = await response.json();
           console.log(`📊 Task status: ${result.status} for ${taskId}`);
+
+          // Log Polling Success Response
+          this.logApiCommunication('RESPONSE', {
+            timestamp: new Date().toISOString(),
+            status: response.status,
+            statusText: response.statusText,
+            processingTime,
+            responseData: result,
+          });
 
           // BFL API uses 'Ready' status when complete
           if (result.status === 'Ready' || result.status === 'completed') {
@@ -682,13 +1260,6 @@ class VirtualTryOnService {
         prompt
       ),
     };
-  }
-
-  private buildComprehensivePrompt(analyzedData: any): string {
-    const basePrompt = analyzedData.promptAnalysis.original;
-    const styleContext = analyzedData.styleContext;
-
-    return `${basePrompt}, ${styleContext}, high-quality fashion photography, professional lighting, detailed fabric texture, realistic skin tone, natural pose, clean background, 8k resolution, photorealistic`;
   }
 
   private async convertToBase64(imageUri: string): Promise<string> {
@@ -814,6 +1385,156 @@ class VirtualTryOnService {
       return 'jpeg';
     }
   }
+
+  // Helper function to create a collage from multiple images
+  private async createImageCollage(imageUrls: string[]): Promise<string> {
+    console.log('🎨 Creating collage from', imageUrls.length, 'images');
+
+    // For now, we'll use the first image as primary
+    // In a full implementation, you'd use a library like jimp or canvas
+    // to create a grid layout of all images
+
+    // TODO: Implement actual image stitching logic
+    // Example layout for 3-4 images:
+    // +-------+-------+
+    // | img1  | img2  |
+    // +-------+-------+
+    // | img3  | img4  |
+    // +-------+-------+
+
+    return imageUrls[0]; // Temporary: just return first image
+  }
+
+  private async createOpenArtStyleCollage(
+    userImage: string,
+    clothingItems: string[]
+  ): Promise<string> {
+    console.log('🎨 Creating OpenArt-style collage');
+    console.log('👤 User image:', userImage.substring(0, 50) + '...');
+    console.log('👗 Clothing items:', clothingItems.length);
+
+    // TODO: For now, we're using a simplified approach
+    // In the future, we can implement one of these solutions:
+    // 1. Use a backend service to create collages
+    // 2. Use react-native-canvas for native collage creation
+    // 3. Use WebView with Canvas API for cross-platform solution
+
+    // Temporary solution: Return user image
+    // The Flux API will use the prompt to understand what clothes to add
+    console.log('⚠️ Native collage not implemented, using user image only');
+    return userImage;
+  }
+
+  private async analyzeClothingForDescriptions(
+    clothingItems: string[]
+  ): Promise<string[]> {
+    console.log('🔍 Analyzing clothing items for descriptions');
+
+    // In production, send each image to GPT-4 Vision or similar
+    // For now, return placeholder descriptions based on common patterns
+
+    const descriptions = clothingItems.map((item, index) => {
+      // Extract hints from URL if possible
+      const urlLower = item.toLowerCase();
+
+      if (urlLower.includes('dress')) {
+        return 'elegant dress with modern cut and flowing fabric';
+      } else if (urlLower.includes('shirt') || urlLower.includes('top')) {
+        return 'stylish top with comfortable fit';
+      } else if (urlLower.includes('pant') || urlLower.includes('trouser')) {
+        return 'well-fitted pants with classic design';
+      } else if (urlLower.includes('shoe') || urlLower.includes('boot')) {
+        return 'fashionable footwear with quality materials';
+      } else if (urlLower.includes('bag')) {
+        return 'designer handbag with premium finish';
+      } else {
+        return `clothing item ${index + 1}`;
+      }
+    });
+
+    return descriptions;
+  }
+
+  private generateOpenArtPrompt(
+    itemDescriptions: string[],
+    originalPrompt: string
+  ): string {
+    console.log('📝 Generating OpenArt-style prompt');
+
+    const itemList = itemDescriptions
+      .map((desc, idx) => `   Item ${idx + 1}: ${desc}`)
+      .join('\n');
+
+    return `Virtual Try-On Transformation Instructions:
+
+IMPORTANT: This is a collage image. The person to dress is in the CENTER of the image.
+The clothing items are shown in the surrounding areas.
+
+YOUR TASK:
+1. Identify the person in the CENTER of the collage
+2. Apply ALL the clothing items shown around them
+3. Create a professional fashion photograph result
+
+CLOTHING ITEMS TO APPLY:
+${itemList}
+
+CRITICAL REQUIREMENTS:
+- Use ONLY the person from the CENTER of the image
+- Apply ALL clothing items shown in the surrounding squares
+- Maintain the person's EXACT facial features, hair, and body proportions
+- Ensure natural fabric draping and realistic shadows
+- Professional studio lighting
+- Magazine-quality output
+
+${originalPrompt ? `\nAdditional instructions: ${originalPrompt}` : ''}
+
+The final result should show the person wearing all specified items in a natural, photorealistic manner.`;
+  }
+
+  private async executeAnalysis(
+    request: VirtualTryOnRequest,
+    onProgress?: (state: TryOnWorkflowState) => void
+  ): Promise<any> {
+    // Implementation of executeAnalysis method
+    // This method should return the analyzed data
+    throw new Error('Method not implemented');
+  }
+
+  private async executeStyling(
+    analyzedData: any,
+    onProgress?: (state: TryOnWorkflowState) => void
+  ): Promise<any> {
+    // Implementation of executeStyling method
+    // This method should return the styled data
+    throw new Error('Method not implemented');
+  }
+
+  private async executeProcessing(
+    styledData: any,
+    onProgress?: (state: TryOnWorkflowState) => void
+  ): Promise<any> {
+    // Implementation of executeProcessing method
+    // This method should return the processed data
+    throw new Error('Method not implemented');
+  }
+
+  private async executeEnhancement(
+    processedData: any,
+    onProgress?: (state: TryOnWorkflowState) => void
+  ): Promise<any> {
+    // Implementation of executeEnhancement method
+    // This method should return the enhanced data
+    throw new Error('Method not implemented');
+  }
+
+  private async prepareFinalResult(
+    enhancedData: any,
+    request: VirtualTryOnRequest
+  ): Promise<VirtualTryOnResult> {
+    // Implementation of prepareFinalResult method
+    // This method should return the final result
+    throw new Error('Method not implemented');
+  }
 }
 
 export const useVirtualTryOn = () => {
@@ -825,13 +1546,12 @@ export const useVirtualTryOn = () => {
   ): Promise<VirtualTryOnResult> => {
     const service = VirtualTryOnService.getInstance();
 
+    // Create a simple request - the service will handle the collage creation
     const request: VirtualTryOnRequest = {
       initImage: userImage,
       referenceImages: clothingItems.map(item => item.imageUrl),
-      prompt: `Virtual try-on of ${clothingItems
-        .map(item => `${item.color} ${item.category}`)
-        .join(', ')}`,
-      styleInstructions: 'natural fit, professional photography',
+      prompt: '', // Empty prompt - will be generated in processVirtualTryOn
+      styleInstructions: 'Professional fashion photography',
       userId: 'user-id',
       outfitId,
     };

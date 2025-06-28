@@ -16,6 +16,14 @@ export interface UploadOptions {
   upsert?: boolean;
   metadata?: Record<string, any>;
   compress?: boolean; // New option to enable/disable compression
+
+  // Virtual Try-On specific options
+  processingTime?: number;
+  confidence?: number;
+  prompt?: string;
+  styleInstructions?: string;
+  itemsUsed?: string[];
+  userImageUrl?: string; // URL of the user's image used for virtual try-on
 }
 
 export interface UploadResult {
@@ -52,6 +60,175 @@ class StorageService {
       StorageService.instance = new StorageService();
     }
     return StorageService.instance;
+  }
+
+  /**
+   * Save Virtual Try-On result image to Supabase Storage
+   * Simplified and refactored version
+   */
+  async saveVirtualTryOnResult(
+    generatedImageUrl: string,
+    userId: string,
+    outfitId: string,
+    outfitName: string,
+    options: Partial<UploadOptions> = {}
+  ): Promise<UploadResult> {
+    try {
+      console.log('🚀 Starting Virtual Try-On save process...');
+
+      // Step 1: Verify authentication
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        throw new Error('Authentication required - please login');
+      }
+
+      if (session.user.id !== userId) {
+        console.warn('⚠️ User ID mismatch, using session user ID');
+        userId = session.user.id;
+      }
+
+      console.log('✅ Auth verified:', { userId, email: session.user.email });
+
+      // Step 2: Download the generated image
+      let fileData: ArrayBuffer;
+
+      if (Platform.OS === 'web') {
+        // Web: Use standard fetch and arrayBuffer
+        const response = await fetch(generatedImageUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to download image: ${response.status}`);
+        }
+        fileData = await response.arrayBuffer();
+      } else {
+        // React Native: Download to temporary file and read as base64
+        const tempTimestamp = Date.now();
+        const tempPath = `${FileSystem.documentDirectory}temp_virtual_tryon_${tempTimestamp}.jpg`;
+
+        console.log('📱 Downloading virtual try-on to temporary file...');
+        const downloadResult = await FileSystem.downloadAsync(
+          generatedImageUrl,
+          tempPath
+        );
+
+        if (downloadResult.status !== 200) {
+          throw new Error(`Failed to download image: ${downloadResult.status}`);
+        }
+
+        console.log('📖 Reading file as base64...');
+        const base64 = await FileSystem.readAsStringAsync(tempPath, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Convert base64 to ArrayBuffer
+        fileData = decode(base64);
+
+        // Clean up temporary file
+        console.log('🧹 Cleaning up temporary file...');
+        await FileSystem.deleteAsync(tempPath, { idempotent: true });
+      }
+
+      // Step 3: Create storage path
+      const timestamp = Date.now();
+      const fileName = `${outfitId}_${timestamp}.jpg`;
+      const storagePath = `${userId}/virtual-tryon/${fileName}`;
+
+      console.log('📁 Storage path:', storagePath);
+
+      // Step 4: Upload to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('virtual-try-on-results')
+        .upload(storagePath, fileData, {
+          contentType: 'image/jpeg',
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('❌ Storage upload failed:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ File uploaded successfully');
+
+      // Step 5: Get public URL
+      const { data: urlData } = supabase.storage
+        .from('virtual-try-on-results')
+        .getPublicUrl(storagePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Step 6: Save to database using the new function
+      try {
+        // Generate a UUID for the outfit if it's not already one
+        let outfitUuid = null;
+        try {
+          // Check if outfitId is a valid UUID
+          if (
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              outfitId
+            )
+          ) {
+            outfitUuid = outfitId;
+          } else {
+            // Generate a new UUID for this outfit
+            const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+            outfitUuid = uuidData;
+            console.log('📝 Generated new UUID for outfit:', outfitUuid);
+          }
+        } catch (e) {
+          console.log('📝 Using null for outfit ID');
+        }
+
+        const { data: dbResult, error: dbError } = await supabase.rpc(
+          'save_virtual_tryon_result',
+          {
+            p_outfit_id: outfitUuid,
+            p_outfit_name: outfitName,
+            p_user_image_url:
+              options.userImageUrl || 'https://via.placeholder.com/400x600',
+            p_generated_image_url: publicUrl,
+            p_storage_path: storagePath,
+            p_processing_time_ms: options.processingTime || 0,
+            p_confidence_score: options.confidence || 0.85,
+            p_prompt_used: options.prompt || `Virtual try-on of ${outfitName}`,
+            p_style_instructions: options.styleInstructions || 'natural fit',
+            p_items_used: options.itemsUsed || [],
+          }
+        );
+
+        if (dbError) {
+          console.error('❌ Database save error:', dbError);
+          // Continue even if DB save fails - we have the image in storage
+        } else if (dbResult?.success) {
+          console.log('✅ Database save successful:', dbResult);
+        } else {
+          console.warn('⚠️ Database save returned:', dbResult);
+        }
+      } catch (dbError) {
+        console.error('❌ Database operation failed:', dbError);
+        // Don't fail the whole operation - storage upload was successful
+      }
+
+      // Return success - image is uploaded to storage
+      return {
+        data: {
+          id: uploadData.id,
+          path: uploadData.path,
+          fullPath: uploadData.fullPath || storagePath,
+        },
+        error: null,
+      };
+    } catch (error) {
+      console.error('💥 Virtual Try-On save failed:', error);
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Save failed'),
+      };
+    }
   }
 
   /**
@@ -652,6 +829,134 @@ class StorageService {
     if (path.includes('/outfit/')) return 'outfit';
     if (path.includes('/profile/')) return 'profile';
     return 'unknown';
+  }
+
+  /**
+   * Test authentication context for debugging RLS issues
+   */
+  async testAuth(): Promise<{
+    isAuthenticated: boolean;
+    user: any;
+    error: string | null;
+  }> {
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        return {
+          isAuthenticated: false,
+          user: null,
+          error: `Auth error: ${authError.message}`,
+        };
+      }
+
+      if (!user) {
+        return {
+          isAuthenticated: false,
+          user: null,
+          error: 'No authenticated user found',
+        };
+      }
+
+      // Test if we can call the debug function in the database
+      try {
+        const { data: debugData, error: debugError } =
+          await supabase.rpc('debug_auth_context');
+
+        console.log('🔍 Debug auth context result:', debugData);
+
+        return {
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            aud: user.aud,
+            confirmed_at: user.confirmed_at,
+            debugContext: debugData,
+          },
+          error: debugError?.message || null,
+        };
+      } catch (debugError) {
+        return {
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            aud: user.aud,
+            confirmed_at: user.confirmed_at,
+          },
+          error: `Debug function failed: ${debugError instanceof Error ? debugError.message : 'Unknown error'}`,
+        };
+      }
+    } catch (error) {
+      return {
+        isAuthenticated: false,
+        user: null,
+        error: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Test Virtual Try-On storage upload directly
+   */
+  async testVirtualTryOnUpload(userId: string): Promise<void> {
+    try {
+      console.log('🧪 Testing Virtual Try-On storage upload...');
+
+      // Check authentication first
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error('❌ No active session:', sessionError);
+        throw new Error('Not authenticated');
+      }
+
+      console.log('✅ Session found:', {
+        userId: session.user.id,
+        email: session.user.email,
+        role: session.user.role,
+        expiresAt: session.expires_at,
+      });
+
+      // Create test data
+      const testData = new TextEncoder().encode('Test virtual try-on upload');
+      const testPath = `${userId}/outfit-collages/trying-clothes/test_${Date.now()}.txt`;
+
+      console.log('📤 Attempting upload with path:', testPath);
+      console.log('📁 Path components:', testPath.split('/'));
+
+      // Try upload
+      const { data, error } = await supabase.storage
+        .from('virtual-try-on-results')
+        .upload(testPath, testData, {
+          contentType: 'text/plain',
+          cacheControl: '3600',
+        });
+
+      if (error) {
+        console.error('❌ Upload failed:', error);
+        throw error;
+      }
+
+      console.log('✅ Upload successful:', data);
+
+      // Clean up test file
+      await supabase.storage.from('virtual-try-on-results').remove([testPath]);
+
+      console.log('🧹 Test file cleaned up');
+    } catch (error) {
+      console.error('💥 Test failed:', error);
+      throw error;
+    }
   }
 }
 

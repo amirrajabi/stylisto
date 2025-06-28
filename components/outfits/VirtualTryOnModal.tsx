@@ -1,34 +1,32 @@
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import {
   CheckCircle,
   Download,
-  Heart,
-  Share2,
   Sparkles,
   Upload,
   X,
   Zap,
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import ViewShot, { captureRef } from 'react-native-view-shot';
 import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import {
-  TryOnWorkflowState,
-  VirtualTryOnResult,
-  useVirtualTryOn,
-} from '../../lib/virtualTryOn';
+import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
+import { TryOnWorkflowState, VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -39,6 +37,7 @@ interface VirtualTryOnModalProps {
   outfitId: string;
   clothingItems: ClothingItem[];
   userImage?: string;
+  existingResult?: VirtualTryOnResult | null;
   onComplete?: (result: VirtualTryOnResult) => void;
   onSave?: (result: VirtualTryOnResult) => void;
   onShare?: (result: VirtualTryOnResult) => void;
@@ -50,6 +49,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   outfitId,
   clothingItems,
   userImage,
+  existingResult,
   onComplete,
   onSave,
   onShare,
@@ -59,21 +59,243 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     progress: 0,
     message: 'Initializing virtual try-on...',
   });
-  const [result, setResult] = useState<VirtualTryOnResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [localResult, setLocalResult] = useState<VirtualTryOnResult | null>(
+    null
+  );
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [localIsProcessing, setLocalIsProcessing] = useState(false);
   const [hasTriedOnce, setHasTriedOnce] = useState(false);
 
-  const { processOutfitTryOn } = useVirtualTryOn();
+  const {
+    startVirtualTryOn: hookStartVirtualTryOn,
+    resetVirtualTryOn,
+    isProcessing: hookIsProcessing,
+    progress: hookProgress,
+    error: hookError,
+    result: hookResult,
+  } = useVirtualTryOn();
+
+  const router = useRouter();
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+  const viewShotRef = useRef<ViewShot | null>(null);
+  const [collageUri, setCollageUri] = useState<string | null>(null);
+
+  // Track if we should render collage view
+  const [needsCollageCapture, setNeedsCollageCapture] = useState(false);
+
+  // Track when we can safely capture
+  const [canCapture, setCanCapture] = useState(false);
+
+  // Pre-render collage view if we're on native platform
+  useEffect(() => {
+    if (
+      (Platform.OS === 'ios' || Platform.OS === 'android') &&
+      userImage &&
+      visible
+    ) {
+      console.log('📱 Native platform detected, enabling collage view');
+      setNeedsCollageCapture(true);
+      // Allow capture after a longer delay
+      const timer = setTimeout(() => {
+        console.log('✅ Collage view should be ready for capture');
+        setCanCapture(true);
+      }, 2000); // Increased to 2 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [userImage, visible]);
+
+  // Sync hook state with local state
+  useEffect(() => {
+    if (hookResult) {
+      setLocalResult(hookResult);
+      setWorkflowState({
+        phase: 'completed',
+        progress: 100,
+        message: 'Virtual try-on completed successfully!',
+      });
+    }
+    if (hookError) {
+      setLocalError(hookError);
+      setWorkflowState({
+        phase: 'error',
+        progress: 0,
+        message: hookError,
+      });
+    }
+    setLocalIsProcessing(hookIsProcessing);
+    if (hookProgress > 0) {
+      setWorkflowState(prev => ({ ...prev, progress: hookProgress }));
+    }
+  }, [hookResult, hookError, hookIsProcessing, hookProgress]);
+
+  // Use local state for display
+  const result = localResult;
+  const error = localError;
+  const isProcessing = localIsProcessing;
 
   const progressAnimation = new Animated.Value(0);
   const pulseAnimation = new Animated.Value(1);
 
-  useEffect(() => {
-    if (visible && !isProcessing && !result && !error && !hasTriedOnce) {
-      startVirtualTryOn();
+  // Create native collage if needed
+  const createNativeCollage = useCallback(async (): Promise<string> => {
+    console.log('🔍 createNativeCollage called with:', {
+      hasUserImage: !!userImage,
+      userImageLength: userImage?.length,
+      hasViewShotRef: !!viewShotRef,
+      hasViewShotRefCurrent: !!viewShotRef.current,
+      canCapture,
+    });
+
+    if (!userImage) {
+      throw new Error('User image not available');
     }
-  }, [visible]);
+
+    try {
+      // Wait for canCapture if needed
+      if (!canCapture) {
+        console.log('⏳ Waiting for collage view to be ready...');
+        let attempts = 0;
+        const maxAttempts = 30;
+
+        // Use a promise to wait for canCapture
+        await new Promise<void>((resolve, reject) => {
+          const checkInterval = setInterval(() => {
+            attempts++;
+            if (canCapture) {
+              clearInterval(checkInterval);
+              resolve();
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              reject(new Error('Collage view not ready after waiting'));
+            }
+          }, 100);
+        });
+      }
+
+      console.log('🎨 Starting native collage creation...');
+
+      // Wait a moment to ensure the view is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Detailed ref check
+      console.log('🔍 ViewShot ref check:', {
+        refExists: !!viewShotRef,
+        currentExists: !!viewShotRef.current,
+        currentType: typeof viewShotRef.current,
+        currentKeys: viewShotRef.current
+          ? Object.keys(viewShotRef.current)
+          : [],
+      });
+
+      // Check if ref is available
+      if (!viewShotRef.current) {
+        console.error('ViewShot ref not available');
+        // Try waiting a bit more
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (!viewShotRef.current) {
+          throw new Error('ViewShot ref not available even after waiting');
+        }
+      }
+
+      const viewShot = viewShotRef.current as any;
+      console.log('🔍 ViewShot methods check:', {
+        hasCapture: 'capture' in viewShot,
+        captureType: typeof viewShot.capture,
+        allMethods: Object.keys(viewShot).filter(
+          key => typeof viewShot[key] === 'function'
+        ),
+      });
+
+      if (!viewShot || !viewShot.capture) {
+        throw new Error('ViewShot capture method not available');
+      }
+
+      console.log('📸 Capturing native collage...');
+
+      // Use captureRef instead of ref.capture
+      const uri = await captureRef(viewShotRef, {
+        format: 'jpg',
+        quality: 0.9,
+        result: 'data-uri',
+      });
+
+      if (!uri) {
+        throw new Error('Failed to capture collage');
+      }
+
+      setCollageUri(uri);
+      console.log('✅ Native collage created:', uri);
+
+      return uri;
+    } catch (error) {
+      console.error('❌ Failed to create native collage:', error);
+      throw error;
+    }
+  }, [userImage, canCapture]);
+
+  // New startVirtualTryOn function that uses the hook
+  const startVirtualTryOn = async () => {
+    if (!userImage) {
+      setLocalError('User image is required for virtual try-on');
+      return;
+    }
+
+    setLocalIsProcessing(true);
+    setLocalError(null);
+    setHasTriedOnce(true);
+
+    try {
+      // Use the original approach for now
+      console.log('🚀 Starting virtual try-on process');
+
+      const tryOnResult = await hookStartVirtualTryOn(
+        outfitId,
+        userImage,
+        clothingItems
+      );
+
+      setLocalResult(tryOnResult);
+      onComplete?.(tryOnResult);
+    } catch (err) {
+      // Error is handled by the hook and synced to local state
+      console.error('Virtual try-on error:', err);
+      setLocalError(
+        err instanceof Error ? err.message : 'Unknown error occurred'
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (visible) {
+      // If we have an existing result, show it immediately
+      if (existingResult) {
+        console.log(
+          '📸 VirtualTryOnModal: Showing existing result',
+          existingResult
+        );
+        setLocalResult(existingResult);
+        setWorkflowState({
+          phase: 'completed',
+          progress: 100,
+          message: 'Virtual try-on completed successfully!',
+        });
+        setHasTriedOnce(true);
+        return;
+      }
+
+      // Otherwise start new process if not already done
+      if (!isProcessing && !result && !error && !hasTriedOnce) {
+        console.log(
+          '🚀 VirtualTryOnModal: Starting new virtual try-on process'
+        );
+        startVirtualTryOn();
+      }
+    }
+  }, [visible, existingResult]);
 
   useEffect(() => {
     Animated.timing(progressAnimation, {
@@ -105,42 +327,6 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     }
   }, [workflowState]);
 
-  const startVirtualTryOn = async () => {
-    if (!userImage) {
-      setError('User image is required for virtual try-on');
-      return;
-    }
-
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      const tryOnResult = await processOutfitTryOn(
-        outfitId,
-        userImage,
-        clothingItems,
-        state => {
-          setWorkflowState(state);
-        }
-      );
-
-      setResult(tryOnResult);
-      onComplete?.(tryOnResult);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Virtual try-on failed';
-      setError(errorMessage);
-      setWorkflowState({
-        phase: 'error',
-        progress: 0,
-        message: errorMessage,
-      });
-    } finally {
-      setIsProcessing(false);
-      setHasTriedOnce(true);
-    }
-  };
-
   const handleClose = () => {
     if (!isProcessing) {
       onClose();
@@ -148,8 +334,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   };
 
   const handleRestart = () => {
-    setResult(null);
-    setError(null);
+    setLocalResult(null);
+    setLocalError(null);
     setHasTriedOnce(false);
     setWorkflowState({
       phase: 'input_analysis',
@@ -169,6 +355,33 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     if (result) {
       onShare?.(result);
     }
+  };
+
+  const handleDebugInfo = () => {
+    if (result) {
+      const debugInfo = JSON.stringify(
+        {
+          outfitId,
+          confidence: result.confidence,
+          processingTime: result.processingTime,
+          generatedImageUrl: result.generatedImageUrl,
+          metadata: result.metadata,
+          clothingItems: clothingItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+          })),
+        },
+        null,
+        2
+      );
+
+      console.log('🔍 Virtual Try-On Debug Info:', debugInfo);
+    }
+  };
+
+  const handleTestPage = () => {
+    router.push('/test-virtual-tryon');
   };
 
   const getPhaseIcon = (phase: string) => {
@@ -200,6 +413,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         return Colors.primary[600];
     }
   };
+
+  console.log('🔍 VirtualTryOnModal render check:', {
+    visible,
+    existingResult: !!existingResult,
+    hasResult: !!result,
+    outfitId,
+  });
 
   if (!visible) {
     return null;
@@ -372,56 +592,59 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
           {/* Result Section */}
           {result && (
-            <View style={styles.resultSection}>
-              <View style={styles.successIcon}>
-                <CheckCircle size={48} color={Colors.success[600]} />
-              </View>
-              <Text style={styles.successTitle}>Virtual Try-On Complete!</Text>
-              <Text style={styles.successMessage}>
-                Your outfit has been successfully generated with AI styling
-              </Text>
+            <ScrollView style={styles.resultContainer}>
+              <Text style={styles.resultTitle}>Virtual Try-On Result</Text>
 
-              <View style={styles.resultImageContainer}>
+              {/* نمایش نتیجه نهایی */}
+              <View style={styles.finalResultSection}>
+                <Text style={styles.sectionTitle}>Final Result:</Text>
                 <Image
                   source={{ uri: result.generatedImageUrl }}
                   style={styles.resultImage}
-                  contentFit="cover"
+                  contentFit="contain"
+                  placeholder={require('@/assets/images/partial-react-logo.png')}
                 />
               </View>
 
-              <View style={styles.resultStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Confidence</Text>
-                  <Text style={styles.statValue}>
-                    {Math.round(result.confidence * 100)}%
-                  </Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Processing Time</Text>
-                  <Text style={styles.statValue}>
-                    {Math.round(result.processingTime / 1000)}s
-                  </Text>
-                </View>
+              <View style={styles.resultMetadata}>
+                <Text style={styles.metadataTitle}>Processing Details:</Text>
+                <Text style={styles.metadataText}>
+                  Processing Time: {(result.processingTime / 1000).toFixed(2)}s
+                </Text>
+                <Text style={styles.metadataText}>
+                  Confidence: {(result.confidence * 100).toFixed(0)}%
+                </Text>
+                <Text style={styles.metadataText}>
+                  Items Used: {result.metadata.itemsUsed.length}
+                </Text>
               </View>
 
-              <View style={styles.actionButtons}>
+              <View style={styles.resultActions}>
                 <TouchableOpacity
-                  style={styles.saveButton}
                   onPress={handleSave}
+                  style={[styles.actionButton, styles.saveButton]}
+                  disabled={isProcessing}
                 >
-                  <Heart size={20} color={Colors.surface.primary} />
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.actionButtonText}>
+                    {isProcessing ? 'Saving...' : 'Save Result'}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.shareButton}
                   onPress={handleShare}
+                  style={styles.actionButton}
                 >
-                  <Share2 size={20} color={Colors.primary[600]} />
-                  <Text style={styles.shareButtonText}>Share</Text>
+                  <Text style={styles.actionButtonText}>Share</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleRestart}
+                  style={[styles.actionButton, styles.retryButton]}
+                >
+                  <Text style={styles.actionButtonText}>Try Again</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           )}
         </ScrollView>
       </View>
@@ -565,92 +788,55 @@ const styles = StyleSheet.create({
     ...Typography.button.medium,
     color: Colors.surface.primary,
   },
-  resultSection: {
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.xl,
-    marginVertical: Spacing.lg,
-    alignItems: 'center',
-    ...Shadows.sm,
+  resultContainer: {
+    flex: 1,
+    padding: Spacing.lg,
   },
-  successIcon: {
-    marginBottom: Spacing.lg,
-  },
-  successTitle: {
+  resultTitle: {
     ...Typography.heading.h3,
-    color: Colors.success[600],
-    marginBottom: Spacing.md,
-  },
-  successMessage: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    textAlign: 'center',
+    color: Colors.text.primary,
     marginBottom: Spacing.lg,
   },
-  resultImageContainer: {
-    width: screenWidth - Spacing.lg * 4,
-    height: screenWidth - Spacing.lg * 4,
-    borderRadius: Layout.borderRadius.lg,
-    overflow: 'hidden',
+  finalResultSection: {
     marginBottom: Spacing.lg,
-    ...Shadows.md,
   },
   resultImage: {
     width: '100%',
-    height: '100%',
+    height: 400,
+    borderRadius: Layout.borderRadius.md,
   },
-  resultStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+  resultMetadata: {
     marginBottom: Spacing.lg,
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statLabel: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  statValue: {
+  metadataTitle: {
     ...Typography.heading.h4,
     color: Colors.text.primary,
+    marginBottom: Spacing.md,
   },
-  actionButtons: {
+  metadataText: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+  },
+  resultActions: {
     flexDirection: 'row',
     gap: Spacing.md,
     width: '100%',
   },
+  actionButton: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.primary[700],
+  },
   saveButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary[700],
-    paddingVertical: Spacing.md,
+    padding: Spacing.md,
     borderRadius: Layout.borderRadius.md,
-    gap: Spacing.sm,
+    backgroundColor: Colors.primary[700],
   },
-  saveButtonText: {
+  actionButtonText: {
     ...Typography.button.medium,
     color: Colors.surface.primary,
-  },
-  shareButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.background.secondary,
-    paddingVertical: Spacing.md,
-    borderRadius: Layout.borderRadius.md,
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.primary[600],
-  },
-  shareButtonText: {
-    ...Typography.button.medium,
-    color: Colors.primary[600],
   },
   initialState: {
     backgroundColor: Colors.surface.primary,

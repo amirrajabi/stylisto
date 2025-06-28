@@ -107,6 +107,33 @@ export const useStorage = () => {
     return storageService.getStorageStats(userId);
   }, []);
 
+  const saveVirtualTryOnResult = useCallback(
+    async (
+      generatedImageUrl: string,
+      userId: string,
+      outfitId: string,
+      outfitName: string,
+      options?: Partial<UploadOptions>
+    ): Promise<UploadResult> => {
+      return storageService.saveVirtualTryOnResult(
+        generatedImageUrl,
+        userId,
+        outfitId,
+        outfitName,
+        options
+      );
+    },
+    []
+  );
+
+  const testAuth = useCallback(async () => {
+    return storageService.testAuth();
+  }, []);
+
+  const testVirtualTryOnUpload = useCallback(async (userId: string) => {
+    return storageService.testVirtualTryOnUpload(userId);
+  }, []);
+
   return {
     uploading,
     uploadProgress,
@@ -117,5 +144,8 @@ export const useStorage = () => {
     deleteBatch,
     cleanupOrphanedFiles,
     getStorageStats,
+    saveVirtualTryOnResult,
+    testAuth,
+    testVirtualTryOnUpload,
   };
 };

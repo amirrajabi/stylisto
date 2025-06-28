@@ -1,147 +1,104 @@
 # Environment Setup Instructions
 
-To fix the API errors and configure your project properly, create a `.env.local` file in the project root with the following content:
+This document contains the complete list of environment variables needed to run the Stylisto app.
 
-```env
+## Required Environment Variables
+
+Create a `.env` file in the root of your project with the following variables:
+
+```bash
 # Supabase Configuration
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Authentication
-EXPO_PUBLIC_REDIRECT_URL=stylisto://
-
 # Weather API
-EXPO_PUBLIC_WEATHER_API_KEY=your_weather_api_key
-WEATHER_API_KEY=your_weather_api_key
+EXPO_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key
 
-# Analytics
-EXPO_PUBLIC_AMPLITUDE_API_KEY=your_amplitude_api_key
-
-# Environment
-EXPO_PUBLIC_ENV=development
-
-# Sentry (Error Reporting)
+# Sentry Configuration (for error tracking)
 EXPO_PUBLIC_SENTRY_DSN=your_sentry_dsn
-EXPO_PUBLIC_SENTRY_URL=your_sentry_url
+SENTRY_AUTH_TOKEN=your_sentry_auth_token
+SENTRY_PROJECT=your_sentry_project_name
+SENTRY_ORG=your_sentry_organization
 
-# FLUX API for Virtual Try-On (Get from https://dashboard.bfl.ai/)
-# IMPORTANT: API key can be either UUID format or "bfl_sk_" prefix format
-# Get your API key from: https://dashboard.bfl.ai/
-EXPO_PUBLIC_FLUX_API_KEY=your_actual_flux_api_key_here
+# Virtual Try-On API (FLUX by Black Forest Labs)
+EXPO_PUBLIC_FLUX_API_KEY=your_flux_api_key
 
-# Google Cloud Vision API
-GOOGLE_CLOUD_VISION_API_KEY=your_google_vision_api_key
-
-# App Configuration
-EXPO_PUBLIC_APP_VERSION=1.0.0
+# GPT-4 Vision API (for clothing analysis)
+EXPO_PUBLIC_OPENAI_API_KEY=your_openai_api_key
 ```
 
-## To fix FLUX API 403 errors:
+## Getting the API Keys
 
-1. Visit https://dashboard.bfl.ai/ and sign up for a Black Forest Labs account
-2. Create an API key from the dashboard
-3. Copy your API key and replace `your_actual_flux_api_key_here` in your .env file
-4. Ensure the API key format is correct (either UUID or "bfl*sk*" prefix)
-5. Restart your Expo development server
+### Supabase
 
-## Common API Key Issues:
+1. Go to [Supabase Dashboard](https://app.supabase.com)
+2. Create a new project or select existing one
+3. Go to Settings > API
+4. Copy the Project URL and anon/public key
 
-✅ **UUID Format**: Keys like "1c7de010-b634-4042-a7e0-1b7379252db8" (current format)
-✅ **BFL Format**: Keys like "bfl_sk_1234567890abcdef..." (legacy format)  
-❌ **Invalid Format**: Random strings or incomplete keys will cause 403 errors
-❌ **Wrong Endpoint**: Old endpoint `api.bfl.ml` is deprecated - now uses `api.blackforestlabs.ai`
+### OpenWeather API
 
-## Quick Fix for Testing:
+1. Sign up at [OpenWeatherMap](https://openweathermap.org/api)
+2. Get your API key from the account dashboard
 
-For immediate testing, the app is configured to use a mock FLUX API response when no key is provided or when using the test key `bfl_sk_test_1234567890abcdef`.
+### Sentry
 
-## Fixed Issues:
+1. Sign up at [Sentry](https://sentry.io)
+2. Create a new project
+3. Get the DSN from Settings > Client Keys
+4. Create an auth token from Settings > Auth Tokens
 
-✅ **Native Module Errors**: Replaced `@react-native-community/datetimepicker` with Expo Go compatible date picker
-✅ **Image Fallback Warnings**: Updated `virtualTryOn.ts` to use `expo-image-manipulator` instead of React Native Image.getSize
-✅ **Expo Go Compatibility**: All components now use Expo SDK packages
+### FLUX API
 
-The app should now run properly in Expo Go without the "Invariant Violation" errors.
+1. Sign up at [Black Forest Labs](https://blackforestlabs.ai/)
+2. Go to [Dashboard](https://dashboard.bfl.ai/)
+3. Generate an API key
+4. The key should start with `bfl_sk_` or be in UUID format
 
-# Environment Setup Instructions for Stylisto
+### OpenAI API
 
-## Black Forest Labs (FLUX) API Configuration
+1. Sign up at [OpenAI](https://platform.openai.com)
+2. Go to [API Keys](https://platform.openai.com/api-keys)
+3. Create a new API key
+4. Make sure you have GPT-4 Vision access
 
-### 1. Get Your API Key
-
-1. Go to [Black Forest Labs Dashboard](https://dashboard.bfl.ai/)
-2. Sign up or log in to your account
-3. Create a new API key (it will look like either `bfl_sk_...` or a UUID format like `1c7de010-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
-
-### 2. Set Up Environment Variables
-
-Create a `.env` file in the project root directory with your API key:
+## Example .env file
 
 ```bash
-# Black Forest Labs API Key for Virtual Try-On
-EXPO_PUBLIC_FLUX_API_KEY=your-api-key-here
+# Supabase
+EXPO_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Weather
+EXPO_PUBLIC_OPENWEATHER_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Sentry
+EXPO_PUBLIC_SENTRY_DSN=https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.io/xxxxxxx
+SENTRY_AUTH_TOKEN=sntrys_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENTRY_PROJECT=stylisto
+SENTRY_ORG=your-org-name
+
+# Virtual Try-On
+EXPO_PUBLIC_FLUX_API_KEY=bfl_sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# AI Vision
+EXPO_PUBLIC_OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-Replace `your-api-key-here` with your actual API key from the dashboard.
+## Important Notes
 
-### 3. Available Models & Pricing
+1. Never commit the `.env` file to version control
+2. Add `.env` to your `.gitignore` file
+3. For production, set these variables in your hosting environment (e.g., EAS Build secrets)
+4. The `EXPO_PUBLIC_` prefix is required for variables that need to be accessible in the React Native app
+5. Variables without the prefix are only accessible during build time
 
-Based on your API key, you can use these models:
+## Testing Your Setup
 
-- **flux-kontext-pro**: $0.04 per image - Best for editing and virtual try-on
-- **flux-kontext-max**: $0.08 per image - Maximum quality
-- **flux-pro-1.1**: $0.04 per image - Standard generation
-- **flux-dev**: $0.025 per image - Development/testing
+After setting up your environment variables, test them by running:
 
-### 4. Troubleshooting
+```bash
+npm start
+```
 
-If you're getting "Network request failed" errors:
-
-1. **Verify your API key is correctly set in `.env`**
-   - Make sure there are no extra spaces or quotes
-   - Restart your Expo development server after adding the key
-
-2. **Check that you have credits in your Black Forest Labs account**
-   - Log in to [dashboard.bfl.ai](https://dashboard.bfl.ai/) and check your balance
-
-3. **Ensure you have an active internet connection**
-   - Try accessing https://api.bfl.ml/v1/get_result?id=test in your browser
-   - You should see a response (even if it's an error about authentication)
-
-4. **The API uses `https://api.bfl.ml/v1/` as the base URL**
-   - Not `blackforestlabs.ai` - this is the correct domain
-
-5. **Common error messages and solutions:**
-   - `401/403 Error`: Your API key is invalid or missing credits
-   - `429 Error`: Rate limit exceeded, wait a moment before trying again
-   - `Network request failed`: Check internet connection or firewall settings
-   - `TypeError: Failed to fetch`: Usually a connectivity issue or CORS problem
-
-### 5. Testing Your Setup
-
-After setting up your API key, you can test it by:
-
-1. Running the app: `npx expo start`
-2. Going to the Virtual Try-On test screen
-3. Trying to generate an image
-
-The console will show debug information about your API key and connection status.
-
-### 6. API Technical Details
-
-The Black Forest Labs API uses:
-
-- **Authentication**: `x-key` header (not `Authorization: Bearer`)
-- **Endpoints**:
-  - Image generation: `POST https://api.bfl.ml/v1/{model-name}`
-  - Result polling: `GET https://api.bfl.ml/v1/get_result?id={task-id}`
-- **Response format**: Returns a task ID that you poll for results
-- **Status values**: `Ready` when complete, `Error` when failed
-
-### 7. Getting Help
-
-If you're still having issues:
-
-1. Check the [BFL API Documentation](https://docs.bfl.ml/)
-2. Contact support through the dashboard
-3. Ensure your development environment allows outbound HTTPS connections
+Check the console for any missing environment variable warnings.

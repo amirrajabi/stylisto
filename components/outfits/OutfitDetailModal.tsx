@@ -39,7 +39,7 @@ import {
   Sun,
   X,
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -49,6 +49,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
@@ -56,6 +57,7 @@ import { Typography } from '../../constants/Typography';
 import { useVirtualTryOnStore } from '../../hooks/useVirtualTryOnStore';
 import { VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
+import { NativeCollageView } from '../ui/NativeCollageView';
 import { VirtualTryOnModal } from './VirtualTryOnModal';
 
 interface OutfitDetailModalProps {
@@ -100,6 +102,7 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   onVirtualTryOnShare,
 }) => {
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
+  const viewShotRef = useRef<ViewShot | null>(null);
 
   const {
     userFullBodyImageUrl,
@@ -141,6 +144,21 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
 
   const handleProveOutfit = () => {
     console.log('🚀 Prove outfit function called - checking prerequisites...');
+
+    // If results are already available, show them instead of starting new process
+    if (lastGeneratedImageUrl) {
+      console.log(
+        '📸 Results available, showing Virtual Try-On modal with results',
+        {
+          lastGeneratedImageUrl,
+          showVirtualTryOn,
+          outfitId: outfit.id,
+        }
+      );
+      setShowVirtualTryOn(true);
+      console.log('✅ setShowVirtualTryOn(true) called');
+      return;
+    }
 
     // Use Redux store data for better accuracy
     const actualUserImage = userFullBodyImageUrl || userImage;
@@ -305,8 +323,8 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
             <View style={styles.scoresSection}>
               <Text style={styles.sectionTitle}>Match Details</Text>
 
-              {/* Enhanced Prove Button for Favorites */}
-              {onProve && outfit.isFavorite && (
+              {/* Enhanced Prove Button for All Outfits */}
+              {onProve && (
                 <TouchableOpacity
                   style={[
                     styles.bigProveButton,
@@ -395,6 +413,22 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
               </View>
             </View>
 
+            {/* Outfit Preview Collage */}
+            {(userFullBodyImageUrl || userImage) && outfit.items.length > 0 && (
+              <View style={styles.collageSection}>
+                <Text style={styles.sectionTitle}>Outfit Preview</Text>
+                <View style={styles.collageContainer}>
+                  <NativeCollageView
+                    userImage={userFullBodyImageUrl || userImage || ''}
+                    clothingImages={outfit.items.map(item => item.imageUrl)}
+                    width={screenWidth - Spacing.md * 2}
+                    height={(screenWidth - Spacing.md * 2) * 1.2}
+                    viewShotRef={viewShotRef}
+                  />
+                </View>
+              </View>
+            )}
+
             {/* Outfit Items (2) */}
             <View style={styles.itemsSection}>
               <Text style={styles.sectionTitle}>
@@ -431,7 +465,22 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
         onClose={() => setShowVirtualTryOn(false)}
         outfitId={outfit.id}
         clothingItems={outfit.items}
-        userImage={userImage}
+        userImage={userFullBodyImageUrl || userImage}
+        existingResult={
+          lastGeneratedImageUrl
+            ? {
+                generatedImageUrl: lastGeneratedImageUrl,
+                processingTime: 30000,
+                confidence: 0.85,
+                metadata: {
+                  prompt: `Virtual try-on of ${outfit.name}`,
+                  styleInstructions: 'natural fit, professional photography',
+                  itemsUsed: outfit.items.map(item => item.name),
+                  timestamp: new Date().toISOString(),
+                },
+              }
+            : undefined
+        }
         onComplete={handleVirtualTryOnComplete}
         onSave={handleVirtualTryOnSave}
         onShare={handleVirtualTryOnShare}
@@ -666,5 +715,13 @@ const styles = StyleSheet.create({
     ...Typography.body.small,
     color: Colors.error[500],
     fontWeight: '600',
+  },
+  collageSection: {
+    marginBottom: Spacing.xl,
+  },
+  collageContainer: {
+    borderRadius: Layout.borderRadius.lg,
+    overflow: 'hidden',
+    ...Shadows.sm,
   },
 });
