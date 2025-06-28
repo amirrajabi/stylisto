@@ -9,7 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import {
   ClothingCategory,
   FilterOptions,
@@ -37,6 +39,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   availableTags,
 }) => {
   const [localFilters, setLocalFilters] = useState<FilterOptions>(filters);
+  const insets = useSafeAreaInsets();
 
   const handleApply = () => {
     onApplyFilters(localFilters);
@@ -54,6 +57,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       favorites: false,
     };
     setLocalFilters(resetFilters);
+    // Automatically apply the reset filters
+    onApplyFilters(resetFilters);
+    onClose();
   };
 
   const toggleArrayFilter = <T,>(
@@ -72,7 +78,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     title: string;
     children: React.ReactNode;
   }> = ({ title, children }) => (
-    <View style={styles.sectionContainer}>
+    <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
@@ -85,46 +91,82 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     color?: string;
   }> = ({ label, selected, onPress, color }) => (
     <TouchableOpacity
-      style={[
-        styles.chip,
-        selected && styles.selectedChip,
-        color && { backgroundColor: color, borderColor: color },
-      ]}
+      style={[styles.chip, selected && styles.selectedChip]}
       onPress={onPress}
     >
-      <Text
-        style={[
-          styles.chipText,
-          selected && styles.selectedChipText,
-          color && { color: '#ffffff' },
-        ]}
-      >
+      <Text style={[styles.chipText, selected && styles.selectedChipText]}>
         {label}
       </Text>
-      {selected && <Check size={16} color={color ? '#ffffff' : '#A428FC'} />}
+      {selected && <Check size={16} color="#A428FC" />}
     </TouchableOpacity>
   );
+
+  const ColorChip: React.FC<{
+    color: string;
+    selected: boolean;
+    onPress: () => void;
+  }> = ({ color, selected, onPress }) => {
+    const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+    const displayColor = isValidHex ? color : '#CCCCCC';
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.colorChip,
+          { backgroundColor: displayColor },
+          selected && styles.selectedColorChip,
+        ]}
+        onPress={onPress}
+      >
+        {selected && (
+          <Check
+            size={16}
+            color={
+              isValidHex && parseInt(color.slice(1), 16) > 0x888888
+                ? '#000000'
+                : '#FFFFFF'
+            }
+          />
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#1f2937" />
+            <X size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Filter Items</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Filter Items</Text>
+          </View>
           <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
             <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Content */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
+        >
           <FilterSection title="Categories">
-            <View style={styles.chipContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalScrollContent}
+            >
               {Object.values(ClothingCategory).map(category => (
                 <FilterChip
                   key={category}
@@ -140,11 +182,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   }
                 />
               ))}
-            </View>
+            </ScrollView>
           </FilterSection>
 
           <FilterSection title="Seasons">
-            <View style={styles.chipContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalScrollContent}
+            >
               {Object.values(Season).map(season => (
                 <FilterChip
                   key={season}
@@ -157,11 +204,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   }
                 />
               ))}
-            </View>
+            </ScrollView>
           </FilterSection>
 
           <FilterSection title="Occasions">
-            <View style={styles.chipContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalScrollContent}
+            >
               {Object.values(Occasion).map(occasion => (
                 <FilterChip
                   key={occasion}
@@ -177,32 +229,41 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   }
                 />
               ))}
-            </View>
+            </ScrollView>
           </FilterSection>
 
           {availableColors.length > 0 && (
             <FilterSection title="Colors">
-              <View style={styles.chipContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.horizontalScrollContent}
+              >
                 {availableColors.map(color => (
-                  <FilterChip
+                  <ColorChip
                     key={color}
-                    label={color}
+                    color={color}
                     selected={localFilters.colors.includes(color)}
                     onPress={() =>
                       toggleArrayFilter(localFilters.colors, color, colors =>
                         setLocalFilters({ ...localFilters, colors })
                       )
                     }
-                    color={color}
                   />
                 ))}
-              </View>
+              </ScrollView>
             </FilterSection>
           )}
 
           {availableBrands.length > 0 && (
             <FilterSection title="Brands">
-              <View style={styles.chipContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.horizontalScrollContent}
+              >
                 {availableBrands.map(brand => (
                   <FilterChip
                     key={brand}
@@ -215,25 +276,41 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     }
                   />
                 ))}
-              </View>
+              </ScrollView>
             </FilterSection>
           )}
 
           <FilterSection title="Other">
-            <FilterChip
-              label="Favorites Only"
-              selected={localFilters.favorites}
-              onPress={() =>
-                setLocalFilters({
-                  ...localFilters,
-                  favorites: !localFilters.favorites,
-                })
-              }
-            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalScrollContent}
+            >
+              <FilterChip
+                label="Favorites Only"
+                selected={localFilters.favorites}
+                onPress={() =>
+                  setLocalFilters({
+                    ...localFilters,
+                    favorites: !localFilters.favorites,
+                  })
+                }
+              />
+            </ScrollView>
           </FilterSection>
+
+          {/* Extra padding for better scroll experience */}
+          <View style={styles.extraPadding} />
         </ScrollView>
 
-        <View style={styles.footer}>
+        {/* Footer with button */}
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, Spacing.xl) + Spacing.lg },
+          ]}
+        >
           <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
             <Text style={styles.applyButtonText}>Apply Filters</Text>
           </TouchableOpacity>
@@ -251,95 +328,143 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border.primary,
+    backgroundColor: Colors.surface.primary,
   },
   closeButton: {
-    padding: 8,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: Spacing.xs,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 0,
   },
   resetButton: {
-    padding: 8,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: Spacing.xs,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   resetText: {
     fontSize: 16,
     color: '#A428FC',
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  content: {
+  scrollView: {
     flex: 1,
-    paddingHorizontal: 16,
   },
-  sectionContainer: {
-    marginBottom: 20,
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+  },
+  section: {
+    marginBottom: Spacing['2xl'],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: Spacing.lg,
   },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  horizontalScroll: {
+    flexGrow: 0,
+  },
+  horizontalScrollContent: {
+    paddingRight: Spacing.lg,
+    gap: 10,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderColor: Colors.border.primary,
     backgroundColor: Colors.surface.primary,
+    gap: 6,
+    minHeight: 40,
   },
   selectedChip: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f3f4ff',
     borderColor: '#A428FC',
   },
   chipText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.text.secondary,
+    fontWeight: '500',
     textTransform: 'capitalize',
   },
   selectedChipText: {
     color: '#A428FC',
-    fontWeight: '500',
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  applyButton: {
-    backgroundColor: '#A428FC',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
   },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  colorChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: Colors.border.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  modalContainer: {
-    width: '90%',
-    maxWidth: 500,
-    maxHeight: '80%',
+  selectedColorChip: {
+    borderColor: '#A428FC',
+    borderWidth: 3,
+  },
+  extraPadding: {
+    height: Spacing['4xl'],
+  },
+  footer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
     backgroundColor: Colors.surface.primary,
-    borderRadius: 12,
-    padding: 20,
+  },
+  applyButton: {
+    width: '100%',
+    height: 52,
+    backgroundColor: '#A428FC',
+    borderRadius: Layout.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#A428FC',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  applyButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });

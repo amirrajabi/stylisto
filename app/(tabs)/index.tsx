@@ -25,6 +25,7 @@ import { ClothingItem } from '../../types/wardrobe';
 
 export default function WardrobeScreen() {
   const {
+    items,
     filteredItems,
     selectedItems,
     filters,
@@ -114,9 +115,9 @@ export default function WardrobeScreen() {
     },
   ];
 
-  // Get unique values for filter options
+  // Get unique values for filter options from ALL items, not just filtered ones
   const filterOptions = useMemo(() => {
-    const allItems = filteredItems;
+    const allItems = items; // Use all items, not filtered items
     return {
       colors: [...new Set(allItems.map(item => item.color))],
       brands: [
@@ -128,7 +129,7 @@ export default function WardrobeScreen() {
       ],
       tags: [...new Set(allItems.flatMap(item => item.tags))],
     };
-  }, [filteredItems]);
+  }, [items]); // Depend on items, not filteredItems
 
   const handleItemPress = (item: ClothingItem) => {
     router.push({
