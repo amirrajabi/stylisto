@@ -448,7 +448,11 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
                       <Trash2 size={14} color={Colors.error[500]} />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.itemName} numberOfLines={2}>
+                  <Text
+                    style={styles.itemName}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {item.name}
                   </Text>
                   <Text style={styles.itemCategory}>
@@ -504,7 +508,11 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
                     style={styles.selectableItemImage}
                     contentFit="cover"
                   />
-                  <Text style={styles.selectableItemName} numberOfLines={2}>
+                  <Text
+                    style={styles.selectableItemName}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {item.name}
                   </Text>
                   <Text style={styles.selectableItemCategory}>

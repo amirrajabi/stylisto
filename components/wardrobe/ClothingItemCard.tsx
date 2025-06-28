@@ -99,7 +99,7 @@ export const ClothingItemCard: React.FC<ClothingItemCardProps> = ({
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
           {item.name}
         </Text>
 

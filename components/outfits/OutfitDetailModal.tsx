@@ -541,7 +541,11 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
                       contentFit="cover"
                     />
                     <View style={styles.itemInfo}>
-                      <Text style={styles.itemName} numberOfLines={2}>
+                      <Text
+                        style={styles.itemName}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {item.name}
                       </Text>
                       <Text style={styles.itemCategory}>{item.category}</Text>

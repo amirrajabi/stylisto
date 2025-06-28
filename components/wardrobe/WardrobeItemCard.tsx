@@ -153,6 +153,7 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
             <Text
               style={styles.listTitle}
               numberOfLines={1}
+              ellipsizeMode="tail"
               accessibilityLabel={item.name}
             >
               {item.name}
@@ -342,7 +343,8 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
       <View style={styles.gridContent}>
         <Text
           style={styles.gridTitle}
-          numberOfLines={2}
+          numberOfLines={1}
+          ellipsizeMode="tail"
           accessibilityLabel={item.name}
         >
           {item.name}

@@ -458,7 +458,11 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     source={{ uri: item.imageUrl }}
                     style={styles.itemImage}
                   />
-                  <Text style={styles.itemName} numberOfLines={2}>
+                  <Text
+                    style={styles.itemName}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {item.name}
                   </Text>
                 </View>

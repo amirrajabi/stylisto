@@ -190,7 +190,11 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       >
         {/* Header with name and action buttons */}
         <View style={styles.cardHeader}>
-          <Text style={styles.outfitName} numberOfLines={1}>
+          <Text
+            style={styles.outfitName}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {outfit.name}
           </Text>
           <View style={styles.headerActions}>

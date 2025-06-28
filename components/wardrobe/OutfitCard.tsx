@@ -161,7 +161,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
           {outfit.name}
         </Text>
 

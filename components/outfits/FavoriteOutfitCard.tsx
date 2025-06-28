@@ -69,6 +69,7 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
           <AccessibleText
             style={[styles.outfitName, { color: colors.text.primary }]}
             numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {outfit.name}
           </AccessibleText>
