@@ -1,6 +1,7 @@
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { Colors } from '../constants/Colors';
 
 export type StatusBarStyle = 'auto' | 'light' | 'dark';
 
@@ -64,8 +65,8 @@ export function useStatusBarForScreen(
       case 'dark':
       default:
         return {
-          style: 'light',
-          backgroundColor: '#1a1a1a',
+          style: 'dark',
+          backgroundColor: Colors.background.primary,
           translucent: true,
           hidden: false,
         };
@@ -73,4 +74,18 @@ export function useStatusBarForScreen(
   };
 
   return useStatusBar(getOptionsForScreenType(screenType));
+}
+
+export function useForceLightMode() {
+  useEffect(() => {
+    const setupLightMode = async () => {
+      try {
+        await SystemUI.setBackgroundColorAsync(Colors.background.primary);
+      } catch (error) {
+        console.error('Failed to set system UI background:', error);
+      }
+    };
+
+    setupLightMode();
+  }, []);
 }

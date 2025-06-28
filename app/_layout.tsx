@@ -1,4 +1,5 @@
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { useForceLightMode } from '@/hooks/useStatusBar';
 import {
   Inter_400Regular,
   Inter_600SemiBold,
@@ -30,6 +31,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
+  useForceLightMode();
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -144,7 +146,7 @@ export default function RootLayout() {
               />
             </Stack>
             <StatusBar
-              style="auto"
+              style="dark"
               backgroundColor="transparent"
               translucent={true}
             />

@@ -239,3 +239,13 @@ export const getContrastColor = (backgroundColor: string): string => {
 
   return isLight ? Colors.text.primary : Colors.text.inverse;
 };
+
+// Force Light Theme - Always return light colors regardless of system preference
+export const getAppColors = () => {
+  return Colors; // Always return light theme colors
+};
+
+// Force Light Theme Status Bar Style
+export const getStatusBarStyle = (): 'light' | 'dark' => {
+  return 'dark'; // Dark content on light background
+};

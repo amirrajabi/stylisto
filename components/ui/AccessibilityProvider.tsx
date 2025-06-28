@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 import { Colors, DarkColors } from '../../constants/Colors';
 
 // Define the accessibility context type
@@ -10,18 +10,18 @@ interface AccessibilityContextType {
   increaseFontScale: () => void;
   decreaseFontScale: () => void;
   resetFontScale: () => void;
-  
+
   // High contrast mode
   isHighContrastEnabled: boolean;
   toggleHighContrast: () => void;
-  
+
   // Reduced motion
   isReducedMotionEnabled: boolean;
   toggleReducedMotion: () => void;
-  
+
   // Screen reader announcement
   announceForAccessibility: (message: string) => void;
-  
+
   // Current theme and colors
   theme: 'light' | 'dark' | 'high-contrast';
   colors: typeof Colors | typeof DarkColors;
@@ -33,15 +33,15 @@ const AccessibilityContext = createContext<AccessibilityContextType>({
   increaseFontScale: () => {},
   decreaseFontScale: () => {},
   resetFontScale: () => {},
-  
+
   isHighContrastEnabled: false,
   toggleHighContrast: () => {},
-  
+
   isReducedMotionEnabled: false,
   toggleReducedMotion: () => {},
-  
+
   announceForAccessibility: () => {},
-  
+
   theme: 'light',
   colors: Colors,
 });
@@ -105,14 +105,18 @@ const HighContrastDarkColors = {
 };
 
 // Provider component
-export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const systemColorScheme = useColorScheme();
-  
+
   // State
   const [fontScale, setFontScale] = useState<number>(1);
-  const [isHighContrastEnabled, setIsHighContrastEnabled] = useState<boolean>(false);
-  const [isReducedMotionEnabled, setIsReducedMotionEnabled] = useState<boolean>(false);
-  
+  const [isHighContrastEnabled, setIsHighContrastEnabled] =
+    useState<boolean>(false);
+  const [isReducedMotionEnabled, setIsReducedMotionEnabled] =
+    useState<boolean>(false);
+
   // Load saved preferences
   useEffect(() => {
     const loadPreferences = async () => {
@@ -122,15 +126,16 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         if (savedFontScale) {
           setFontScale(parseFloat(savedFontScale));
         }
-        
+
         // Load high contrast setting
         const savedHighContrast = await AsyncStorage.getItem(HIGH_CONTRAST_KEY);
         if (savedHighContrast) {
           setIsHighContrastEnabled(savedHighContrast === 'true');
         }
-        
+
         // Load reduced motion setting
-        const savedReducedMotion = await AsyncStorage.getItem(REDUCED_MOTION_KEY);
+        const savedReducedMotion =
+          await AsyncStorage.getItem(REDUCED_MOTION_KEY);
         if (savedReducedMotion) {
           setIsReducedMotionEnabled(savedReducedMotion === 'true');
         }
@@ -138,84 +143,90 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Failed to load accessibility preferences:', error);
       }
     };
-    
+
     loadPreferences();
   }, []);
-  
+
   // Save preferences when they change
   useEffect(() => {
     const savePreferences = async () => {
       try {
         await AsyncStorage.setItem(FONT_SCALE_KEY, fontScale.toString());
-        await AsyncStorage.setItem(HIGH_CONTRAST_KEY, isHighContrastEnabled.toString());
-        await AsyncStorage.setItem(REDUCED_MOTION_KEY, isReducedMotionEnabled.toString());
+        await AsyncStorage.setItem(
+          HIGH_CONTRAST_KEY,
+          isHighContrastEnabled.toString()
+        );
+        await AsyncStorage.setItem(
+          REDUCED_MOTION_KEY,
+          isReducedMotionEnabled.toString()
+        );
       } catch (error) {
         console.error('Failed to save accessibility preferences:', error);
       }
     };
-    
+
     savePreferences();
   }, [fontScale, isHighContrastEnabled, isReducedMotionEnabled]);
-  
+
   // Font scale functions
   const increaseFontScale = () => {
     setFontScale(prev => Math.min(prev + 0.1, 1.5));
   };
-  
+
   const decreaseFontScale = () => {
     setFontScale(prev => Math.max(prev - 0.1, 0.8));
   };
-  
+
   const resetFontScale = () => {
     setFontScale(1);
   };
-  
+
   // Toggle high contrast mode
   const toggleHighContrast = () => {
     setIsHighContrastEnabled(prev => !prev);
   };
-  
+
   // Toggle reduced motion
   const toggleReducedMotion = () => {
     setIsReducedMotionEnabled(prev => !prev);
   };
-  
+
   // Screen reader announcement
   const announceForAccessibility = (message: string) => {
     // This is a placeholder - in a real app, you would use
     // AccessibilityInfo.announceForAccessibility from react-native
     console.log('Accessibility announcement:', message);
   };
-  
-  // Determine current theme and colors
-  const isDarkMode = systemColorScheme === 'dark';
-  let theme: 'light' | 'dark' | 'high-contrast' = isDarkMode ? 'dark' : 'light';
-  let colors = isDarkMode ? DarkColors : Colors;
-  
+
+  // Determine current theme and colors - Force Light Mode Always
+  const isDarkMode = false; // Force light mode - ignore system preference
+  let theme: 'light' | 'dark' | 'high-contrast' = 'light'; // Always light
+  let colors = Colors; // Always use light colors
+
   if (isHighContrastEnabled) {
     theme = 'high-contrast';
-    colors = isDarkMode ? HighContrastDarkColors : HighContrastColors;
+    colors = HighContrastColors; // Always use light high contrast colors
   }
-  
+
   // Context value
   const contextValue: AccessibilityContextType = {
     fontScale,
     increaseFontScale,
     decreaseFontScale,
     resetFontScale,
-    
+
     isHighContrastEnabled,
     toggleHighContrast,
-    
+
     isReducedMotionEnabled,
     toggleReducedMotion,
-    
+
     announceForAccessibility,
-    
+
     theme,
     colors,
   };
-  
+
   return (
     <AccessibilityContext.Provider value={contextValue}>
       {children}

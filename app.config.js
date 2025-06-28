@@ -8,19 +8,20 @@ export default {
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'stylisto',
-    userInterfaceStyle: 'automatic',
+    userInterfaceStyle: 'light',
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.stylisto.app',
       infoPlist: {
         UIViewControllerBasedStatusBarAppearance: false,
+        UIUserInterfaceStyle: 'Light',
       },
     },
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#FFFFFF',
       },
       package: 'com.stylisto.app',
       edgeToEdgeEnabled: true,
@@ -39,7 +40,7 @@ export default {
           image: './assets/images/splash-icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#FFFFFF',
         },
       ],
       [

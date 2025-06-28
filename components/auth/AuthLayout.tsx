@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
     ...Shadows.lg,
   },
   logoImage: {
-    width: 80,
-    height: 80,
+    width: 50,
+    height: 50,
   },
   contentCard: {
     flex: 1,

@@ -9,7 +9,6 @@ import {
   Heart,
   CircleHelp as HelpCircle,
   LogOut,
-  Moon,
   Settings,
   Shield,
   Trash2,
@@ -24,7 +23,6 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -51,7 +49,6 @@ export default function ProfileScreen() {
   const { colors, theme, toggleHighContrast } = useAccessibility();
   const { trackScreenView, trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(theme === 'dark');
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0);
   const [fullBodyRefreshKey, setFullBodyRefreshKey] = useState(0);
   const [userPreferences, setUserPreferences] = useState({
@@ -67,7 +64,6 @@ export default function ProfileScreen() {
       analyticsTracking: true,
     },
     appearance: {
-      darkMode: theme === 'dark',
       fontSize: 'medium',
     },
   });
@@ -85,12 +81,6 @@ export default function ProfileScreen() {
           await AsyncStorage.getItem('@user_preferences');
         if (storedPreferences) {
           setUserPreferences(JSON.parse(storedPreferences));
-        }
-
-        // Load theme preference
-        const themePreference = await AsyncStorage.getItem('@theme_preference');
-        if (themePreference) {
-          setDarkMode(themePreference === 'dark');
         }
       } catch (error) {
         console.error('Failed to load preferences:', error);
@@ -115,28 +105,6 @@ export default function ProfileScreen() {
 
     savePreferences();
   }, [userPreferences]);
-
-  // Handle theme toggle
-  const handleThemeToggle = async (value: boolean) => {
-    setDarkMode(value);
-
-    // Update preferences
-    setUserPreferences(prev => ({
-      ...prev,
-      appearance: {
-        ...prev.appearance,
-        darkMode: value,
-      },
-    }));
-
-    // Save theme preference
-    await AsyncStorage.setItem('@theme_preference', value ? 'dark' : 'light');
-
-    // Track event
-    trackEvent('theme_changed', {
-      theme: value ? 'dark' : 'light',
-    });
-  };
 
   // Handle notification toggle
   const handleNotificationToggle = (key: string, value: boolean) => {
@@ -519,41 +487,6 @@ export default function ProfileScreen() {
         {/* Accessibility Settings Card */}
         <AccessibilitySettingsCard />
 
-        {/* Theme Toggle */}
-        <View
-          style={[
-            styles.themeToggleContainer,
-            { backgroundColor: colors.surface.primary },
-          ]}
-        >
-          <View style={styles.themeToggleLeft}>
-            <Moon size={20} color={colors.text.primary} />
-            <Text
-              style={[styles.themeToggleText, { color: colors.text.primary }]}
-            >
-              Dark Mode
-            </Text>
-          </View>
-          <Switch
-            value={darkMode}
-            onValueChange={handleThemeToggle}
-            trackColor={{
-              false: colors.neutral[300],
-              true: colors.primary[500],
-            }}
-            thumbColor={Platform.OS === 'ios' ? undefined : colors.white}
-            ios_backgroundColor={colors.neutral[300]}
-            accessibilityLabel="Dark mode"
-            accessibilityHint={
-              darkMode
-                ? 'Double tap to turn off dark mode'
-                : 'Double tap to turn on dark mode'
-            }
-            accessibilityRole="switch"
-            accessibilityState={{ checked: darkMode }}
-          />
-        </View>
-
         {/* Menu Sections */}
         <MenuSection title="My Data">
           <MenuItem
@@ -714,23 +647,6 @@ const styles = StyleSheet.create({
   userName: {
     ...Typography.heading.h3,
     marginBottom: Spacing.xs,
-  },
-  themeToggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderRadius: Layout.borderRadius.lg,
-    ...Shadows.sm,
-  },
-  themeToggleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  themeToggleText: {
-    ...Typography.body.medium,
   },
   section: {
     marginBottom: Spacing.md,
