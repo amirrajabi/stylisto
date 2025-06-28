@@ -51,7 +51,10 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
             style={styles.backButton}
             leftIcon={<ArrowLeft size={20} color={Colors.primary[600]} />}
           />
-          <H1 style={styles.title}>Privacy Policy</H1>
+          <View style={styles.titleContainer}>
+            <H1 style={styles.title}>Privacy Policy</H1>
+          </View>
+          <View style={styles.spacer} />
         </View>
 
         {/* Subtitle */}
@@ -284,6 +287,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface.primary,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
@@ -291,18 +295,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
     backgroundColor: Colors.surface.primary,
-    position: 'relative',
   },
   backButton: {
-    position: 'absolute',
-    left: Spacing.lg,
-    top: Spacing.sm,
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
     paddingVertical: Spacing.xs,
+    minWidth: 40,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
-    marginBottom: Spacing.xs,
+    marginBottom: 0,
+  },
+  spacer: {
+    minWidth: 40,
   },
   subtitleContainer: {
     paddingHorizontal: Spacing.lg,

@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   primaryDisabledText: {
-    color: Colors.neutral[500],
+    color: Colors.white,
     lineHeight: 24,
   },
   secondaryDisabledText: {

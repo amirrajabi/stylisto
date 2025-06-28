@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
+import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { FormField } from '../../components/auth/FormField';
 import { LoadingOverlay } from '../../components/auth/LoadingOverlay';
@@ -188,12 +189,7 @@ export default function ForgotPasswordScreen() {
               style={styles.sendButton}
             />
 
-            <Button
-              title="Back to Sign In"
-              variant="outline"
-              onPress={handleBackToLogin}
-              style={styles.backToLoginButton}
-            />
+            <AuthFooter currentPage="login" />
           </View>
         </View>
       ) : (
@@ -226,12 +222,7 @@ export default function ForgotPasswordScreen() {
               ]}
             />
 
-            <Button
-              title="Back to Sign In"
-              variant="outline"
-              onPress={handleBackToLogin}
-              style={styles.backToLoginButton}
-            />
+            <AuthFooter currentPage="login" />
           </View>
         </View>
       )}
@@ -284,11 +275,6 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: Colors.primary[600],
-  },
-  backToLoginButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.primary[600],
   },
   successContainer: {
     flex: 1,
