@@ -1,15 +1,20 @@
+import { Check, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Modal,
-  TouchableOpacity,
-  ScrollView,
   SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { X, Check } from 'lucide-react-native';
-import { ClothingCategory, Season, Occasion, FilterOptions } from '../../types/wardrobe';
+import {
+  ClothingCategory,
+  FilterOptions,
+  Occasion,
+  Season,
+} from '../../types/wardrobe';
 
 interface FilterModalProps {
   visible: boolean;
@@ -95,12 +100,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       >
         {label}
       </Text>
-      {selected && <Check size={16} color={color ? '#ffffff' : '#3b82f6'} />}
+      {selected && <Check size={16} color={color ? '#ffffff' : '#A428FC'} />}
     </TouchableOpacity>
   );
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -124,7 +133,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     toggleArrayFilter(
                       localFilters.categories,
                       category,
-                      categories => setLocalFilters({ ...localFilters, categories })
+                      categories =>
+                        setLocalFilters({ ...localFilters, categories })
                     )
                   }
                 />
@@ -140,10 +150,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   label={season}
                   selected={localFilters.seasons.includes(season)}
                   onPress={() =>
-                    toggleArrayFilter(
-                      localFilters.seasons,
-                      season,
-                      seasons => setLocalFilters({ ...localFilters, seasons })
+                    toggleArrayFilter(localFilters.seasons, season, seasons =>
+                      setLocalFilters({ ...localFilters, seasons })
                     )
                   }
                 />
@@ -162,7 +170,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     toggleArrayFilter(
                       localFilters.occasions,
                       occasion,
-                      occasions => setLocalFilters({ ...localFilters, occasions })
+                      occasions =>
+                        setLocalFilters({ ...localFilters, occasions })
                     )
                   }
                 />
@@ -179,10 +188,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     label={color}
                     selected={localFilters.colors.includes(color)}
                     onPress={() =>
-                      toggleArrayFilter(
-                        localFilters.colors,
-                        color,
-                        colors => setLocalFilters({ ...localFilters, colors })
+                      toggleArrayFilter(localFilters.colors, color, colors =>
+                        setLocalFilters({ ...localFilters, colors })
                       )
                     }
                     color={color}
@@ -201,10 +208,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     label={brand}
                     selected={localFilters.brands.includes(brand)}
                     onPress={() =>
-                      toggleArrayFilter(
-                        localFilters.brands,
-                        brand,
-                        brands => setLocalFilters({ ...localFilters, brands })
+                      toggleArrayFilter(localFilters.brands, brand, brands =>
+                        setLocalFilters({ ...localFilters, brands })
                       )
                     }
                   />
@@ -218,7 +223,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               label="Favorites Only"
               selected={localFilters.favorites}
               onPress={() =>
-                setLocalFilters({ ...localFilters, favorites: !localFilters.favorites })
+                setLocalFilters({
+                  ...localFilters,
+                  favorites: !localFilters.favorites,
+                })
               }
             />
           </FilterSection>
@@ -261,7 +269,7 @@ const styles = StyleSheet.create({
   },
   resetText: {
     fontSize: 16,
-    color: '#3b82f6',
+    color: '#A428FC',
     fontWeight: '500',
   },
   content: {
@@ -295,7 +303,7 @@ const styles = StyleSheet.create({
   },
   selectedChip: {
     backgroundColor: '#eff6ff',
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
   },
   chipText: {
     fontSize: 14,
@@ -303,7 +311,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   selectedChipText: {
-    color: '#3b82f6',
+    color: '#A428FC',
     fontWeight: '500',
   },
   footer: {
@@ -312,7 +320,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb',
   },
   applyButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#A428FC',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

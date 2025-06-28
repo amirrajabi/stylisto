@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   selectedCard: {
     borderWidth: 2,
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
   },
   imageContainer: {
     position: 'relative',

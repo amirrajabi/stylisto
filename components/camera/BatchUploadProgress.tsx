@@ -1,21 +1,24 @@
+import { Image } from 'expo-image';
+import {
+  CircleAlert as AlertCircle,
+  CircleCheck as CheckCircle,
+  Upload,
+  X,
+} from 'lucide-react-native';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
   Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Upload, X } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming,
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
   withSpring,
-  interpolate,
-  Extrapolate,
+  withTiming,
 } from 'react-native-reanimated';
 
 interface UploadItem {
@@ -42,13 +45,17 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
   onClose,
   canClose = false,
 }) => {
-  const overallProgress = items.length > 0 
-    ? items.reduce((sum, item) => sum + item.progress, 0) / items.length 
-    : 0;
+  const overallProgress =
+    items.length > 0
+      ? items.reduce((sum, item) => sum + item.progress, 0) / items.length
+      : 0;
 
-  const completedCount = items.filter(item => item.status === 'completed').length;
+  const completedCount = items.filter(
+    item => item.status === 'completed'
+  ).length;
   const errorCount = items.filter(item => item.status === 'error').length;
-  const isComplete = completedCount + errorCount === items.length && items.length > 0;
+  const isComplete =
+    completedCount + errorCount === items.length && items.length > 0;
 
   const progressBarWidth = useSharedValue(0);
 
@@ -67,7 +74,7 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
       case 'error':
         return <AlertCircle size={20} color="#EF4444" />;
       case 'uploading':
-        return <Upload size={20} color="#3B82F6" />;
+        return <Upload size={20} color="#A428FC" />;
       default:
         return <Upload size={20} color="#9CA3AF" />;
     }
@@ -80,13 +87,16 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
       case 'error':
         return '#EF4444';
       case 'uploading':
-        return '#3B82F6';
+        return '#A428FC';
       default:
         return '#9CA3AF';
     }
   };
 
-  const UploadItemComponent: React.FC<{ item: UploadItem; index: number }> = ({ item, index }) => {
+  const UploadItemComponent: React.FC<{ item: UploadItem; index: number }> = ({
+    item,
+    index,
+  }) => {
     const itemProgress = useSharedValue(0);
     const itemScale = useSharedValue(0.95);
 
@@ -110,7 +120,7 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
           style={styles.itemThumbnail}
           contentFit="cover"
         />
-        
+
         <View style={styles.itemContent}>
           <View style={styles.itemHeader}>
             <Text style={styles.itemName} numberOfLines={1}>
@@ -118,22 +128,22 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
             </Text>
             {getStatusIcon(item.status)}
           </View>
-          
+
           <View style={styles.itemProgressContainer}>
             <View style={styles.itemProgressBar}>
-              <Animated.View 
+              <Animated.View
                 style={[
                   styles.itemProgressFill,
                   { backgroundColor: getStatusColor(item.status) },
                   itemProgressAnimatedStyle,
-                ]} 
+                ]}
               />
             </View>
             <Text style={styles.itemProgressText}>
               {Math.round(item.progress)}%
             </Text>
           </View>
-          
+
           {item.error && (
             <Text style={styles.itemError} numberOfLines={2}>
               {item.error}
@@ -164,7 +174,7 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
                 {errorCount > 0 && ` • ${errorCount} failed`}
               </Text>
             </View>
-            
+
             {canClose && onClose && (
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                 <X size={24} color="#6B7280" />
@@ -176,16 +186,18 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
           <View style={styles.overallProgress}>
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBar}>
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.progressFill,
                     progressBarAnimatedStyle,
-                    { 
-                      backgroundColor: isComplete 
-                        ? errorCount > 0 ? '#F59E0B' : '#10B981'
-                        : '#3B82F6' 
+                    {
+                      backgroundColor: isComplete
+                        ? errorCount > 0
+                          ? '#F59E0B'
+                          : '#10B981'
+                        : '#A428FC',
                     },
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.progressText}>
@@ -211,13 +223,11 @@ export const BatchUploadProgress: React.FC<BatchUploadProgressProps> = ({
                     {completedCount} uploaded
                   </Text>
                 </View>
-                
+
                 {errorCount > 0 && (
                   <View style={styles.summaryItem}>
                     <AlertCircle size={16} color="#EF4444" />
-                    <Text style={styles.summaryText}>
-                      {errorCount} failed
-                    </Text>
+                    <Text style={styles.summaryText}>{errorCount} failed</Text>
                   </View>
                 )}
               </View>

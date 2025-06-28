@@ -116,7 +116,7 @@ export default function ProfileAnalyticsScreen() {
                     styles.chartBar,
                     {
                       width: maxCount > 0 ? (count / maxCount) * 200 : 0,
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: '#A428FC',
                     },
                   ]}
                 />
@@ -335,8 +335,8 @@ export default function ProfileAnalyticsScreen() {
           <StatCard
             title="Total Items"
             value={stats.totalItems}
-            icon={<Shirt size={20} color="#3b82f6" />}
-            color="#3b82f6"
+            icon={<Shirt size={20} color="#A428FC" />}
+            color="#A428FC"
           />
           <StatCard
             title="Total Outfits"
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
   },
   chartBar: {
     height: 20,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#A428FC',
     borderRadius: 4,
     marginRight: 8,
   },
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
   listItemValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: '#A428FC',
     fontFamily: 'Inter-SemiBold',
   },
   insightsContainer: {
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: '#A428FC',
   },
   insightText: {
     fontSize: 14,

@@ -1,25 +1,38 @@
-import React, { useState, useRef, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  CameraType,
+  CameraView,
+  FlashMode,
+  useCameraPermissions,
+} from 'expo-camera';
+import { Image } from 'expo-image';
+import {
+  Camera,
+  Check,
+  Slash as Flash,
+  FlashlightOff as FlashOff,
+  RefreshCw,
+  RotateCcw,
+  X,
+} from 'lucide-react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  Alert,
   Dimensions,
   Platform,
-  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
-import { Image } from 'expo-image';
-import { X, Camera, RotateCcw, Slash as Flash, FlashlightOff as FlashOff, Check, RefreshCw, Download } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  withSequence,
-  withTiming,
-  runOnJS,
-} from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 interface CameraInterfaceProps {
   onCapture: (imageUri: string) => void;
@@ -32,7 +45,8 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const CAPTURE_BUTTON_SIZE = 80;
 const CONTROL_BUTTON_SIZE = 56;
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 export const CameraInterface: React.FC<CameraInterfaceProps> = ({
   onCapture,
@@ -43,9 +57,11 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
   const [isCapturing, setIsCapturing] = useState(false);
-  const [lastCapturedImage, setLastCapturedImage] = useState<string | null>(null);
+  const [lastCapturedImage, setLastCapturedImage] = useState<string | null>(
+    null
+  );
   const [permission, requestPermission] = useCameraPermissions();
-  
+
   const cameraRef = useRef<CameraView>(null);
   const captureButtonScale = useSharedValue(1);
   const flashButtonScale = useSharedValue(1);
@@ -71,7 +87,7 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
           <Camera size={64} color="#6B7280" />
           <Text style={styles.permissionTitle}>Camera Access Required</Text>
           <Text style={styles.permissionMessage}>
-            Stylisto needs camera access to take photos of your clothing items. 
+            Stylisto needs camera access to take photos of your clothing items.
             This helps you build your digital wardrobe.
           </Text>
           <TouchableOpacity
@@ -80,10 +96,7 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
           >
             <Text style={styles.permissionButtonText}>Grant Camera Access</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={onClose}
-          >
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -92,24 +105,22 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
   }
 
   const handleCameraFlip = useCallback(() => {
-    flipButtonScale.value = withSequence(
-      withSpring(0.8),
-      withSpring(1)
-    );
+    flipButtonScale.value = withSequence(withSpring(0.8), withSpring(1));
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }, []);
 
   const handleFlashToggle = useCallback(() => {
-    flashButtonScale.value = withSequence(
-      withSpring(0.8),
-      withSpring(1)
-    );
+    flashButtonScale.value = withSequence(withSpring(0.8), withSpring(1));
     setFlash(current => {
       switch (current) {
-        case 'off': return 'on';
-        case 'on': return 'auto';
-        case 'auto': return 'off';
-        default: return 'off';
+        case 'off':
+          return 'on';
+        case 'on':
+          return 'auto';
+        case 'auto':
+          return 'off';
+        default:
+          return 'off';
       }
     });
   }, []);
@@ -118,10 +129,7 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
     if (!cameraRef.current || isCapturing || !canCaptureMore) return;
 
     setIsCapturing(true);
-    captureButtonScale.value = withSequence(
-      withSpring(0.8),
-      withSpring(1)
-    );
+    captureButtonScale.value = withSequence(withSpring(0.8), withSpring(1));
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
@@ -132,11 +140,11 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
 
       if (photo?.uri) {
         setLastCapturedImage(photo.uri);
-        
+
         // Animate preview appearance
         previewScale.value = withSpring(1);
         previewOpacity.value = withTiming(1);
-        
+
         // Auto-hide preview after 2 seconds
         setTimeout(() => {
           previewScale.value = withSpring(0);
@@ -158,10 +166,9 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
   }, [isCapturing, canCaptureMore, onCapture]);
 
   // Gesture for capture button
-  const captureGesture = Gesture.Tap()
-    .onStart(() => {
-      runOnJS(handleCapture)();
-    });
+  const captureGesture = Gesture.Tap().onStart(() => {
+    runOnJS(handleCapture)();
+  });
 
   const captureButtonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: captureButtonScale.value }],
@@ -182,9 +189,12 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
 
   const getFlashIcon = () => {
     switch (flash) {
-      case 'on': return <Flash size={24} color="#FFFFFF" />;
-      case 'auto': return <Flash size={24} color="#FCD34D" />;
-      default: return <FlashOff size={24} color="#FFFFFF" />;
+      case 'on':
+        return <Flash size={24} color="#FFFFFF" />;
+      case 'auto':
+        return <Flash size={24} color="#FCD34D" />;
+      default:
+        return <FlashOff size={24} color="#FFFFFF" />;
     }
   };
 
@@ -199,13 +209,10 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
       >
         {/* Header Controls */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={onClose}
-          >
+          <TouchableOpacity style={styles.headerButton} onPress={onClose}>
             <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Take Photo</Text>
             <Text style={styles.headerSubtitle}>
@@ -247,7 +254,9 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
             )}
             {capturedPhotos.length > 1 && (
               <View style={styles.galleryCount}>
-                <Text style={styles.galleryCountText}>{capturedPhotos.length}</Text>
+                <Text style={styles.galleryCountText}>
+                  {capturedPhotos.length}
+                </Text>
               </View>
             )}
           </View>
@@ -262,10 +271,12 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
               ]}
               disabled={isCapturing || !canCaptureMore}
             >
-              <View style={[
-                styles.captureButtonInner,
-                isCapturing && styles.captureButtonCapturing,
-              ]}>
+              <View
+                style={[
+                  styles.captureButtonInner,
+                  isCapturing && styles.captureButtonCapturing,
+                ]}
+              >
                 {isCapturing ? (
                   <RefreshCw size={32} color="#FFFFFF" />
                 ) : (
@@ -341,7 +352,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   permissionButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#A428FC',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -451,7 +462,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#A428FC',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -485,7 +496,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   captureButtonCapturing: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#A428FC',
   },
   controlButton: {
     width: CONTROL_BUTTON_SIZE,

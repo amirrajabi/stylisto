@@ -87,7 +87,7 @@ const FORMALITY_OPTIONS = [
 
 const COLOR_OPTIONS = [
   { id: 'neutrals', label: 'Neutrals', color: '#8B7355' },
-  { id: 'blues', label: 'Blues', color: '#3B82F6' },
+  { id: 'blues', label: 'Blues', color: '#17BDF8' },
   { id: 'greens', label: 'Greens', color: '#10B981' },
   { id: 'reds', label: 'Reds', color: '#EF4444' },
   { id: 'blacks', label: 'Blacks', color: '#1F2937' },

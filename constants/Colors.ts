@@ -7,47 +7,47 @@
  */
 
 export const Colors = {
-  // Primary Color Palette
+  // Primary Color Palette (Purple - #A428FC)
   primary: {
-    50: '#F7FAFC',
-    100: '#EDF2F7',
-    200: '#E2E8F0',
-    300: '#CBD5E0',
-    400: '#A0AEC0',
-    500: '#718096',
-    600: '#4A5568',
-    700: '#2D3748', // Primary brand color
-    800: '#1A202C',
-    900: '#171923',
+    50: '#FAF5FF',
+    100: '#F3E8FF',
+    200: '#E9D5FF',
+    300: '#D8B4FE',
+    400: '#C084FC',
+    500: '#A428FC', // Main primary color
+    600: '#9333EA',
+    700: '#7C3AED',
+    800: '#6B21A8',
+    900: '#581C87',
   },
 
-  // Secondary Color Palette (Blue)
+  // Secondary Color Palette (Blue - #17BDF8)
   secondary: {
-    50: '#EBF8FF',
-    100: '#BEE3F8',
-    200: '#90CDF4',
-    300: '#63B3ED',
-    400: '#4299E1', // Secondary brand color
-    500: '#3182CE',
-    600: '#2B77CB',
-    700: '#2C5282',
-    800: '#2A4365',
-    900: '#1A365D',
+    50: '#F0F9FF',
+    100: '#E0F2FE',
+    200: '#BAE6FD',
+    300: '#7DD3FC',
+    400: '#38BDF8',
+    500: '#17BDF8', // Main secondary color
+    600: '#0EA5E9',
+    700: '#0284C7',
+    800: '#0369A1',
+    900: '#0C4A6E',
   },
 
   // Accent Colors
   accent: {
     purple: {
       50: '#FAF5FF',
-      100: '#E9D8FD',
-      200: '#D6BCFA',
-      300: '#B794F6',
-      400: '#9F7AEA',
-      500: '#805AD5',
-      600: '#6B46C1',
-      700: '#553C9A',
-      800: '#44337A',
-      900: '#322659',
+      100: '#F3E8FF',
+      200: '#E9D5FF',
+      300: '#D8B4FE',
+      400: '#C084FC',
+      500: '#A428FC',
+      600: '#9333EA',
+      700: '#7C3AED',
+      800: '#6B21A8',
+      900: '#581C87',
     },
     pink: {
       50: '#FFF5F7',
@@ -104,28 +104,28 @@ export const Colors = {
   },
 
   info: {
-    50: '#EFF6FF',
-    100: '#DBEAFE',
-    200: '#BFDBFE',
-    300: '#93C5FD',
-    400: '#60A5FA',
-    500: '#3B82F6',
-    600: '#2563EB',
-    700: '#1D4ED8',
-    800: '#1E40AF',
-    900: '#1E3A8A',
+    50: '#F0F9FF',
+    100: '#E0F2FE',
+    200: '#BAE6FD',
+    300: '#7DD3FC',
+    400: '#38BDF8',
+    500: '#17BDF8',
+    600: '#0EA5E9',
+    700: '#0284C7',
+    800: '#0369A1',
+    900: '#0C4A6E',
   },
 
   // Neutral Colors
   neutral: {
     50: '#FAFAFA',
-    100: '#F5F5F5',
+    100: '#F5F7F9', // Khonsa color
     200: '#E5E5E5',
     300: '#D4D4D4',
     400: '#A3A3A3',
     500: '#737373',
     600: '#525252',
-    700: '#404040',
+    700: '#373737', // Dark color
     800: '#262626',
     900: '#171717',
   },
@@ -134,11 +134,13 @@ export const Colors = {
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
+  khonsa: '#F5F7F9',
+  dark: '#373737',
 
   // Background Colors
   background: {
     primary: '#FFFFFF',
-    secondary: '#F9FAFB',
+    secondary: '#F5F7F9', // Khonsa color
     tertiary: '#F3F4F6',
     overlay: 'rgba(0, 0, 0, 0.5)',
   },
@@ -146,27 +148,27 @@ export const Colors = {
   // Surface Colors
   surface: {
     primary: '#FFFFFF',
-    secondary: '#F8FAFC',
+    secondary: '#F5F7F9', // Khonsa color
     elevated: '#FFFFFF',
     disabled: '#F1F5F9',
   },
 
   // Text Colors
   text: {
-    primary: '#1F2937',
+    primary: '#373737', // Dark color
     secondary: '#6B7280',
     tertiary: '#9CA3AF',
     disabled: '#D1D5DB',
     inverse: '#FFFFFF',
-    link: '#3B82F6',
-    linkHover: '#2563EB',
+    link: '#A428FC', // Primary color
+    linkHover: '#9333EA',
   },
 
   // Border Colors
   border: {
     primary: '#E5E7EB',
     secondary: '#D1D5DB',
-    focus: '#3B82F6',
+    focus: '#A428FC', // Primary color
     error: '#EF4444',
     success: '#10B981',
   },
@@ -204,14 +206,14 @@ export const DarkColors = {
     tertiary: '#9CA3AF',
     disabled: '#6B7280',
     inverse: '#1F2937',
-    link: '#60A5FA',
-    linkHover: '#93C5FD',
+    link: '#C084FC',
+    linkHover: '#D8B4FE',
   },
 
   border: {
     primary: '#374151',
     secondary: '#4B5563',
-    focus: '#60A5FA',
+    focus: '#C084FC',
     error: '#F87171',
     success: '#34D399',
   },

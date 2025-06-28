@@ -44,7 +44,7 @@ export const getOccasionColor = (occasion: Occasion): string => {
     [Occasion.FORMAL]: '#000000',
     [Occasion.PARTY]: '#ec4899',
     [Occasion.SPORT]: '#10b981',
-    [Occasion.TRAVEL]: '#3b82f6',
+    [Occasion.TRAVEL]: '#A428FC',
     [Occasion.DATE]: '#ef4444',
     [Occasion.SPECIAL]: '#8b5cf6',
   };

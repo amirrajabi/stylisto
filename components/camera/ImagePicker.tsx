@@ -1,24 +1,24 @@
-import React, { useState, useCallback } from 'react';
+import { Image } from 'expo-image';
+import * as ImagePickerExpo from 'expo-image-picker';
+import { Camera, Image as ImageIcon, Plus, X } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Alert,
+  Dimensions,
   Platform,
   ScrollView,
-  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import * as ImagePickerExpo from 'expo-image-picker';
-import { Image } from 'expo-image';
-import { Camera, Image as ImageIcon, X, Plus, Check, CircleAlert as AlertCircle } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  withSequence,
+import Animated, {
   FadeIn,
   FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
 } from 'react-native-reanimated';
 
 interface ImagePickerProps {
@@ -33,9 +33,11 @@ interface ImagePickerProps {
 const { width: screenWidth } = Dimensions.get('window');
 const GRID_SPACING = 8;
 const GRID_COLUMNS = 3;
-const IMAGE_SIZE = (screenWidth - (GRID_SPACING * (GRID_COLUMNS + 1))) / GRID_COLUMNS;
+const IMAGE_SIZE =
+  (screenWidth - GRID_SPACING * (GRID_COLUMNS + 1)) / GRID_COLUMNS;
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 export const ImagePicker: React.FC<ImagePickerProps> = ({
   onImagesSelected,
@@ -46,8 +48,10 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
   quality = 0.8,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
-  
+  const [permissionStatus, setPermissionStatus] = useState<
+    'granted' | 'denied' | 'undetermined'
+  >('undetermined');
+
   const cameraButtonScale = useSharedValue(1);
   const galleryButtonScale = useSharedValue(1);
 
@@ -57,34 +61,35 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
   const checkPermissions = useCallback(async (type: 'camera' | 'gallery') => {
     try {
       let permission;
-      
+
       if (type === 'camera') {
         permission = await ImagePickerExpo.requestCameraPermissionsAsync();
       } else {
-        permission = await ImagePickerExpo.requestMediaLibraryPermissionsAsync();
+        permission =
+          await ImagePickerExpo.requestMediaLibraryPermissionsAsync();
       }
 
       if (!permission.granted) {
         setPermissionStatus('denied');
-        
-        const message = type === 'camera' 
-          ? 'Camera access is required to take photos of your clothing items.'
-          : 'Photo library access is required to select images from your gallery.';
-        
+
+        const message =
+          type === 'camera'
+            ? 'Camera access is required to take photos of your clothing items.'
+            : 'Photo library access is required to select images from your gallery.';
+
         if (Platform.OS === 'web') {
           alert(`Permission Required\n\n${message}`);
         } else {
-          Alert.alert(
-            'Permission Required',
-            message,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Settings', onPress: () => {
+          Alert.alert('Permission Required', message, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Settings',
+              onPress: () => {
                 // On native platforms, you could open settings
                 console.log('Open settings');
-              }},
-            ]
-          );
+              },
+            },
+          ]);
         }
         return false;
       }
@@ -99,14 +104,14 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
 
   const handleCameraPress = useCallback(async () => {
     if (!canSelectMore) {
-      Alert.alert('Limit Reached', `You can only select up to ${maxImages} images.`);
+      Alert.alert(
+        'Limit Reached',
+        `You can only select up to ${maxImages} images.`
+      );
       return;
     }
 
-    cameraButtonScale.value = withSequence(
-      withSpring(0.95),
-      withSpring(1)
-    );
+    cameraButtonScale.value = withSequence(withSpring(0.95), withSpring(1));
 
     const hasPermission = await checkPermissions('camera');
     if (!hasPermission) return;
@@ -132,18 +137,26 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [canSelectMore, maxImages, selectedImages, onImagesSelected, allowsEditing, quality, checkPermissions]);
+  }, [
+    canSelectMore,
+    maxImages,
+    selectedImages,
+    onImagesSelected,
+    allowsEditing,
+    quality,
+    checkPermissions,
+  ]);
 
   const handleGalleryPress = useCallback(async () => {
     if (!canSelectMore) {
-      Alert.alert('Limit Reached', `You can only select up to ${maxImages} images.`);
+      Alert.alert(
+        'Limit Reached',
+        `You can only select up to ${maxImages} images.`
+      );
       return;
     }
 
-    galleryButtonScale.value = withSequence(
-      withSpring(0.95),
-      withSpring(1)
-    );
+    galleryButtonScale.value = withSequence(withSpring(0.95), withSpring(1));
 
     const hasPermission = await checkPermissions('gallery');
     if (!hasPermission) return;
@@ -152,7 +165,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
 
     try {
       const remainingSlots = maxImages - selectedImages.length;
-      
+
       const result = await ImagePickerExpo.launchImageLibraryAsync({
         mediaTypes: ImagePickerExpo.MediaTypeOptions.Images,
         allowsEditing: remainingSlots === 1 ? allowsEditing : false,
@@ -174,12 +187,25 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [canSelectMore, maxImages, selectedImages, onImagesSelected, allowsEditing, quality, checkPermissions]);
+  }, [
+    canSelectMore,
+    maxImages,
+    selectedImages,
+    onImagesSelected,
+    allowsEditing,
+    quality,
+    checkPermissions,
+  ]);
 
-  const handleRemoveImage = useCallback((indexToRemove: number) => {
-    const updatedImages = selectedImages.filter((_, index) => index !== indexToRemove);
-    onImagesSelected(updatedImages);
-  }, [selectedImages, onImagesSelected]);
+  const handleRemoveImage = useCallback(
+    (indexToRemove: number) => {
+      const updatedImages = selectedImages.filter(
+        (_, index) => index !== indexToRemove
+      );
+      onImagesSelected(updatedImages);
+    },
+    [selectedImages, onImagesSelected]
+  );
 
   const cameraButtonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cameraButtonScale.value }],
@@ -211,7 +237,9 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
           onPress={handleCameraPress}
           disabled={isLoading || !canSelectMore}
         >
-          <View style={[styles.actionButtonIcon, { backgroundColor: '#3B82F6' }]}>
+          <View
+            style={[styles.actionButtonIcon, { backgroundColor: '#A428FC' }]}
+          >
             <Camera size={32} color="#FFFFFF" />
           </View>
           <Text style={styles.actionButtonText}>Take Photo</Text>
@@ -223,7 +251,9 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
           onPress={handleGalleryPress}
           disabled={isLoading || !canSelectMore}
         >
-          <View style={[styles.actionButtonIcon, { backgroundColor: '#10B981' }]}>
+          <View
+            style={[styles.actionButtonIcon, { backgroundColor: '#10B981' }]}
+          >
             <ImageIcon size={32} color="#FFFFFF" />
           </View>
           <Text style={styles.actionButtonText}>Choose from Gallery</Text>
@@ -235,7 +265,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
       {selectedImages.length > 0 && (
         <View style={styles.selectedSection}>
           <Text style={styles.sectionTitle}>Selected Photos</Text>
-          <ScrollView 
+          <ScrollView
             style={styles.imageGrid}
             showsVerticalScrollIndicator={false}
           >
@@ -263,7 +293,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
                   </View>
                 </Animated.View>
               ))}
-              
+
               {/* Add More Button */}
               {canSelectMore && (
                 <TouchableOpacity
@@ -284,9 +314,15 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
       <View style={styles.tipsSection}>
         <Text style={styles.tipsTitle}>📸 Photo Tips</Text>
         <View style={styles.tipsList}>
-          <Text style={styles.tipItem}>• Use good lighting for best results</Text>
-          <Text style={styles.tipItem}>• Keep the item flat and wrinkle-free</Text>
-          <Text style={styles.tipItem}>• Include the full garment in frame</Text>
+          <Text style={styles.tipItem}>
+            • Use good lighting for best results
+          </Text>
+          <Text style={styles.tipItem}>
+            • Keep the item flat and wrinkle-free
+          </Text>
+          <Text style={styles.tipItem}>
+            • Include the full garment in frame
+          </Text>
           <Text style={styles.tipItem}>• Take photos from multiple angles</Text>
         </View>
       </View>

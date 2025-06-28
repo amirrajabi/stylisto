@@ -80,7 +80,7 @@ export default function WardrobeAnalyticsScreen() {
                     styles.chartBar,
                     {
                       width: maxCount > 0 ? (count / maxCount) * 200 : 0,
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: '#A428FC',
                     },
                   ]}
                 />
@@ -150,8 +150,8 @@ export default function WardrobeAnalyticsScreen() {
           <StatCard
             title="Total Items"
             value={stats.totalItems}
-            icon={<Shirt size={20} color="#3b82f6" />}
-            color="#3b82f6"
+            icon={<Shirt size={20} color="#A428FC" />}
+            color="#A428FC"
           />
           <StatCard
             title="Total Outfits"

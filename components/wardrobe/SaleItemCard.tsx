@@ -26,7 +26,7 @@ export const SaleItemCard: React.FC<SaleItemCardProps> = ({
       case 'excellent':
         return '#10b981';
       case 'very_good':
-        return '#3b82f6';
+        return '#A428FC';
       case 'good':
         return '#f59e0b';
       case 'fair':
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   negotiableText: {
     fontSize: 11,
-    color: '#3b82f6',
+    color: '#A428FC',
     fontStyle: 'italic',
   },
 });

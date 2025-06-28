@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
   },
   activeFilterButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#A428FC',
   },
   filterBadge: {
     position: 'absolute',
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
   selectionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#3b82f6',
+    color: '#A428FC',
     fontFamily: 'Inter-SemiBold',
   },
   clearSelectionButton: {
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   emptyButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#A428FC',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#A428FC',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

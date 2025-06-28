@@ -329,14 +329,14 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                   style={styles.imageButton}
                   onPress={pickImage}
                 >
-                  <ImageIcon size={20} color="#3b82f6" />
+                  <ImageIcon size={20} color="#A428FC" />
                   <Text style={styles.imageButtonText}>Change Photo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.imageButton}
                   onPress={takePhoto}
                 >
-                  <Camera size={20} color="#3b82f6" />
+                  <Camera size={20} color="#A428FC" />
                   <Text style={styles.imageButtonText}>Take Photo</Text>
                 </TouchableOpacity>
               </View>
@@ -590,7 +590,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 onFocus={() => scrollToInput(5)}
               />
               <TouchableOpacity style={styles.addTagButton} onPress={addTag}>
-                <Plus size={20} color="#3b82f6" />
+                <Plus size={20} color="#A428FC" />
               </TouchableOpacity>
             </View>
             <View style={styles.chipContainer}>
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    color: '#3b82f6',
+    color: '#A428FC',
     fontWeight: '600',
   },
 
@@ -942,12 +942,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
     gap: 8,
   },
   imageButtonText: {
     fontSize: 14,
-    color: '#3b82f6',
+    color: '#A428FC',
     fontWeight: '500',
   },
   sampleImages: {
@@ -962,7 +962,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selectedSampleImage: {
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
   },
   sampleImageContent: {
     width: '100%',
@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
   },
   selectedChip: {
     backgroundColor: '#eff6ff',
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
   },
   chipText: {
     fontSize: 14,
@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   selectedChipText: {
-    color: '#3b82f6',
+    color: '#A428FC',
     fontWeight: '500',
   },
   colorContainer: {
@@ -1038,7 +1038,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selectedColor: {
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
   },
   tagInputContainer: {
     flexDirection: 'row',
@@ -1060,7 +1060,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: '#A428FC',
   },
   tagChip: {
     flexDirection: 'row',
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
   toggleIcon: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#3b82f6',
+    color: '#A428FC',
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -1112,8 +1112,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#A428FC',
+    borderColor: '#A428FC',
   },
   checkboxText: {
     fontSize: 12,

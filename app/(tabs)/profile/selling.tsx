@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#A428FC',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
