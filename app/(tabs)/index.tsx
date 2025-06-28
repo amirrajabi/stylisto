@@ -1,11 +1,5 @@
 import { router } from 'expo-router';
-import {
-  Filter,
-  RefreshCcw,
-  Search,
-  ShoppingBag,
-  SortAsc,
-} from 'lucide-react-native';
+import { Filter, Search, ShoppingBag } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import {
   ActionSheetIOS,
@@ -20,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { FloatingActionButton } from '../../components/ui';
+import { SortDropdown, SortOption } from '../../components/ui/SortDropdown';
 import { AddItemModal } from '../../components/wardrobe/AddItemModal';
 import { ClothingItemCard } from '../../components/wardrobe/ClothingItemCard';
 import { FilterModal } from '../../components/wardrobe/FilterModal';
@@ -44,6 +39,80 @@ export default function WardrobeScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ClothingItem | undefined>();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Sort options for the dropdown
+  const sortMenuOptions: SortOption[] = [
+    {
+      label: 'Name (A-Z)',
+      field: 'name',
+      direction: 'asc',
+    },
+    {
+      label: 'Name (Z-A)',
+      field: 'name',
+      direction: 'desc',
+    },
+    {
+      label: 'Category (A-Z)',
+      field: 'category',
+      direction: 'asc',
+    },
+    {
+      label: 'Category (Z-A)',
+      field: 'category',
+      direction: 'desc',
+    },
+    {
+      label: 'Brand (A-Z)',
+      field: 'brand',
+      direction: 'asc',
+    },
+    {
+      label: 'Brand (Z-A)',
+      field: 'brand',
+      direction: 'desc',
+    },
+    {
+      label: 'Date Added (Newest)',
+      field: 'createdAt',
+      direction: 'desc',
+    },
+    {
+      label: 'Date Added (Oldest)',
+      field: 'createdAt',
+      direction: 'asc',
+    },
+    {
+      label: 'Most Worn',
+      field: 'timesWorn',
+      direction: 'desc',
+    },
+    {
+      label: 'Least Worn',
+      field: 'timesWorn',
+      direction: 'asc',
+    },
+    {
+      label: 'Recently Worn',
+      field: 'lastWorn',
+      direction: 'desc',
+    },
+    {
+      label: 'Rarely Worn',
+      field: 'lastWorn',
+      direction: 'asc',
+    },
+    {
+      label: 'Price (High to Low)',
+      field: 'price',
+      direction: 'desc',
+    },
+    {
+      label: 'Price (Low to High)',
+      field: 'price',
+      direction: 'asc',
+    },
+  ];
 
   // Get unique values for filter options
   const filterOptions = useMemo(() => {
@@ -212,99 +281,11 @@ export default function WardrobeScreen() {
     }
   };
 
-  const handleSort = () => {
-    const sortMenuOptions = [
-      {
-        label: 'Name (A-Z)',
-        field: 'name' as const,
-        direction: 'asc' as const,
-      },
-      {
-        label: 'Name (Z-A)',
-        field: 'name' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Category (A-Z)',
-        field: 'category' as const,
-        direction: 'asc' as const,
-      },
-      {
-        label: 'Category (Z-A)',
-        field: 'category' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Brand (A-Z)',
-        field: 'brand' as const,
-        direction: 'asc' as const,
-      },
-      {
-        label: 'Brand (Z-A)',
-        field: 'brand' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Date Added (Newest)',
-        field: 'createdAt' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Date Added (Oldest)',
-        field: 'createdAt' as const,
-        direction: 'asc' as const,
-      },
-      {
-        label: 'Most Worn',
-        field: 'timesWorn' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Least Worn',
-        field: 'timesWorn' as const,
-        direction: 'asc' as const,
-      },
-      {
-        label: 'Recently Worn',
-        field: 'lastWorn' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Rarely Worn',
-        field: 'lastWorn' as const,
-        direction: 'asc' as const,
-      },
-      {
-        label: 'Price (High to Low)',
-        field: 'price' as const,
-        direction: 'desc' as const,
-      },
-      {
-        label: 'Price (Low to High)',
-        field: 'price' as const,
-        direction: 'asc' as const,
-      },
-    ];
-
-    const options = [...sortMenuOptions.map(option => option.label), 'Cancel'];
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex: options.length - 1,
-        },
-        buttonIndex => {
-          if (buttonIndex < sortMenuOptions.length) {
-            const selectedOption = sortMenuOptions[buttonIndex];
-            actions.setSortOptions({
-              field: selectedOption.field,
-              direction: selectedOption.direction,
-            });
-          }
-        }
-      );
-    }
+  const handleSort = (option: SortOption) => {
+    actions.setSortOptions({
+      field: option.field,
+      direction: option.direction,
+    });
   };
 
   const handleAddItem = async (item: ClothingItem) => {
@@ -371,32 +352,9 @@ export default function WardrobeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Wardrobe</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCcw size={20} color={isLoading ? '#9ca3af' : '#6b7280'} />
-          </TouchableOpacity>
-          {/* View toggle button temporarily hidden */}
-          {/* <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-          >
-            {viewMode === 'grid' ? (
-              <List size={24} color="#6b7280" />
-            ) : (
-              <Grid size={24} color="#6b7280" />
-            )}
-          </TouchableOpacity> */}
-          <TouchableOpacity style={styles.headerButton} onPress={handleSort}>
-            <SortAsc size={24} color="#6b7280" />
-          </TouchableOpacity>
-        </View>
       </View>
 
-      {/* Search and Filter */}
+      {/* Search and Sort */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Search size={20} color="#6b7280" />
@@ -408,23 +366,36 @@ export default function WardrobeScreen() {
             placeholderTextColor="#9ca3af"
           />
         </View>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            activeFiltersCount > 0 && styles.activeFilterButton,
-          ]}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <Filter
-            size={20}
-            color={activeFiltersCount > 0 ? '#ffffff' : '#6b7280'}
+
+        <View style={styles.actionButtonsContainer}>
+          <SortDropdown
+            options={sortMenuOptions}
+            selectedOption={sortMenuOptions.find(
+              option =>
+                option.field === sortOptions.field &&
+                option.direction === sortOptions.direction
+            )}
+            onSelect={handleSort}
+            buttonStyle={styles.sortButton}
           />
-          {activeFiltersCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              activeFiltersCount > 0 && styles.activeFilterButton,
+            ]}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Filter
+              size={20}
+              color={activeFiltersCount > 0 ? '#ffffff' : '#6b7280'}
+            />
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Selection Actions */}
@@ -550,44 +521,92 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     fontFamily: 'Inter-Bold',
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-  },
   searchContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: Colors.surface.primary,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: '#1f2937',
     fontFamily: 'Inter-Regular',
+    height: 20,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sortButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    minWidth: 140,
+    maxWidth: 200,
+    height: 44,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   filterButton: {
     position: 'relative',
     padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    height: 44,
+    width: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   activeFilterButton: {
     backgroundColor: '#A428FC',

@@ -27,6 +27,9 @@ export type { ProgressBarProps } from './ProgressBar';
 export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
 
+export { SortDropdown } from './SortDropdown';
+export type { SortOption } from './SortDropdown';
+
 export { SplashLoader } from './SplashLoader';
 
 export { FocusTrap } from './FocusTrap';
