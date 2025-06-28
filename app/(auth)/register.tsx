@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, Key, Mail, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
@@ -192,7 +192,8 @@ export default function RegisterScreen() {
         />
         <H1 style={styles.title}>Create Account</H1>
         <BodyMedium color="secondary" style={styles.subtitle}>
-          Sign up to get started with Stylisto
+          Sign up to get started with{' '}
+          <Text style={styles.brandText}>STYLISTO</Text>
         </BodyMedium>
       </View>
 
@@ -415,5 +416,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
+  },
+  brandText: {
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    color: Colors.text.secondary,
   },
 });

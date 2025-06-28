@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Key, Mail } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
@@ -88,7 +88,7 @@ export default function LoginScreen() {
       <View style={styles.header}>
         <H1 style={styles.title}>Welcome Back</H1>
         <BodyMedium color="secondary" style={styles.subtitle}>
-          Sign in to your Stylisto account
+          Sign in to your <Text style={styles.brandText}>STYLISTO</Text> account
         </BodyMedium>
       </View>
 
@@ -207,5 +207,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  brandText: {
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    color: Colors.text.secondary,
   },
 });

@@ -2,7 +2,7 @@ import { version } from './package.json';
 
 export default {
   expo: {
-    name: 'stylisto',
+    name: 'STYLISTO',
     slug: 'stylisto',
     version,
     orientation: 'portrait',

@@ -137,7 +137,7 @@ export const Colors = {
 
   // Background Colors
   background: {
-    primary: '#1a1a1a',
+    primary: '#FFFFFF',
     secondary: '#F9FAFB',
     tertiary: '#F3F4F6',
     overlay: 'rgba(0, 0, 0, 0.5)',

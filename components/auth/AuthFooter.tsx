@@ -1,6 +1,6 @@
 import { router, useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { BodySmall } from '../ui';
@@ -140,7 +140,8 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
 
         {/* Dynamic Copyright */}
         <BodySmall color="secondary" style={styles.copyrightText}>
-          © {currentYear} Stylisto. All rights reserved.
+          © {currentYear} <Text style={styles.brandText}>STYLISTO</Text>. All
+          rights reserved.
         </BodySmall>
       </View>
 
@@ -229,5 +230,10 @@ const styles = StyleSheet.create({
   },
   disabledState: {
     opacity: 0.5,
+  },
+  brandText: {
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    color: Colors.text.secondary,
   },
 });
