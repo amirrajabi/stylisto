@@ -86,7 +86,8 @@ export default function GalleryScreen() {
               last_worn,
               times_worn,
               is_favorite,
-              notes
+              notes,
+              description_with_ai
             )
           )
         `
@@ -129,6 +130,7 @@ export default function GalleryScreen() {
             purchaseDate: item.purchase_date,
             price: item.price,
             notes: item.notes,
+            description_with_ai: item.description_with_ai || undefined,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })),

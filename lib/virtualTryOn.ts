@@ -7,6 +7,7 @@ export interface VirtualTryOnRequest {
   styleInstructions?: string;
   userId: string;
   outfitId: string;
+  clothingItems?: ClothingItem[];
 }
 
 export interface VirtualTryOnResult {
@@ -336,6 +337,123 @@ Platform: ${this.getPlatform()}
     return `data:image/svg+xml,${encodedSvg}`;
   }
 
+  /**
+   * ساخت توضیحات جایگزین برای آیتم‌هایی که AI description ندارند
+   */
+  private buildFallbackDescription(item: ClothingItem): string {
+    const parts: string[] = [];
+
+    // افزودن نام آیتم
+    if (item.name) {
+      parts.push(item.name);
+    }
+
+    // افزودن برند
+    if (item.brand) {
+      parts.push(`by ${item.brand}`);
+    }
+
+    // افزودن دسته‌بندی و زیردسته
+    if (item.category) {
+      const categoryParts: string[] = [item.category as string];
+      if (item.subcategory) {
+        categoryParts.push(item.subcategory);
+      }
+      parts.push(`(${categoryParts.join(' - ')})`);
+    }
+
+    // افزودن رنگ
+    if (item.color) {
+      parts.push(`in ${item.color}`);
+    }
+
+    // افزودن سایز
+    if (item.size) {
+      parts.push(`size ${item.size}`);
+    }
+
+    // افزودن مناسبت
+    if (item.occasion && item.occasion.length > 0) {
+      parts.push(`for ${item.occasion.join('/')}`);
+    }
+
+    // افزودن فصل
+    if (item.season && item.season.length > 0) {
+      parts.push(`suitable for ${item.season.join('/')}`);
+    }
+
+    // افزودن تگ‌ها
+    if (item.tags && item.tags.length > 0) {
+      parts.push(`[${item.tags.join(', ')}]`);
+    }
+
+    // افزودن یادداشت‌ها
+    if (item.notes) {
+      parts.push(`- ${item.notes}`);
+    }
+
+    const description = parts.filter(p => p.trim()).join(' ');
+    return description || 'Clothing item';
+  }
+
+  /**
+   * ساخت توضیحات دقیق برای هر آیتم لباس بر اساس اطلاعات موجود
+   */
+  private generateItemDescriptions(items?: ClothingItem[]): string {
+    if (!items || items.length === 0) {
+      return 'Item 1: Clothing item';
+    }
+
+    // Debug log برای بررسی وجود description_with_ai
+    console.log('🔍 Checking clothing items for AI descriptions:');
+    let missingAIDescriptions = false;
+
+    items.forEach((item, index) => {
+      console.log(`Item ${index + 1} (${item.name}):`);
+      console.log(`  - Has description_with_ai: ${!!item.description_with_ai}`);
+      console.log(
+        `  - AI Description: ${item.description_with_ai || 'NOT AVAILABLE ⚠️'}`
+      );
+      console.log(
+        `  - Other fields: category=${item.category}, color=${item.color}, brand=${item.brand}`
+      );
+
+      if (!item.description_with_ai) {
+        missingAIDescriptions = true;
+      }
+    });
+
+    if (missingAIDescriptions) {
+      console.warn('\n⚠️ WARNING: Some items are missing AI descriptions!');
+      console.warn(
+        'For best virtual try-on results, please use "Describe with AI" feature for all clothing items.'
+      );
+      console.warn(
+        'The system will use fallback descriptions, but results may not be as accurate.\n'
+      );
+    }
+
+    return items
+      .map((item, index) => {
+        // اول از description_with_ai استفاده می‌کنیم (اولویت بالا)
+        if (item.description_with_ai && item.description_with_ai.trim()) {
+          console.log(`✅ Using AI description for item ${index + 1}`);
+          // استفاده از فرمت [Item X] که در prompt جدید تعریف شده
+          return `[Item ${index + 1}]\n${item.description_with_ai}`;
+        }
+
+        // اگر description_with_ai موجود نبود، از فیلدهای دیگر استفاده می‌کنیم
+        console.log(
+          `⚠️ No AI description for item ${index + 1}, using fallback fields`
+        );
+
+        // ساخت توضیحات جایگزین با استفاده از فیلدهای موجود
+        const fallbackDescription = this.buildFallbackDescription(item);
+        return `[Item ${index + 1}]\n${fallbackDescription}`;
+      })
+      .join('\n');
+  }
+
   async processVirtualTryOn(
     request: VirtualTryOnRequest,
     onProgress?: (state: TryOnWorkflowState) => void
@@ -377,30 +495,75 @@ Platform: ${this.getPlatform()}
 
       console.log('✅ Collage ready for processing');
 
-      // 2. Create a detailed prompt for FLUX
-      const clothingDescriptions = request.referenceImages
-        .map((_, index) => `Item ${index + 1}`)
-        .join(', ');
+      // 2. Send collage to GPT-4 Vision to create a professional prompt
+      console.log('🤖 Generating prompt for virtual try-on...');
 
-      const enhancedPrompt = `Virtual Try-On Task:
+      // Update progress
+      onProgress?.({
+        phase: 'ai_styling',
+        progress: 30,
+        message:
+          'AI is analyzing your outfit and creating styling instructions...',
+      });
 
-Take the person in this image and dress them in the following clothing items:
+      let enhancedPrompt: string;
 
-${clothingDescriptions}
+      // استفاده از پرامپت جدید که کاربر تعریف کرده
+      const fixedPromptTemplate = `Generate a realistic full-body render of the person on the right wearing the complete outfit from the left images.
+Outfit details to apply:
 
-IMPORTANT INSTRUCTIONS:
-1. Keep the person's face, hair, body shape, and skin tone EXACTLY the same
-2. Replace their current clothes with ALL the new items listed above
-3. Ensure natural fabric draping and realistic shadows
-4. Maintain professional fashion photography quality
-5. The person should be wearing ALL items in a natural, coordinated way
+[ITEM_DESCRIPTIONS]
 
-Style: Professional fashion photography, studio lighting, full body shot
-Background: Clean, neutral studio background
+Dress the model accurately with these garments, ensuring natural fabric flow, body fitting, and realistic shadow and lighting. Maintain her original body shape and natural pose. Generate two final images:
+– One front view of the model wearing the outfit.
+– One back view of the same outfit on the model.
+Do not include underwear or original clothing in the final output. The final result should look like a professionally styled fashion lookbook with no visual glitches.`;
 
-Note: You are seeing the person's current photo. Your task is to digitally dress them in the new outfit items while keeping their identity intact.`;
+      // ساخت توضیحات آیتم‌ها
+      const itemDescriptions = this.generateItemDescriptions(
+        request.clothingItems
+      );
 
-      console.log('📝 Generated collage prompt');
+      // آمار AI descriptions
+      if (request.clothingItems) {
+        const itemsWithAI = request.clothingItems.filter(
+          item => item.description_with_ai
+        ).length;
+        const totalItems = request.clothingItems.length;
+
+        console.log('\n📊 AI Description Statistics:');
+        console.log(
+          `✅ Items with AI description: ${itemsWithAI}/${totalItems}`
+        );
+        console.log(
+          `❌ Items without AI description: ${totalItems - itemsWithAI}/${totalItems}`
+        );
+        console.log(
+          `📈 Coverage: ${Math.round((itemsWithAI / totalItems) * 100)}%\n`
+        );
+      }
+
+      // جایگزینی توضیحات در پرامپت
+      enhancedPrompt = fixedPromptTemplate.replace(
+        '[ITEM_DESCRIPTIONS]',
+        itemDescriptions
+      );
+
+      console.log('✅ Virtual try-on prompt generated with item descriptions');
+      console.log('\n📝 Item Descriptions Format:');
+      console.log('─────────────────────────────');
+      console.log(itemDescriptions);
+      console.log('─────────────────────────────\n');
+
+      console.log('🎨 Collage created and will be sent to Flux Kontext API');
+      console.log('\n📝 Final Prompt for FLUX API:');
+      console.log(
+        '═════════════════════════════════════════════════════════════════'
+      );
+      console.log(enhancedPrompt);
+      console.log(
+        '═════════════════════════════════════════════════════════════════\n'
+      );
 
       // Update progress
       onProgress?.({
@@ -413,7 +576,7 @@ Note: You are seeing the person's current photo. Your task is to digitally dress
       await this.testNetworkConnectivity();
 
       const fluxResult = await this.callFluxKontextAPI({
-        initImageMetadata: await this.analyzeImage(collageUri),
+        collageImageMetadata: await this.analyzeImage(collageUri),
         enhancedPrompt: enhancedPrompt,
       });
 
@@ -724,35 +887,71 @@ Note: You are seeing the person's current photo. Your task is to digitally dress
   private async callKontextImageEditing(
     stylingData: any
   ): Promise<FluxApiResponse> {
-    const hasInputImage =
-      stylingData.initImageMetadata && stylingData.initImageMetadata.base64;
+    const hasCollageImage =
+      stylingData.collageImageMetadata &&
+      stylingData.collageImageMetadata.base64;
 
-    if (!hasInputImage) {
-      throw new Error('No input image available for Kontext editing');
+    if (!hasCollageImage) {
+      throw new Error('No collage image available for Kontext editing');
     }
 
-    // OpenArt approach: They might be using a special image format
-    // where the user image is the main focus and clothing items are arranged around it
-    console.log('🎨 Using OpenArt-style virtual try-on approach');
-    console.log(
-      '📸 Reference images count:',
-      stylingData.referenceImagesMetadata?.length || 0
-    );
+    // استفاده از کولاژ که شامل user + clothing items هست
+    console.log('🎨 Using collage for virtual try-on');
+    console.log('📸 Collage includes user image and clothing items');
 
-    // Use Kontext Pro model (more cost-effective)
-    const endpoint = `${this.FLUX_BASE_URL}/${this.KONTEXT_PRO_MODEL}`;
+    // Use Kontext Max model for better accuracy (though more expensive)
+    const endpoint = `${this.FLUX_BASE_URL}/${this.KONTEXT_MAX_MODEL}`;
 
     // Prepare the request payload according to BFL API docs
-    // OpenArt likely sends the body image as the main image
+    // ارسال کولاژ کامل به جای user image منفرد
     const payload = {
       prompt: stylingData.enhancedPrompt,
-      image: `data:image/jpeg;base64,${stylingData.initImageMetadata.base64}`,
-      guidance: 3.5, // Higher guidance for better prompt following
+      image: `data:image/jpeg;base64,${stylingData.collageImageMetadata.base64}`, // استفاده از کولاژ
+      guidance: 7.5, // Increased guidance for stricter prompt following
       safety_tolerance: 2,
       output_format: 'jpeg',
-      // Note: FLUX Kontext doesn't accept multiple images directly
-      // OpenArt's trick is in the prompt engineering
+      steps: 50, // افزایش steps برای کیفیت بهتر
     };
+
+    // لاگ کامل پارامترهای ارسالی به Flux
+    console.log(
+      '\n🎯 ═══════════════════════════════════════════════════════════════'
+    );
+    console.log('📤 FLUX KONTEXT API - پارامترهای ارسالی به فلاکس');
+    console.log(
+      '═══════════════════════════════════════════════════════════════'
+    );
+    console.log('\n1️⃣ PROMPT ارسالی (با AI descriptions):');
+    console.log('─────────────────────────────────────────');
+    console.log(payload.prompt);
+    console.log('─────────────────────────────────────────');
+    console.log('\n2️⃣ تنظیمات تصویر:');
+    console.log('─────────────────');
+    console.log(`- Guidance: ${payload.guidance}`);
+    console.log(`- Safety Tolerance: ${payload.safety_tolerance}`);
+    console.log(`- Output Format: ${payload.output_format}`);
+    console.log(`- Steps: ${payload.steps}`);
+    console.log('\n3️⃣ تصویر کولاژ:');
+    console.log('─────────────────');
+    console.log(`- Format: data:image/jpeg;base64`);
+    console.log(
+      `- Base64 Length: ${stylingData.collageImageMetadata.base64.length} characters`
+    );
+    console.log(
+      `- Image Size: ~${Math.round((stylingData.collageImageMetadata.base64.length * 0.75) / 1024)} KB`
+    );
+    console.log('\n4️⃣ اطلاعات اضافی از stylingData:');
+    console.log('─────────────────');
+    console.log(
+      `- User Image: ${stylingData.userImageMetadata ? 'موجود' : 'ندارد'}`
+    );
+    console.log(
+      `- Reference Images Count: ${stylingData.referenceImagesMetadata?.length || 0}`
+    );
+    console.log(`- Original Prompt: ${stylingData.originalPrompt || 'ندارد'}`);
+    console.log(
+      '═══════════════════════════════════════════════════════════════\n'
+    );
 
     let lastError: Error | null = null;
 
@@ -763,7 +962,7 @@ Note: You are seeing the person's current photo. Your task is to digitally dress
         );
         console.log('📡 Request Details:', {
           endpoint,
-          model: this.KONTEXT_PRO_MODEL,
+          model: this.KONTEXT_MAX_MODEL,
           hasApiKey: !!this.API_KEY,
           keyFormat: this.API_KEY?.substring(0, 8) + '...',
           hasImage: !!payload.image,
@@ -1413,14 +1612,90 @@ Current environment: ${this.getPlatform()}`
     console.log('👤 User image:', userImage.substring(0, 50) + '...');
     console.log('👗 Clothing items:', clothingItems.length);
 
-    // TODO: For now, we're using a simplified approach
-    // In the future, we can implement one of these solutions:
-    // 1. Use a backend service to create collages
-    // 2. Use react-native-canvas for native collage creation
-    // 3. Use WebView with Canvas API for cross-platform solution
+    // ساخت کولاژ با Canvas API در Web Environment
+    if (this.isWebEnvironment() && typeof document !== 'undefined') {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-    // Temporary solution: Return user image
-    // The Flux API will use the prompt to understand what clothes to add
+        if (!ctx) {
+          throw new Error('Canvas context not available');
+        }
+
+        // تنظیم سایز کولاژ (مثلاً 1024x1024)
+        canvas.width = 1024;
+        canvas.height = 1024;
+
+        // پس‌زمینه سفید
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // لود کردن تصاویر
+        const loadImage = (src: string): Promise<HTMLImageElement> => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+          });
+        };
+
+        const [userImg, ...clothingImgs] = await Promise.all([
+          loadImage(userImage),
+          ...clothingItems.map(item => loadImage(item)),
+        ]);
+
+        // چینش OpenArt-style: user در وسط، آیتم‌ها در اطراف
+        const centerSize = 500; // بزرگتر برای واضح‌تر بودن person
+        const centerX = (canvas.width - centerSize) / 2;
+        const centerY = (canvas.height - centerSize) / 2;
+
+        // کادر سفید دور user image
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(
+          centerX - 2,
+          centerY - 2,
+          centerSize + 4,
+          centerSize + 4
+        );
+
+        // رسم user image در وسط
+        ctx.drawImage(userImg, centerX, centerY, centerSize, centerSize);
+
+        // رسم آیتم‌ها در اطراف با کادر
+        const itemSize = 220; // بزرگتر برای واضح‌تر بودن آیتم‌ها
+        const positions = [
+          { x: 30, y: 30 }, // بالا چپ
+          { x: 774, y: 30 }, // بالا راست
+          { x: 30, y: 774 }, // پایین چپ
+          { x: 774, y: 774 }, // پایین راست
+        ];
+
+        clothingImgs.forEach((img, index) => {
+          if (index < positions.length) {
+            const pos = positions[index];
+            // کادر دور هر آیتم
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(pos.x - 2, pos.y - 2, itemSize + 4, itemSize + 4);
+            // رسم آیتم
+            ctx.drawImage(img, pos.x, pos.y, itemSize, itemSize);
+          }
+        });
+
+        // تبدیل به base64
+        return canvas.toDataURL('image/jpeg', 0.9);
+      } catch (error) {
+        console.warn('⚠️ Canvas collage creation failed:', error);
+        // fallback به user image
+        return userImage;
+      }
+    }
+
+    // Native Environment: فعلاً user image رو برمی‌گردونه
+    // در آینده می‌توان از react-native-canvas یا backend service استفاده کرد
     console.log('⚠️ Native collage not implemented, using user image only');
     return userImage;
   }
@@ -1554,6 +1829,7 @@ export const useVirtualTryOn = () => {
       styleInstructions: 'Professional fashion photography',
       userId: 'user-id',
       outfitId,
+      clothingItems, // ارسال آیتم‌های لباس برای دسترسی به توضیحات کامل
     };
 
     return service.processVirtualTryOn(request, onProgress);

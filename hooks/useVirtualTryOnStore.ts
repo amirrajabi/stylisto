@@ -179,6 +179,8 @@ export const useVirtualTryOnStore = () => {
         completeProcessing({
           generatedImageUrl: result.generatedImageUrl,
           processingTime,
+          prompt:
+            result.metadata.prompt || 'Virtual try-on generated successfully',
         })
       );
 

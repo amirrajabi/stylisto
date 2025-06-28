@@ -216,6 +216,7 @@ class WardrobeService {
         condition: data.condition || undefined,
         isForSale: data.is_for_sale || false,
         saleListing: data.sale_listing || undefined,
+        description_with_ai: data.description_with_ai || undefined,
         createdAt: new Date(data.created_at).toISOString(),
         updatedAt: new Date(data.updated_at).toISOString(),
       };
@@ -335,6 +336,7 @@ class WardrobeService {
         condition: data.condition || undefined,
         isForSale: data.is_for_sale || false,
         saleListing: data.sale_listing || undefined,
+        description_with_ai: data.description_with_ai || undefined,
         createdAt: new Date(data.created_at).toISOString(),
         updatedAt: new Date(data.updated_at).toISOString(),
       };
@@ -398,6 +400,7 @@ class WardrobeService {
         condition: item.condition || undefined,
         isForSale: item.is_for_sale || false,
         saleListing: item.sale_listing || undefined,
+        description_with_ai: item.description_with_ai || undefined, // افزودن فیلد AI description
         createdAt: new Date(item.created_at).toISOString(),
         updatedAt: new Date(item.updated_at).toISOString(),
       }));
@@ -656,6 +659,7 @@ class WardrobeService {
         condition: item.condition || 'good',
         isForSale: item.is_for_sale || false,
         saleListing: item.sale_listing || {},
+        description_with_ai: item.description_with_ai || undefined, // افزودن فیلد AI description
         createdAt: item.created_at,
         updatedAt: item.updated_at,
       }));

@@ -8,6 +8,7 @@ export interface VirtualTryOnState {
   currentOutfitName: string | null;
   isProcessing: boolean;
   lastGeneratedImageUrl: string | null;
+  lastGeneratedPrompt: string | null;
   processingPhase:
     | 'idle'
     | 'input_analysis'
@@ -31,6 +32,7 @@ export interface VirtualTryOnHistory {
   generatedImageUrl: string;
   timestamp: string;
   processingTime: number;
+  prompt?: string;
 }
 
 const initialState: VirtualTryOnState = {
@@ -40,6 +42,7 @@ const initialState: VirtualTryOnState = {
   currentOutfitName: null,
   isProcessing: false,
   lastGeneratedImageUrl: null,
+  lastGeneratedPrompt: null,
   processingPhase: 'idle',
   processingProgress: 0,
   processingMessage: '',
@@ -100,6 +103,7 @@ const virtualTryOnSlice = createSlice({
       action: PayloadAction<{
         generatedImageUrl: string;
         processingTime: number;
+        prompt: string;
       }>
     ) => {
       state.isProcessing = false;
@@ -107,6 +111,7 @@ const virtualTryOnSlice = createSlice({
       state.processingProgress = 100;
       state.processingMessage = 'Virtual try-on completed successfully!';
       state.lastGeneratedImageUrl = action.payload.generatedImageUrl;
+      state.lastGeneratedPrompt = action.payload.prompt;
 
       // Add to history if we have all required data
       if (
@@ -123,6 +128,7 @@ const virtualTryOnSlice = createSlice({
           generatedImageUrl: action.payload.generatedImageUrl,
           timestamp: new Date().toISOString(),
           processingTime: action.payload.processingTime,
+          prompt: action.payload.prompt,
         };
 
         // Add to beginning of history and keep only last 10 entries

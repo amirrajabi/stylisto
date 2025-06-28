@@ -442,6 +442,152 @@ CRITICAL REQUIREMENTS:
 
 The result should look like the person is actually wearing these specific items.`;
   }
+
+  async analyzeCollageAndGeneratePrompt(
+    collageImageUrl: string
+  ): Promise<string> {
+    if (!this.API_KEY) {
+      console.warn(
+        '⚠️ OpenAI API key not configured, using fallback prompt generation'
+      );
+      return this.getFallbackPrompt();
+    }
+
+    try {
+      console.log(
+        '🎨 Analyzing collage image with GPT-4 Vision for prompt generation'
+      );
+
+      const requestTimestamp = new Date().toISOString();
+      const requestStartTime = Date.now();
+
+      const payload = {
+        model: 'gpt-4-vision-preview',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert fashion AI that creates detailed prompts for virtual try-on systems. 
+You will analyze a collage image showing:
+- A person (full body) on the right side
+- Clothing items arranged on the left side
+
+Your task is to create a professional, detailed prompt for FLUX API that will dress the person in these exact clothing items.`,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this collage image carefully:
+1. The person on the RIGHT side needs to wear all the clothing items shown on the LEFT side
+2. Describe each clothing item in EXTREME detail (color, pattern, material, style, brand characteristics)
+3. Create a professional English prompt for virtual try-on that:
+   - Lists EVERY clothing item with precise descriptions
+   - Emphasizes keeping the person's identity (face, body, pose) EXACTLY the same
+   - Ensures natural, realistic fitting and layering
+   - Maintains professional fashion photography quality
+   
+Generate ONLY the English prompt, no explanations. The prompt should be detailed enough that an AI can recreate these EXACT items on the person.`,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: collageImageUrl,
+                  detail: 'high',
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      };
+
+      const headers = {
+        Authorization: `Bearer ${this.API_KEY}`,
+        'Content-Type': 'application/json',
+      };
+
+      // Log API Request
+      this.logApiCommunication('REQUEST', {
+        timestamp: requestTimestamp,
+        endpoint: this.API_URL,
+        method: 'POST',
+        headers,
+        payload,
+      });
+
+      const response = await fetch(this.API_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const processingTime = Date.now() - requestStartTime;
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('❌ GPT-4 Vision API error:', error);
+
+        // Log Error Response
+        this.logApiCommunication('RESPONSE', {
+          timestamp: new Date().toISOString(),
+          status: response.status,
+          statusText: response.statusText,
+          processingTime,
+          error,
+        });
+
+        return this.getFallbackPrompt();
+      }
+
+      const data = await response.json();
+
+      // Log Success Response
+      this.logApiCommunication('RESPONSE', {
+        timestamp: new Date().toISOString(),
+        status: response.status,
+        statusText: response.statusText,
+        processingTime,
+        responseData: data,
+      });
+
+      const generatedPrompt = data.choices[0]?.message?.content || '';
+
+      console.log('✅ Generated virtual try-on prompt:', generatedPrompt);
+
+      // Add extra instructions to ensure quality
+      const enhancedPrompt = `${generatedPrompt}
+
+ADDITIONAL REQUIREMENTS:
+- Maintain the exact lighting and background from the original person's photo
+- Ensure all clothing items fit naturally with proper physics and fabric behavior
+- Keep shadows and reflections consistent with the original lighting
+- The final image should look like a professional fashion photoshoot
+- All clothing items must be clearly visible and properly layered`;
+
+      return enhancedPrompt;
+    } catch (error) {
+      console.error('❌ Error generating prompt from collage:', error);
+      return this.getFallbackPrompt();
+    }
+  }
+
+  private getFallbackPrompt(): string {
+    return `Virtual Try-On Task:
+
+Dress the person in the image with the clothing items shown on the left side of the collage.
+
+IMPORTANT INSTRUCTIONS:
+1. Keep the person's face, hair, body shape, skin tone, and pose EXACTLY the same
+2. Apply ALL clothing items from the left side to the person on the right
+3. Ensure natural fabric draping, realistic shadows, and proper fit
+4. Maintain professional fashion photography quality
+5. The person should be wearing ALL items in a coordinated, natural way
+
+Style: Professional fashion photography, consistent lighting
+Background: Keep the original background unchanged`;
+  }
 }
 
 // Export singleton instance

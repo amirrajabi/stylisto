@@ -102,6 +102,7 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   onVirtualTryOnShare,
 }) => {
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
+  const [gptGeneratedPrompt, setGptGeneratedPrompt] = useState<string>('');
   const viewShotRef = useRef<ViewShot | null>(null);
 
   const {
@@ -115,8 +116,10 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
     processingProgress,
     processingMessage,
     lastGeneratedImageUrl,
+    lastGeneratedPrompt,
     error,
     clearProcessingError,
+    history,
   } = useVirtualTryOnStore();
 
   // Auto-sync outfit data with Redux store when outfit changes
@@ -131,12 +134,36 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
         }
       );
 
+      // Debug: بررسی وضعیت description_with_ai در آیتم‌های دریافتی
+      console.log('🔍 DEBUG: Checking items received by OutfitDetailModal:');
+      outfit.items.forEach((item, index) => {
+        console.log(`Item ${index + 1} (${item.name}):`);
+        console.log(
+          `  - Has description_with_ai: ${!!item.description_with_ai}`
+        );
+        console.log(
+          `  - Description content: ${item.description_with_ai || 'NULL'}`
+        );
+        console.log(`  - Item ID: ${item.id}`);
+        console.log(
+          `  - Other fields: category=${item.category}, color=${item.color}`
+        );
+      });
+
       updateCurrentOutfit(outfit.id, outfit.name, outfit.items);
     } else if (!visible) {
       // Clear outfit when modal closes
       clearOutfit();
+      setGptGeneratedPrompt(''); // Clear prompt when modal closes
     }
   }, [visible, outfit, updateCurrentOutfit, clearOutfit]);
+
+  // Get the latest prompt from history or processing result
+  useEffect(() => {
+    if (lastGeneratedPrompt) {
+      setGptGeneratedPrompt(lastGeneratedPrompt);
+    }
+  }, [lastGeneratedPrompt]);
 
   if (!outfit) {
     return null;
@@ -425,6 +452,74 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
                     height={(screenWidth - Spacing.md * 2) * 1.2}
                     viewShotRef={viewShotRef}
                   />
+                </View>
+              </View>
+            )}
+
+            {/* GPT-4 Generated Prompt */}
+            {gptGeneratedPrompt && (
+              <View style={styles.promptSection}>
+                <Text style={styles.sectionTitle}>AI Generated Prompt</Text>
+                <View style={styles.promptContainer}>
+                  <Text style={styles.promptText}>{gptGeneratedPrompt}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* FLUX Generated Result */}
+            {lastGeneratedImageUrl && (
+              <View style={styles.resultSection}>
+                <Text style={styles.sectionTitle}>Virtual Try-On Result</Text>
+                <View style={styles.resultImageContainer}>
+                  <Image
+                    source={{ uri: lastGeneratedImageUrl }}
+                    style={styles.resultImage}
+                    contentFit="contain"
+                  />
+                  <View style={styles.resultActions}>
+                    <TouchableOpacity
+                      style={styles.resultActionButton}
+                      onPress={() => {
+                        if (onVirtualTryOnSave) {
+                          onVirtualTryOnSave({
+                            generatedImageUrl: lastGeneratedImageUrl,
+                            processingTime: 30000,
+                            confidence: 0.85,
+                            metadata: {
+                              prompt: gptGeneratedPrompt || '',
+                              styleInstructions: 'professional photography',
+                              itemsUsed: outfit.items.map(item => item.name),
+                              timestamp: new Date().toISOString(),
+                            },
+                          });
+                        }
+                      }}
+                    >
+                      <Heart size={20} color={Colors.error[500]} />
+                      <Text style={styles.resultActionText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.resultActionButton}
+                      onPress={() => {
+                        if (onVirtualTryOnShare) {
+                          onVirtualTryOnShare({
+                            generatedImageUrl: lastGeneratedImageUrl,
+                            processingTime: 30000,
+                            confidence: 0.85,
+                            metadata: {
+                              prompt: gptGeneratedPrompt || '',
+                              styleInstructions: 'professional photography',
+                              itemsUsed: outfit.items.map(item => item.name),
+                              timestamp: new Date().toISOString(),
+                            },
+                          });
+                        }
+                      }}
+                    >
+                      <Share2 size={20} color={Colors.primary[500]} />
+                      <Text style={styles.resultActionText}>Share</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             )}
@@ -723,5 +818,55 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.lg,
     overflow: 'hidden',
     ...Shadows.sm,
+  },
+  promptSection: {
+    marginBottom: Spacing.xl,
+  },
+  promptContainer: {
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.md,
+    ...Shadows.sm,
+  },
+  promptText: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
+    lineHeight: 22,
+  },
+  resultSection: {
+    marginBottom: Spacing.xl,
+  },
+  resultImageContainer: {
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  resultImage: {
+    width: '100%',
+    height: screenWidth - Spacing.md * 2,
+    backgroundColor: Colors.background.secondary,
+  },
+  resultActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.lg,
+  },
+  resultActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface.secondary,
+    borderRadius: Layout.borderRadius.md,
+  },
+  resultActionText: {
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    fontWeight: '500',
   },
 });

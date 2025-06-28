@@ -22,6 +22,7 @@ export interface ClothingItem {
   condition?: ItemCondition;
   isForSale?: boolean;
   saleListing?: SaleListingDetails;
+  description_with_ai?: string;
   createdAt: string;
   updatedAt: string;
 }
