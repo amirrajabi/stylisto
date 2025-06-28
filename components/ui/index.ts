@@ -27,6 +27,8 @@ export type { ProgressBarProps } from './ProgressBar';
 export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
 
+export { SplashLoader } from './SplashLoader';
+
 // Typography components
 export {
   BodyLarge,

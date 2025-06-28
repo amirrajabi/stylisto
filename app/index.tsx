@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
 import { router } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { SplashLoader } from '../components/ui/SplashLoader';
+import { Colors } from '../constants/Colors';
 import { useAuth } from '../hooks/useAuth';
-import { LoadingOverlay } from '../components/auth/LoadingOverlay';
 
 export default function IndexScreen() {
   const { user, loading } = useAuth();
@@ -17,9 +18,13 @@ export default function IndexScreen() {
     }
   }, [user, loading]);
 
+  if (loading) {
+    return <SplashLoader visible={true} />;
+  }
+
   return (
     <View style={styles.container}>
-      <LoadingOverlay visible={loading} message="Loading..." />
+      {/* This should not be visible as navigation happens immediately */}
     </View>
   );
 }
@@ -27,5 +32,6 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background.primary,
   },
 });

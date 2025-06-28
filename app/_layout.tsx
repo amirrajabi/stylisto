@@ -10,7 +10,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
 import { ConsentManager } from '../components/analytics/ConsentManager';
@@ -22,6 +22,7 @@ import { SkipToContentLink } from '../components/ui/SkipToContentLink';
 import { Colors } from '../constants/Colors';
 
 import { analytics, ConsentStatus } from '../lib/analytics';
+import { authService } from '../lib/auth';
 import { errorHandling } from '../lib/errorHandling';
 import { store } from '../store/store';
 import { imageCache } from '../utils/imageCache';
@@ -33,6 +34,8 @@ export default function RootLayout() {
   useFrameworkReady();
   useForceLightMode();
 
+  const [appIsReady, setAppIsReady] = useState(false);
+
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-SemiBold': Inter_600SemiBold,
@@ -40,19 +43,35 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    // Initialize services
-    const initializeServices = async () => {
+    // Initialize services and auth state
+    const initializeApp = async () => {
       try {
+        // Initialize services
         await errorHandling.initialize();
         await imageCache.initialize();
+
+        // Initialize auth state to prevent white screen
+        await authService.getSession();
+
+        // Wait a brief moment to ensure everything is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        setAppIsReady(true);
       } catch (error) {
-        console.error('Failed to initialize services:', error);
+        console.error('Failed to initialize app:', error);
+        setAppIsReady(true); // Still allow app to continue
       }
     };
 
-    initializeServices();
+    initializeApp();
 
-    if (fontsLoaded || fontError) {
+    // Configure system UI for proper status bar behavior
+    SystemUI.setBackgroundColorAsync(Colors.background.primary);
+  }, []);
+
+  useEffect(() => {
+    // Hide splash screen only when both fonts and app are ready
+    if ((fontsLoaded || fontError) && appIsReady) {
       SplashScreen.hideAsync();
     }
 
@@ -60,10 +79,7 @@ export default function RootLayout() {
     if (fontError) {
       errorHandling.captureError(fontError);
     }
-
-    // Configure system UI for proper status bar behavior
-    SystemUI.setBackgroundColorAsync(Colors.background.primary);
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, appIsReady]);
 
   // Handle analytics consent change
   const handleConsentChange = (status: ConsentStatus) => {
@@ -75,7 +91,12 @@ export default function RootLayout() {
     }
   };
 
+  // Don't render anything until app is ready
   if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  if (!appIsReady) {
     return null;
   }
 
