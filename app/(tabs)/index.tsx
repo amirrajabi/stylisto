@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Filter, Search, ShoppingBag } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
@@ -40,80 +40,96 @@ export default function WardrobeScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ClothingItem | undefined>();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const flatListRef = useRef<FlatList>(null);
+  const isFirstRender = useRef(true);
+
+  // Prevent reload on focus - only load once
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
+      }
+      // Don't reload items when screen comes back into focus
+    }, [])
+  );
 
   // Sort options for the dropdown
-  const sortMenuOptions: SortOption[] = [
-    {
-      label: 'Name (A-Z)',
-      field: 'name',
-      direction: 'asc',
-    },
-    {
-      label: 'Name (Z-A)',
-      field: 'name',
-      direction: 'desc',
-    },
-    {
-      label: 'Category (A-Z)',
-      field: 'category',
-      direction: 'asc',
-    },
-    {
-      label: 'Category (Z-A)',
-      field: 'category',
-      direction: 'desc',
-    },
-    {
-      label: 'Brand (A-Z)',
-      field: 'brand',
-      direction: 'asc',
-    },
-    {
-      label: 'Brand (Z-A)',
-      field: 'brand',
-      direction: 'desc',
-    },
-    {
-      label: 'Date Added (Newest)',
-      field: 'createdAt',
-      direction: 'desc',
-    },
-    {
-      label: 'Date Added (Oldest)',
-      field: 'createdAt',
-      direction: 'asc',
-    },
-    {
-      label: 'Most Worn',
-      field: 'timesWorn',
-      direction: 'desc',
-    },
-    {
-      label: 'Least Worn',
-      field: 'timesWorn',
-      direction: 'asc',
-    },
-    {
-      label: 'Recently Worn',
-      field: 'lastWorn',
-      direction: 'desc',
-    },
-    {
-      label: 'Rarely Worn',
-      field: 'lastWorn',
-      direction: 'asc',
-    },
-    {
-      label: 'Price (High to Low)',
-      field: 'price',
-      direction: 'desc',
-    },
-    {
-      label: 'Price (Low to High)',
-      field: 'price',
-      direction: 'asc',
-    },
-  ];
+  const sortMenuOptions: SortOption[] = useMemo(
+    () => [
+      {
+        label: 'Name (A-Z)',
+        field: 'name',
+        direction: 'asc',
+      },
+      {
+        label: 'Name (Z-A)',
+        field: 'name',
+        direction: 'desc',
+      },
+      {
+        label: 'Category (A-Z)',
+        field: 'category',
+        direction: 'asc',
+      },
+      {
+        label: 'Category (Z-A)',
+        field: 'category',
+        direction: 'desc',
+      },
+      {
+        label: 'Brand (A-Z)',
+        field: 'brand',
+        direction: 'asc',
+      },
+      {
+        label: 'Brand (Z-A)',
+        field: 'brand',
+        direction: 'desc',
+      },
+      {
+        label: 'Date Added (Newest)',
+        field: 'createdAt',
+        direction: 'desc',
+      },
+      {
+        label: 'Date Added (Oldest)',
+        field: 'createdAt',
+        direction: 'asc',
+      },
+      {
+        label: 'Most Worn',
+        field: 'timesWorn',
+        direction: 'desc',
+      },
+      {
+        label: 'Least Worn',
+        field: 'timesWorn',
+        direction: 'asc',
+      },
+      {
+        label: 'Recently Worn',
+        field: 'lastWorn',
+        direction: 'desc',
+      },
+      {
+        label: 'Rarely Worn',
+        field: 'lastWorn',
+        direction: 'asc',
+      },
+      {
+        label: 'Price (High to Low)',
+        field: 'price',
+        direction: 'desc',
+      },
+      {
+        label: 'Price (Low to High)',
+        field: 'price',
+        direction: 'asc',
+      },
+    ],
+    []
+  );
 
   // Get unique values for filter options from ALL items, not just filtered ones
   const filterOptions = useMemo(() => {
@@ -131,156 +147,167 @@ export default function WardrobeScreen() {
     };
   }, [items]); // Depend on items, not filteredItems
 
-  const handleItemPress = (item: ClothingItem) => {
+  const handleItemPress = useCallback((item: ClothingItem) => {
     router.push({
       pathname: '/item-detail',
       params: { itemId: item.id },
     });
-  };
+  }, []);
 
-  const handleItemLongPress = (item: ClothingItem) => {
-    if (selectedItems.includes(item.id)) {
-      actions.deselectItem(item.id);
-    } else {
-      actions.selectItem(item.id);
-    }
-  };
+  const handleItemLongPress = useCallback(
+    (item: ClothingItem) => {
+      if (selectedItems.includes(item.id)) {
+        actions.deselectItem(item.id);
+      } else {
+        actions.selectItem(item.id);
+      }
+    },
+    [selectedItems, actions]
+  );
 
-  const handleMoreOptions = (item: ClothingItem) => {
-    const options = ['Edit', 'Delete', 'Cancel'];
-    const destructiveButtonIndex = 1;
-    const cancelButtonIndex = 2;
+  const handleToggleFavorite = useCallback(
+    (itemId: string) => {
+      actions.toggleFavorite(itemId);
+    },
+    [actions]
+  );
 
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          destructiveButtonIndex,
-          cancelButtonIndex,
-        },
-        async buttonIndex => {
-          if (buttonIndex === 0) {
-            setEditingItem(item);
-            setShowAddModal(true);
-          } else if (buttonIndex === 1) {
-            Alert.alert(
-              'Delete Item',
-              `How would you like to delete "${item.name}"?`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Hide Only',
-                  onPress: async () => {
-                    const result = await actions.deleteItem(item.id);
-                    if (!result.success) {
+  const handleMoreOptions = useCallback(
+    (item: ClothingItem) => {
+      const options = ['Edit', 'Delete', 'Cancel'];
+      const destructiveButtonIndex = 1;
+      const cancelButtonIndex = 2;
+
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            destructiveButtonIndex,
+            cancelButtonIndex,
+          },
+          async buttonIndex => {
+            if (buttonIndex === 0) {
+              setEditingItem(item);
+              setShowAddModal(true);
+            } else if (buttonIndex === 1) {
+              Alert.alert(
+                'Delete Item',
+                `How would you like to delete "${item.name}"?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Hide Only',
+                    onPress: async () => {
+                      const result = await actions.deleteItem(item.id);
+                      if (!result.success) {
+                        Alert.alert(
+                          'Error',
+                          result.error || 'Failed to hide item'
+                        );
+                      }
+                    },
+                  },
+                  {
+                    text: 'Delete Permanently',
+                    style: 'destructive',
+                    onPress: () => {
                       Alert.alert(
-                        'Error',
-                        result.error || 'Failed to hide item'
-                      );
-                    }
-                  },
-                },
-                {
-                  text: 'Delete Permanently',
-                  style: 'destructive',
-                  onPress: () => {
-                    Alert.alert(
-                      'Permanent Delete',
-                      `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Delete Forever',
-                          style: 'destructive',
-                          onPress: async () => {
-                            const result = await actions.permanentlyDeleteItem(
-                              item.id
-                            );
-                            if (!result.success) {
-                              Alert.alert(
-                                'Error',
-                                result.error ||
-                                  'Failed to permanently delete item'
-                              );
-                            }
+                        'Permanent Delete',
+                        `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete Forever',
+                            style: 'destructive',
+                            onPress: async () => {
+                              const result =
+                                await actions.permanentlyDeleteItem(item.id);
+                              if (!result.success) {
+                                Alert.alert(
+                                  'Error',
+                                  result.error ||
+                                    'Failed to permanently delete item'
+                                );
+                              }
+                            },
                           },
-                        },
-                      ]
-                    );
+                        ]
+                      );
+                    },
                   },
-                },
-              ]
-            );
+                ]
+              );
+            }
           }
-        }
-      );
-    } else {
-      Alert.alert('Item Options', 'What would you like to do?', [
-        {
-          text: 'Edit',
-          onPress: () => {
-            setEditingItem(item);
-            setShowAddModal(true);
+        );
+      } else {
+        Alert.alert('Item Options', 'What would you like to do?', [
+          {
+            text: 'Edit',
+            onPress: () => {
+              setEditingItem(item);
+              setShowAddModal(true);
+            },
           },
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Delete Item',
-              `How would you like to delete "${item.name}"?`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Hide Only',
-                  onPress: async () => {
-                    const result = await actions.deleteItem(item.id);
-                    if (!result.success) {
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert(
+                'Delete Item',
+                `How would you like to delete "${item.name}"?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Hide Only',
+                    onPress: async () => {
+                      const result = await actions.deleteItem(item.id);
+                      if (!result.success) {
+                        Alert.alert(
+                          'Error',
+                          result.error || 'Failed to hide item'
+                        );
+                      }
+                    },
+                  },
+                  {
+                    text: 'Delete Permanently',
+                    style: 'destructive',
+                    onPress: () => {
                       Alert.alert(
-                        'Error',
-                        result.error || 'Failed to hide item'
-                      );
-                    }
-                  },
-                },
-                {
-                  text: 'Delete Permanently',
-                  style: 'destructive',
-                  onPress: () => {
-                    Alert.alert(
-                      'Permanent Delete',
-                      `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Delete Forever',
-                          style: 'destructive',
-                          onPress: async () => {
-                            const result = await actions.permanentlyDeleteItem(
-                              item.id
-                            );
-                            if (!result.success) {
-                              Alert.alert(
-                                'Error',
-                                result.error ||
-                                  'Failed to permanently delete item'
-                              );
-                            }
+                        'Permanent Delete',
+                        `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete Forever',
+                            style: 'destructive',
+                            onPress: async () => {
+                              const result =
+                                await actions.permanentlyDeleteItem(item.id);
+                              if (!result.success) {
+                                Alert.alert(
+                                  'Error',
+                                  result.error ||
+                                    'Failed to permanently delete item'
+                                );
+                              }
+                            },
                           },
-                        },
-                      ]
-                    );
+                        ]
+                      );
+                    },
                   },
-                },
-              ]
-            );
+                ]
+              );
+            },
           },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-    }
-  };
+          { text: 'Cancel', style: 'cancel' },
+        ]);
+      }
+    },
+    [selectedItems, actions]
+  );
 
   const handleSort = (option: SortOption) => {
     actions.setSortOptions({
@@ -298,31 +325,39 @@ export default function WardrobeScreen() {
     await actions.loadClothingItems();
   };
 
-  const renderItem = ({
-    item,
-    index,
-  }: {
-    item: ClothingItem;
-    index: number;
-  }) => (
-    <ClothingItemCard
-      item={item}
-      index={index}
-      isSelected={selectedItems.includes(item.id)}
-      onPress={() => handleItemPress(item)}
-      onLongPress={() => handleItemLongPress(item)}
-      onToggleFavorite={async () => {
-        const result = await actions.toggleFavorite(item.id);
-        if (!result.success) {
-          Alert.alert(
-            'Error',
-            result.error || 'Failed to update favorite status'
-          );
-        }
-      }}
-      onMoreOptions={() => handleMoreOptions(item)}
-      showStats
-    />
+  const renderItem = useCallback(
+    ({ item, index }: { item: ClothingItem; index: number }) => (
+      <ClothingItemCard
+        item={item}
+        index={index}
+        isSelected={selectedItems.includes(item.id)}
+        onPress={() => handleItemPress(item)}
+        onLongPress={() => handleItemLongPress(item)}
+        onToggleFavorite={() => handleToggleFavorite(item.id)}
+        onMoreOptions={() => handleMoreOptions(item)}
+        showStats
+      />
+    ),
+    [
+      selectedItems,
+      handleItemPress,
+      handleItemLongPress,
+      handleToggleFavorite,
+      handleMoreOptions,
+    ]
+  );
+
+  const keyExtractor = useCallback((item: ClothingItem) => item.id, []);
+
+  const getItemLayout = useCallback(
+    (data: any, index: number) => ({
+      length: viewMode === 'grid' ? 268 : 160, // Approximate item height
+      offset:
+        (viewMode === 'grid' ? 268 : 160) *
+        Math.floor(index / (viewMode === 'grid' ? 2 : 1)),
+      index,
+    }),
+    [viewMode]
   );
 
   const activeFiltersCount = Object.values(filters).reduce((count, filter) => {
@@ -417,14 +452,21 @@ export default function WardrobeScreen() {
 
       {/* Items List */}
       <FlatList
+        ref={flatListRef}
         data={filteredItems}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
         numColumns={viewMode === 'grid' ? 2 : 1}
         key={viewMode} // Force re-render when view mode changes
         contentContainerStyle={styles.listContainer}
         columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={8}
+        updateCellsBatchingPeriod={50}
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.emptyContainer}>

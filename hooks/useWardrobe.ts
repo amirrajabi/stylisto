@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   CreateClothingItemData,
@@ -21,13 +21,21 @@ export const useWardrobe = () => {
   const wardrobeState = useSelector((state: RootState) => state.wardrobe);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
-  // Load items from database on mount
+  // Load items from database on mount only if not already loaded
   useEffect(() => {
-    loadClothingItems();
+    if (
+      !hasLoadedOnce.current &&
+      wardrobeState.items.length === 0 &&
+      !isLoading
+    ) {
+      hasLoadedOnce.current = true;
+      loadClothingItems();
+    }
   }, []);
 
-  const loadClothingItems = async () => {
+  const loadClothingItems = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -62,7 +70,7 @@ export const useWardrobe = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dispatch]);
 
   const addItem = async (itemData: CreateClothingItemData) => {
     setIsLoading(true);
@@ -401,13 +409,8 @@ export const useWardrobe = () => {
     };
   }, [wardrobeState.items, wardrobeState.outfits.length]);
 
-  return {
-    ...wardrobeState,
-    filteredItems,
-    stats,
-    isLoading: isLoading || wardrobeState.isLoading,
-    error: error || wardrobeState.error,
-    actions: {
+  const actions = useMemo(
+    () => ({
       addItem,
       updateItem,
       deleteItem,
@@ -437,6 +440,28 @@ export const useWardrobe = () => {
         dispatch(wardrobeActions.setSortOptions(options)),
       setSearchQuery: (query: string) =>
         dispatch(wardrobeActions.setSearchQuery(query)),
-    },
+    }),
+    [
+      dispatch,
+      addItem,
+      updateItem,
+      deleteItem,
+      permanentlyDeleteItem,
+      loadFavoriteItems,
+      toggleFavorite,
+      loadClothingItems,
+      removeSampleItems,
+      debugImagePaths,
+      clearAllData,
+    ]
+  );
+
+  return {
+    ...wardrobeState,
+    filteredItems,
+    stats,
+    isLoading: isLoading || wardrobeState.isLoading,
+    error: error || wardrobeState.error,
+    actions,
   };
 };
