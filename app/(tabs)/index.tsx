@@ -535,6 +535,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    zIndex: 9998,
+    position: 'relative',
   },
   searchInputContainer: {
     flex: 1,
@@ -567,6 +569,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    zIndex: 9999,
+    position: 'relative',
   },
   sortButton: {
     paddingHorizontal: 12,

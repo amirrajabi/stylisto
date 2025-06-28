@@ -157,7 +157,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
-    zIndex: 1000,
+    zIndex: 9999,
   } as ViewStyle,
   triggerButton: {
     flexDirection: 'row',
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     left: -width,
     right: -width,
     bottom: -200,
-    zIndex: 999,
+    zIndex: 9998,
   } as ViewStyle,
   dropdown: {
     position: 'absolute',
@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 8,
-    zIndex: 1001,
+    elevation: 15,
+    zIndex: 10000,
   } as ViewStyle,
   scrollView: {
     maxHeight: 280,
