@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Database, Key, Sparkles, Trash2 } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  TextInput,
   Alert,
   ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Sparkles, Key, Database, RefreshCw, Trash2 } from 'lucide-react-native';
-import { useVisionAI } from '../../lib/visionAI';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
+import { useVisionAI } from '../../lib/visionAI';
+import { BodySmall } from '../ui';
 
 interface AISettingsPanelProps {
   onClose?: () => void;
@@ -24,7 +27,7 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
   onClose,
 }) => {
   const { setApiKey, clearCache, getCacheStats } = useVisionAI();
-  
+
   const [apiKey, setApiKeyState] = useState('');
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [highQualityAnalysis, setHighQualityAnalysis] = useState(false);
@@ -40,13 +43,15 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
           setApiKeyState(storedApiKey);
           setApiKey(storedApiKey);
         }
-        
+
         const autoAnalyzeSetting = await AsyncStorage.getItem('@auto_analyze');
         setAutoAnalyze(autoAnalyzeSetting !== 'false');
-        
-        const highQualitySetting = await AsyncStorage.getItem('@high_quality_analysis');
+
+        const highQualitySetting = await AsyncStorage.getItem(
+          '@high_quality_analysis'
+        );
         setHighQualityAnalysis(highQualitySetting === 'true');
-        
+
         // Get cache stats
         const stats = getCacheStats();
         setCacheStats(stats);
@@ -54,25 +59,25 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
         console.error('Failed to load AI settings:', error);
       }
     };
-    
+
     loadSettings();
   }, [setApiKey, getCacheStats]);
 
   const handleSaveApiKey = async () => {
     try {
       setIsLoading(true);
-      
+
       if (!apiKey.trim()) {
         Alert.alert('Error', 'Please enter a valid API key');
         return;
       }
-      
+
       // Save API key to storage
       await AsyncStorage.setItem('@vision_api_key', apiKey);
-      
+
       // Set API key in service
       setApiKey(apiKey);
-      
+
       Alert.alert('Success', 'API key saved successfully');
     } catch (error) {
       Alert.alert('Error', 'Failed to save API key');
@@ -89,19 +94,22 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
 
   const handleToggleHighQuality = async (value: boolean) => {
     setHighQualityAnalysis(value);
-    await AsyncStorage.setItem('@high_quality_analysis', value ? 'true' : 'false');
+    await AsyncStorage.setItem(
+      '@high_quality_analysis',
+      value ? 'true' : 'false'
+    );
   };
 
   const handleClearCache = async () => {
     try {
       setIsLoading(true);
-      
+
       await clearCache();
-      
+
       // Update cache stats
       const stats = getCacheStats();
       setCacheStats(stats);
-      
+
       Alert.alert('Success', 'Analysis cache cleared successfully');
     } catch (error) {
       Alert.alert('Error', 'Failed to clear cache');
@@ -113,11 +121,11 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
@@ -142,12 +150,12 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
             <Key size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Google Cloud Vision API Key</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            Enter your Google Cloud Vision API key to enable AI clothing analysis.
-            You can get an API key from the Google Cloud Console.
+            Enter your Google Cloud Vision API key to enable AI clothing
+            analysis. You can get an API key from the Google Cloud Console.
           </Text>
-          
+
           <View style={styles.apiKeyContainer}>
             <TextInput
               style={styles.apiKeyInput}
@@ -159,8 +167,8 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
               autoCapitalize="none"
               autoCorrect={false}
             />
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.saveButton}
               onPress={handleSaveApiKey}
               disabled={isLoading}
@@ -168,7 +176,7 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
-          
+
           <Text style={styles.apiKeyHelp}>
             Your API key is stored securely on your device and is never shared.
           </Text>
@@ -180,7 +188,7 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
             <Sparkles size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Analysis Settings</Text>
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Auto-Analyze Images</Text>
@@ -191,11 +199,14 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
             <Switch
               value={autoAnalyze}
               onValueChange={handleToggleAutoAnalyze}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>High Quality Analysis</Text>
@@ -206,7 +217,10 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
             <Switch
               value={highQualityAnalysis}
               onValueChange={handleToggleHighQuality}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
@@ -218,53 +232,78 @@ export const AISettingsPanel: React.FC<AISettingsPanelProps> = ({
             <Database size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Cache Management</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            Analysis results are cached to reduce API usage and improve performance.
+            Analysis results are cached to reduce API usage and improve
+            performance.
           </Text>
-          
+
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{cacheStats.entries}</Text>
               <Text style={styles.statLabel}>Cached Items</Text>
             </View>
-            
+
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{formatBytes(cacheStats.size)}</Text>
+              <Text style={styles.statValue}>
+                {formatBytes(cacheStats.size)}
+              </Text>
               <Text style={styles.statLabel}>Cache Size</Text>
             </View>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.clearCacheButton}
             onPress={handleClearCache}
             disabled={isLoading || cacheStats.entries === 0}
           >
             <Trash2 size={16} color={Colors.white} />
-            <Text style={styles.clearCacheButtonText}>Clear Analysis Cache</Text>
+            <Text style={styles.clearCacheButtonText}>
+              Clear Analysis Cache
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* About AI Analysis */}
         <View style={styles.section}>
           <Text style={styles.aboutTitle}>About AI Clothing Analysis</Text>
-          
+
           <Text style={styles.aboutText}>
-            Stylisto uses Google Cloud Vision AI to automatically analyze your clothing items.
-            The AI can detect:
+            <MaskedView
+              style={{ flexDirection: 'row' }}
+              maskElement={
+                <BodySmall
+                  style={[styles.aboutText, { backgroundColor: 'transparent' }]}
+                >
+                  Stylisto
+                </BodySmall>
+              }
+            >
+              <LinearGradient
+                colors={[Colors.primary[500], Colors.secondary[500]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ flex: 1, height: 16 }}
+              />
+            </MaskedView>{' '}
+            uses Google Cloud Vision AI to automatically analyze your clothing
+            items. The AI can detect:
           </Text>
-          
+
           <View style={styles.featureList}>
-            <Text style={styles.featureItem}>• Clothing categories and types</Text>
+            <Text style={styles.featureItem}>
+              • Clothing categories and types
+            </Text>
             <Text style={styles.featureItem}>• Dominant colors</Text>
             <Text style={styles.featureItem}>• Appropriate seasons</Text>
             <Text style={styles.featureItem}>• Suitable occasions</Text>
             <Text style={styles.featureItem}>• Descriptive tags</Text>
           </View>
-          
+
           <Text style={styles.aboutText}>
-            All analysis is performed securely, and your images are never stored on our servers.
-            Analysis results are cached locally on your device to improve performance and reduce API usage.
+            All analysis is performed securely, and your images are never stored
+            on our servers. Analysis results are cached locally on your device
+            to improve performance and reduce API usage.
           </Text>
         </View>
       </ScrollView>

@@ -1,8 +1,9 @@
-import { router, useNavigation } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
+import { authNavigation } from '../../lib/navigation';
 import { BodySmall } from '../ui';
 import { PrivacyModal } from './PrivacyModal';
 import { TermsModal } from './TermsModal';
@@ -44,19 +45,23 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
     setShowPrivacyModal(false);
   }, []);
 
-  const handleNavigationPress = useCallback(() => {
+  const handleNavigationPress = useCallback(async () => {
     if (isNavigating) return;
 
     setIsNavigating(true);
     forceCloseModals();
 
-    setTimeout(() => {
+    try {
       if (currentPage === 'login') {
-        router.push('/(auth)/register');
+        await authNavigation.toRegister();
       } else {
-        router.push('/(auth)/login');
+        await authNavigation.toLogin();
       }
-    }, 50);
+    } finally {
+      if (mountedRef.current) {
+        setIsNavigating(false);
+      }
+    }
   }, [currentPage, forceCloseModals, isNavigating]);
 
   useEffect(() => {
@@ -135,10 +140,13 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
         </View>
 
         {/* Dynamic Copyright */}
-        <BodySmall color="secondary" style={styles.copyrightText}>
-          © {currentYear} <Text style={styles.brandText}>STYLISTO</Text>. All
-          rights reserved.
-        </BodySmall>
+        <View style={styles.copyrightContainer}>
+          <BodySmall color="secondary" style={styles.copyrightText}>
+            © {currentYear}{' '}
+            <BodySmall style={styles.brandText}>STYLISTO</BodySmall>. All rights
+            reserved.
+          </BodySmall>
+        </View>
       </View>
 
       {shouldShowModals && (
@@ -215,12 +223,23 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginHorizontal: Spacing.xs,
   },
+  copyrightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'nowrap',
+    gap: 2,
+  },
   copyrightText: {
-    textAlign: 'center',
     fontSize: 11,
     lineHeight: 16, // Explicit line height for better text visibility
     opacity: 0.8,
     paddingTop: Spacing.xs,
+  },
+  brandText: {
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    color: Colors.primary[600],
   },
   pressedState: {
     opacity: 0.7,
@@ -228,10 +247,5 @@ const styles = StyleSheet.create({
   },
   disabledState: {
     opacity: 0.5,
-  },
-  brandText: {
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    color: Colors.text.secondary,
   },
 });

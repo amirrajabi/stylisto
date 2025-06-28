@@ -1,3 +1,4 @@
+import MaskedView from '@react-native-masked-view/masked-view';
 import {
   CameraType,
   CameraView,
@@ -5,6 +6,7 @@ import {
   useCameraPermissions,
 } from 'expo-camera';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Camera,
   Check,
@@ -33,6 +35,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { Colors } from '../../constants/Colors';
 
 interface CameraInterfaceProps {
   onCapture: (imageUri: string) => void;
@@ -84,11 +87,28 @@ export const CameraInterface: React.FC<CameraInterfaceProps> = ({
     return (
       <View style={styles.permissionContainer}>
         <View style={styles.permissionContent}>
-          <Camera size={64} color="#6B7280" />
+          <Camera size={64} color={Colors.primary[500]} />
           <Text style={styles.permissionTitle}>Camera Access Required</Text>
           <Text style={styles.permissionMessage}>
-            Stylisto needs camera access to take photos of your clothing items.
-            This helps you build your digital wardrobe.
+            <MaskedView
+              style={{ flexDirection: 'row' }}
+              maskElement={
+                <Text
+                  style={[styles.brandText, { backgroundColor: 'transparent' }]}
+                >
+                  Stylisto
+                </Text>
+              }
+            >
+              <LinearGradient
+                colors={[Colors.primary[500], Colors.secondary[500]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ flex: 1, height: 20 }}
+              />
+            </MaskedView>{' '}
+            needs camera access to capture photos of your clothing items for
+            your wardrobe.
           </Text>
           <TouchableOpacity
             style={styles.permissionButton}
@@ -350,6 +370,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
+  },
+  brandText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   permissionButton: {
     backgroundColor: '#A428FC',

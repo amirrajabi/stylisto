@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Key, Mail } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
@@ -13,6 +13,7 @@ import { BodyMedium, Button, H1 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
+import { authNavigation } from '../../lib/navigation';
 
 // Validation schema for email/password login
 const loginSchema = z.object({
@@ -48,7 +49,7 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await signInWithPassword(data.email, data.password);
-      router.replace('/(tabs)');
+      await authNavigation.toMainApp();
     } catch (error: any) {
       if (error.message.includes('Invalid login credentials')) {
         form.setError('password', {
@@ -66,19 +67,9 @@ export default function LoginScreen() {
     }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     const currentEmail = form.getValues('email');
-
-    if (currentEmail && currentEmail.trim() !== '') {
-      // Pre-fill the forgot password screen with current email
-      router.push({
-        pathname: '/(auth)/forgot-password',
-        params: { email: currentEmail },
-      });
-    } else {
-      // Navigate to forgot password screen without email
-      router.push('/(auth)/forgot-password');
-    }
+    await authNavigation.toForgotPassword(currentEmail || undefined);
   };
 
   return (
@@ -87,9 +78,12 @@ export default function LoginScreen() {
 
       <View style={styles.header}>
         <H1 style={styles.title}>Welcome Back</H1>
-        <BodyMedium color="secondary" style={styles.subtitle}>
-          Sign in to your <Text style={styles.brandText}>STYLISTO</Text> account
-        </BodyMedium>
+        <View style={styles.subtitleContainer}>
+          <BodyMedium color="secondary" style={styles.subtitleText}>
+            Sign in to your{' '}
+            <BodyMedium style={styles.brandText}>STYLISTO</BodyMedium> account
+          </BodyMedium>
+        </View>
       </View>
 
       <View style={styles.formContainer}>
@@ -174,6 +168,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
+  subtitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'nowrap',
+    gap: 2,
+  },
+  subtitleText: {
+    textAlign: 'center',
+  },
+  brandText: {
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    color: Colors.primary[600],
+  },
   formContainer: {
     flex: 1,
     justifyContent: 'space-between',
@@ -207,10 +216,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textDecorationLine: 'underline',
-  },
-  brandText: {
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    color: Colors.text.secondary,
   },
 });

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Mail } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ import { BodyMedium, BodySmall, Button, H1 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
+import { authNavigation } from '../../lib/navigation';
 import {
   checkResendAllowed,
   logSecurityEvent,
@@ -125,8 +126,8 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const handleBackToLogin = () => {
-    router.push('/(auth)/login');
+  const handleBackToLogin = async () => {
+    await authNavigation.goBack();
   };
 
   return (

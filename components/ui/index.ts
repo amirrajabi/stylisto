@@ -29,6 +29,8 @@ export type { SliderProps } from './Slider';
 
 export { SplashLoader } from './SplashLoader';
 
+export { FocusTrap } from './FocusTrap';
+
 // Typography components
 export {
   BodyLarge,

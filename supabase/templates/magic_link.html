@@ -29,7 +29,7 @@
       .logo {
         width: 80px;
         height: 80px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #a428fc 0%, #17bdf8 100%);
         border-radius: 50%;
         margin: 0 auto 20px;
         display: flex;
@@ -40,7 +40,10 @@
         font-weight: bold;
       }
       h1 {
-        color: #1f2937;
+        background: linear-gradient(135deg, #a428fc 0%, #17bdf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin: 0 0 10px;
         font-size: 28px;
         font-weight: 700;
@@ -55,7 +58,7 @@
       }
       .button {
         display: inline-block;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: linear-gradient(135deg, #a428fc 0%, #17bdf8 100%);
         color: white;
         text-decoration: none;
         padding: 16px 32px;
@@ -114,6 +117,13 @@
         color: #92400e;
         font-size: 14px;
       }
+      .brand-text {
+        background: linear-gradient(135deg, #a428fc 0%, #17bdf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -128,15 +138,16 @@
         <p>Hi there!</p>
 
         <p>
-          Welcome to Stylisto! Your account has been created successfully. You
-          can now sign in to your account using your email and password.
+          Welcome to <span class="brand-text">Stylisto</span>! Your account has
+          been created successfully. You can now sign in to your account using
+          your email and password.
         </p>
 
         <div class="info-box">
           <h3 style="margin: 0 0 10px; font-size: 18px">🎉 You're all set!</h3>
           <p style="margin: 0; font-size: 16px">
-            Open the Stylisto app and sign in with your credentials to start
-            organizing your wardrobe.
+            Open the <span class="brand-text">Stylisto</span> app and sign in
+            with your credentials to start organizing your wardrobe.
           </p>
         </div>
 
@@ -150,11 +161,15 @@
 
         <p>
           Once you sign in, you'll have full access to your wardrobe, outfit
-          recommendations, and all Stylisto features.
+          recommendations, and all
+          <span class="brand-text">Stylisto</span> features.
         </p>
 
         <p>
-          <strong>What you can do with Stylisto:</strong>
+          <strong
+            >What you can do with
+            <span class="brand-text">Stylisto</span>:</strong
+          >
         </p>
         <ul>
           <li>📷 Add clothes to your digital wardrobe</li>
@@ -172,7 +187,9 @@
           >
         </p>
 
-        <p style="margin-top: 20px">© 2024 Stylisto. All rights reserved.</p>
+        <p style="margin-top: 20px">
+          © 2024 <span class="brand-text">Stylisto</span>. All rights reserved.
+        </p>
       </div>
     </div>
   </body>

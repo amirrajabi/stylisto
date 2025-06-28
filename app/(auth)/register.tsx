@@ -1,9 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
 import { ArrowLeft, Key, Mail, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 import { AuthFooter } from '../../components/auth/AuthFooter';
 import { AuthLayout } from '../../components/auth/AuthLayout';
@@ -21,6 +20,7 @@ import {
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
+import { authNavigation } from '../../lib/navigation';
 
 // Validation schema for email/password registration
 const registerSchema = z
@@ -89,7 +89,7 @@ export default function RegisterScreen() {
         [
           {
             text: 'Go to Login',
-            onPress: () => router.push('/(auth)/login'),
+            onPress: () => authNavigation.toLogin(data.email),
           },
         ]
       );
@@ -108,19 +108,11 @@ export default function RegisterScreen() {
             },
             {
               text: 'Reset Password',
-              onPress: () =>
-                router.push({
-                  pathname: '/(auth)/forgot-password',
-                  params: { email: data.email },
-                }),
+              onPress: () => authNavigation.toForgotPassword(data.email),
             },
             {
               text: 'Sign In',
-              onPress: () =>
-                router.push({
-                  pathname: '/(auth)/login',
-                  params: { email: data.email },
-                }),
+              onPress: () => authNavigation.toLogin(data.email),
             },
           ]
         );
@@ -156,8 +148,8 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleBackToLogin = () => {
-    router.push('/(auth)/login');
+  const handleBackToLogin = async () => {
+    await authNavigation.goBack();
   };
 
   const handleTermsPress = () => {
@@ -190,11 +182,13 @@ export default function RegisterScreen() {
           style={styles.backButton}
           leftIcon={<ArrowLeft size={20} color={Colors.primary[600]} />}
         />
-        <H1 style={styles.title}>Create Account</H1>
-        <BodyMedium color="secondary" style={styles.subtitle}>
-          Sign up to get started with{' '}
-          <Text style={styles.brandText}>STYLISTO</Text>
-        </BodyMedium>
+        <H1 style={styles.title}>Join Us Today</H1>
+        <View style={styles.subtitleContainer}>
+          <BodyMedium color="secondary" style={styles.subtitleText}>
+            Create your{' '}
+            <BodyMedium style={styles.brandText}>STYLISTO</BodyMedium> account
+          </BodyMedium>
+        </View>
       </View>
 
       <View style={styles.formContainer}>
@@ -368,9 +362,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
-  subtitle: {
-    textAlign: 'center',
-    maxWidth: 280,
+  subtitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'nowrap',
+    gap: 2,
+  },
+  subtitleText: {
+    lineHeight: 20,
+    color: Colors.text.secondary,
   },
   formContainer: {
     flex: 1,
@@ -420,6 +421,6 @@ const styles = StyleSheet.create({
   brandText: {
     fontWeight: 'bold',
     letterSpacing: 1,
-    color: Colors.text.secondary,
+    color: Colors.primary[600],
   },
 });
