@@ -95,7 +95,7 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
             {currentPage === 'login'
               ? "Don't have an account? "
               : 'Already have an account? '}
-            <BodySmall color="primary" style={styles.linkText}>
+            <BodySmall style={styles.linkText}>
               {currentPage === 'login' ? 'Sign Up' : 'Sign In'}
             </BodySmall>
           </BodySmall>
@@ -114,9 +114,7 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
               isNavigating && styles.disabledState,
             ]}
           >
-            <BodySmall color="secondary" style={styles.legalLink}>
-              Terms & Conditions
-            </BodySmall>
+            <BodySmall style={styles.legalLink}>Terms & Conditions</BodySmall>
           </Pressable>
 
           <BodySmall color="secondary" style={styles.separator}>
@@ -132,9 +130,7 @@ export function AuthFooter({ currentPage }: AuthFooterProps) {
               isNavigating && styles.disabledState,
             ]}
           >
-            <BodySmall color="secondary" style={styles.legalLink}>
-              Privacy Policy
-            </BodySmall>
+            <BodySmall style={styles.legalLink}>Privacy Policy</BodySmall>
           </Pressable>
         </View>
 
@@ -184,6 +180,7 @@ const styles = StyleSheet.create({
     lineHeight: 20, // Explicit line height for better text visibility
   },
   linkText: {
+    color: Colors.secondary[500],
     fontWeight: '600',
     textDecorationLine: 'underline',
     lineHeight: 20, // Explicit line height for better text visibility
@@ -207,6 +204,7 @@ const styles = StyleSheet.create({
     minHeight: 28, // Ensure touchable area
   },
   legalLink: {
+    color: Colors.secondary[500],
     textDecorationLine: 'underline',
     fontWeight: '500',
     lineHeight: 18, // Explicit line height for better text visibility

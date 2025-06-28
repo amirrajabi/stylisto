@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   termsLinkText: {
-    color: Colors.primary[600],
+    color: Colors.secondary[500],
     textDecorationLine: 'underline',
     fontWeight: '600',
   },

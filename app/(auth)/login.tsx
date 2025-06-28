@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   forgotPasswordLinkText: {
-    color: Colors.primary[600],
+    color: Colors.secondary[500],
     fontSize: 14,
     fontWeight: '600',
     textDecorationLine: 'underline',

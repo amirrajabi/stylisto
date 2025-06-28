@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   },
   privacyButtonText: {
     ...Typography.body.medium,
-    color: Colors.primary[700],
+    color: Colors.secondary[500],
     fontWeight: '500',
   },
   statsGrid: {

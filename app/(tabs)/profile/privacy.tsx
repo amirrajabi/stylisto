@@ -278,8 +278,8 @@ export default function PrivacyScreen() {
           <Text style={styles.infoTitle}>Privacy Information</Text>
           <Text style={styles.infoText}>
             Stylisto is committed to protecting your privacy and personal data.
-            We only collect information that's necessary to provide you with the
-            best experience.
+            We only collect information that&apos;s necessary to provide you
+            with the best experience.
           </Text>
           <Text style={styles.infoText}>
             You can read our full privacy policy and terms of service for more
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   },
   policyButtonText: {
     ...Typography.body.medium,
-    color: Colors.info[700],
+    color: Colors.secondary[500],
     fontWeight: '500',
   },
   footer: {
