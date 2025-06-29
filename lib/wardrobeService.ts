@@ -29,6 +29,8 @@ export interface CreateClothingItemData {
   condition?: ItemCondition;
   isForSale?: boolean;
   saleListing?: SaleListingDetails;
+  // AI-generated description
+  description_with_ai?: string;
 }
 
 export interface UpdateClothingItemData
@@ -153,6 +155,7 @@ class WardrobeService {
         condition: itemData.condition || 'good',
         is_for_sale: itemData.isForSale || false,
         sale_listing: itemData.saleListing || {},
+        description_with_ai: itemData.description_with_ai || null,
       };
 
       console.log('Inserting clothing item with payload:', {
@@ -294,6 +297,8 @@ class WardrobeService {
         updatePayload.is_for_sale = itemData.isForSale;
       if (itemData.saleListing !== undefined)
         updatePayload.sale_listing = itemData.saleListing;
+      if (itemData.description_with_ai !== undefined)
+        updatePayload.description_with_ai = itemData.description_with_ai;
 
       const { data, error } = await supabase
         .from('clothing_items')

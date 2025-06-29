@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { useWardrobe } from '../../hooks/useWardrobe';
+import { GPT4VisionService } from '../../lib/gpt4Vision';
 import {
   ClothingCategory,
   ClothingItem,
@@ -72,6 +73,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const [formData, setFormData] = useState<Partial<ClothingItem>>({});
   const [newTag, setNewTag] = useState('');
+  const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
+  const gpt4VisionService = GPT4VisionService.getInstance();
 
   const getDefaultFormData = () => ({
     name: '',
@@ -155,6 +158,38 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     }
 
     try {
+      // Check if we need to run AI analysis
+      const isNewItem = !editItem;
+      const imageChanged = editItem && formData.imageUrl !== editItem.imageUrl;
+      const shouldAnalyzeWithAI = isNewItem || imageChanged;
+
+      let aiDescription = editItem?.description_with_ai || '';
+
+      if (shouldAnalyzeWithAI) {
+        setAiAnalysisLoading(true);
+        console.log('🔍 Starting AI analysis for image:', formData.imageUrl);
+        console.log('Reason:', isNewItem ? 'New item' : 'Image changed');
+
+        // Analyze image with AI
+        try {
+          const aiAnalysis = await gpt4VisionService.analyzeClothingImage(
+            formData.imageUrl
+          );
+          aiDescription = aiAnalysis.detailedDescription || '';
+          console.log('✅ AI analysis completed:', aiDescription);
+        } catch (aiError) {
+          console.warn('⚠️ AI analysis failed:', aiError);
+          // Continue with save even if AI analysis fails
+          // Keep existing description if this is an edit
+          if (editItem) {
+            aiDescription = editItem.description_with_ai || '';
+          }
+        }
+        setAiAnalysisLoading(false);
+      } else {
+        console.log('📋 Skipping AI analysis - image unchanged in edit mode');
+      }
+
       const itemData = {
         name: formData.name.trim(),
         category: formData.category!,
@@ -171,6 +206,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           ? parseFloat(formData.price.toString())
           : undefined,
         purchaseDate: formData.purchaseDate || undefined,
+        description_with_ai: aiDescription,
       };
 
       let result;
@@ -188,13 +224,14 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         handleClose();
         Alert.alert(
           'Success',
-          `Item ${editItem ? 'updated' : 'saved'} successfully!`
+          `Item ${editItem ? 'updated' : 'saved'} successfully!${shouldAnalyzeWithAI && aiDescription ? ' AI analysis completed.' : ''}`
         );
       } else {
         Alert.alert('Error', result.error || 'Failed to save item');
       }
     } catch (error) {
       console.error('Error saving item:', error);
+      setAiAnalysisLoading(false);
       Alert.alert('Error', 'An unexpected error occurred');
     }
   };
@@ -596,12 +633,18 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 onPress={handleSave}
                 style={[
                   styles.saveButtonAction,
-                  isLoading && styles.saveButtonDisabled,
+                  (isLoading || aiAnalysisLoading) && styles.saveButtonDisabled,
                 ]}
-                disabled={isLoading}
+                disabled={isLoading || aiAnalysisLoading}
               >
                 <Text style={styles.saveButtonText}>
-                  {isLoading ? 'Saving...' : 'Save'}
+                  {aiAnalysisLoading
+                    ? 'Analyzing with AI...'
+                    : isLoading
+                      ? 'Saving...'
+                      : editItem
+                        ? 'Save'
+                        : 'Save'}
                 </Text>
               </TouchableOpacity>
             </View>
