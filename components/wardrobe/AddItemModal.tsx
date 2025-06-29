@@ -73,6 +73,37 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
   const [formData, setFormData] = useState<Partial<ClothingItem>>({});
   const [newTag, setNewTag] = useState('');
 
+  const getDefaultFormData = () => ({
+    name: '',
+    category: 'tops' as ClothingCategory,
+    subcategory: '',
+    color: '#000000',
+    brand: '',
+    size: '',
+    season: [],
+    occasion: [],
+    imageUrl: SAMPLE_IMAGES[0],
+    tags: [],
+    notes: '',
+    price: undefined,
+    purchaseDate: undefined,
+  });
+
+  const resetForm = () => {
+    setFormData(getDefaultFormData());
+    setNewTag('');
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: false });
+    }
+  };
+
+  const handleClose = () => {
+    if (!editItem) {
+      resetForm();
+    }
+    onClose();
+  };
+
   // Initialize form data when editItem changes
   useEffect(() => {
     if (editItem) {
@@ -94,22 +125,9 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
       });
     } else {
       // Reset for new item
-      setFormData({
-        name: '',
-        category: 'tops' as ClothingCategory,
-        subcategory: '',
-        color: '#000000',
-        brand: '',
-        size: '',
-        season: [],
-        occasion: [],
-        imageUrl: SAMPLE_IMAGES[0],
-        tags: [],
-        notes: '',
-        price: undefined,
-        purchaseDate: undefined,
-      });
+      setFormData(getDefaultFormData());
     }
+    setNewTag('');
   }, [editItem]);
 
   // Smooth scroll to input section
@@ -164,7 +182,10 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 
       if (result.success && result.data) {
         onAddItem(result.data);
-        onClose();
+        if (!editItem) {
+          resetForm();
+        }
+        handleClose();
         Alert.alert(
           'Success',
           `Item ${editItem ? 'updated' : 'saved'} successfully!`
@@ -252,7 +273,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           )}
 
           {/* Back Button (Left Side) */}
-          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
             <ArrowLeft size={24} color={Colors.white} />
           </TouchableOpacity>
 
