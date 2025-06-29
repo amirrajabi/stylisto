@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  ArrowLeft,
   CreditCard as Edit,
   Heart,
-  Share,
   Tag,
   Trash2,
 } from 'lucide-react-native';
@@ -34,6 +34,10 @@ export default function ItemDetailScreen() {
   const { items, actions } = useWardrobe();
 
   const item = items.find(i => i.id === itemId);
+
+  const handleBack = () => {
+    router.back();
+  };
 
   const handleEdit = () => {
     if (!item) return;
@@ -159,12 +163,6 @@ export default function ItemDetailScreen() {
     ]);
   };
 
-  const handleShare = () => {
-    if (!item) return;
-    // Implement share functionality
-    console.log('Share item:', item.name);
-  };
-
   const handleEditTags = () => {
     if (!item) return;
 
@@ -216,6 +214,9 @@ export default function ItemDetailScreen() {
               }
             }}
           />
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <ArrowLeft size={24} color={Colors.white} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={() => actions.toggleFavorite(item.id)}
@@ -232,27 +233,9 @@ export default function ItemDetailScreen() {
         <View style={styles.detailsContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <H1 style={styles.title}>{item.name}</H1>
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleShare}
-              >
-                <Share size={20} color={Colors.text.secondary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleEdit}
-              >
-                <Edit size={20} color={Colors.text.secondary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleDelete}
-              >
-                <Trash2 size={20} color={Colors.error[500]} />
-              </TouchableOpacity>
-            </View>
+            <H1 style={styles.title} numberOfLines={2}>
+              {item.name}
+            </H1>
           </View>
 
           {/* Basic Info */}
@@ -388,6 +371,25 @@ export default function ItemDetailScreen() {
               <BodyMedium>{item.notes}</BodyMedium>
             </View>
           )}
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtonsContainer}>
+            <Button
+              title="Edit Item"
+              onPress={handleEdit}
+              style={styles.editButton}
+              textStyle={styles.editButtonText}
+              leftIcon={<Edit size={20} color={Colors.primary[700]} />}
+            />
+            <Button
+              title="Delete Item"
+              onPress={handleDelete}
+              variant="outline"
+              style={styles.deleteButton}
+              textStyle={styles.deleteButtonText}
+              leftIcon={<Trash2 size={20} color={Colors.error[500]} />}
+            />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -410,6 +412,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  backButton: {
+    position: 'absolute',
+    top: Spacing.lg,
+    left: Spacing.lg,
+    width: 48,
+    height: 48,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   favoriteButton: {
     position: 'absolute',
     top: Spacing.lg,
@@ -428,29 +441,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: Layout.borderRadius.xl,
     marginTop: -20,
     paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
   },
   title: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 0,
   },
   infoSection: {
     paddingHorizontal: Spacing.lg,
@@ -550,6 +548,26 @@ const styles = StyleSheet.create({
     ...Typography.heading.h4,
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
+  },
+  actionButtonsContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  editButton: {
+    backgroundColor: Colors.primary[50],
+    borderColor: Colors.primary[200],
+    borderWidth: 1,
+  },
+  editButtonText: {
+    color: Colors.primary[700],
+  },
+  deleteButton: {
+    borderColor: Colors.error[200],
+    backgroundColor: Colors.error[50],
+  },
+  deleteButtonText: {
+    color: Colors.error[500],
   },
   errorContainer: {
     flex: 1,
