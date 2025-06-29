@@ -500,25 +500,19 @@ export function OutfitFiltersModal({
                 <TouchableOpacity
                   key={option.id}
                   style={[
-                    styles.colorCard,
+                    styles.colorSwatch,
+                    {
+                      backgroundColor: option.color,
+                      borderColor:
+                        option.id === 'whites'
+                          ? Colors.border.primary
+                          : 'transparent',
+                    },
                     filters.colors.includes(option.id) &&
-                      styles.colorCardSelected,
+                      styles.colorSwatchSelected,
                   ]}
                   onPress={() => handleColorToggle(option.id)}
-                >
-                  <View
-                    style={[
-                      styles.colorSwatch,
-                      {
-                        backgroundColor: option.color,
-                        borderColor:
-                          option.id === 'whites'
-                            ? Colors.border.primary
-                            : 'transparent',
-                      },
-                    ]}
-                  />
-                </TouchableOpacity>
+                />
               ))}
             </View>
           </View>
@@ -891,28 +885,20 @@ const styles = StyleSheet.create({
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  colorCard: {
-    alignItems: 'center',
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
-    width: '23%',
-    marginBottom: Spacing.sm,
-  },
-  colorCardSelected: {
-    backgroundColor: Colors.primary[50],
-    borderColor: Colors.primary[500],
+    gap: Spacing.sm,
   },
   colorSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: Layout.borderRadius.full,
+    width: 60,
+    height: 60,
+    borderRadius: Layout.borderRadius.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colorSwatchSelected: {
+    borderColor: Colors.primary[500],
+    borderWidth: 3,
   },
   colorLabel: {
     ...Typography.caption.medium,
