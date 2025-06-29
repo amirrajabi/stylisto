@@ -25,6 +25,7 @@ import {
 import { GeneratedOutfitRecord, OutfitService } from '../lib/outfitService';
 import { Occasion, Outfit, Season } from '../types/wardrobe';
 import { generateOutfitName } from '../utils/outfitNaming';
+import { OutfitSimilarityDetector } from '../utils/outfitSimilarity';
 import { useWardrobe } from './useWardrobe';
 
 export interface OutfitRecommendationState {
@@ -111,6 +112,82 @@ export const useOutfitRecommendation = (
 
   const isGeneratingRef = useRef(false);
   const hasInitialGeneration = useRef(false);
+
+  // Filter out similar outfits using advanced similarity detection
+  const filterSimilarOutfits = useCallback(
+    async (
+      newOutfits: GeneratedOutfit[],
+      existingOutfits: { items: any[]; id?: string; name?: string }[]
+    ) => {
+      if (newOutfits.length === 0) return newOutfits;
+
+      console.log(
+        `🔍 Filtering ${newOutfits.length} new outfits against ${existingOutfits.length} existing outfits`
+      );
+
+      const uniqueOutfits: GeneratedOutfit[] = [];
+      let duplicatesFiltered = 0;
+      let similarToExisting = 0;
+
+      for (const outfit of newOutfits) {
+        let shouldInclude = true;
+
+        // First check against existing outfits from database
+        if (existingOutfits.length > 0) {
+          const similarToExistingOutfits =
+            OutfitSimilarityDetector.findSimilarOutfits(
+              outfit.items,
+              existingOutfits
+            );
+
+          if (similarToExistingOutfits.length > 0) {
+            const mostSimilar = similarToExistingOutfits[0];
+            console.log(
+              `❌ Outfit similar to existing outfit (similarity: ${(mostSimilar.similarity.similarity * 100).toFixed(1)}%)`
+            );
+            shouldInclude = false;
+            similarToExisting++;
+          }
+        }
+
+        // Then check against already selected new outfits
+        if (shouldInclude && uniqueOutfits.length > 0) {
+          const newOutfitsData = uniqueOutfits.map(r => ({ items: r.items }));
+          const similarToNewOutfits =
+            OutfitSimilarityDetector.findSimilarOutfits(
+              outfit.items,
+              newOutfitsData
+            );
+
+          if (similarToNewOutfits.length > 0) {
+            const mostSimilar = similarToNewOutfits[0];
+            console.log(
+              `❌ Outfit similar to already selected outfit (similarity: ${(mostSimilar.similarity.similarity * 100).toFixed(1)}%)`
+            );
+            shouldInclude = false;
+            duplicatesFiltered++;
+          }
+        }
+
+        if (shouldInclude) {
+          uniqueOutfits.push(outfit);
+          console.log(
+            `✅ Outfit added (${uniqueOutfits.length}/${newOutfits.length})`
+          );
+        }
+
+        // Limit results to prevent infinite processing
+        if (uniqueOutfits.length >= 50) break;
+      }
+
+      console.log(
+        `📊 Filtering complete: ${uniqueOutfits.length} unique outfits selected, ${duplicatesFiltered} duplicates filtered, ${similarToExisting} similar to existing`
+      );
+
+      return uniqueOutfits;
+    },
+    []
+  );
 
   // Check for existing manual outfits on load, always generate AI outfits fresh
   useEffect(() => {
@@ -288,6 +365,21 @@ export const useOutfitRecommendation = (
       try {
         setState(prev => ({ ...prev, generationProgress: 0.2 }));
 
+        // Collect all existing outfits for similarity checking
+        const existingOutfits = [
+          ...state.manualOutfits.map(outfit => ({
+            items: outfit.items,
+            id: outfit.id,
+            name: outfit.name,
+          })),
+          ...state.aiGeneratedOutfits.map(outfit => ({
+            items: outfit.items,
+            id: outfit.id,
+            name: outfit.name,
+          })),
+          ...state.outfits.map(outfit => ({ items: outfit.items })),
+        ];
+
         const mergedOptions: OutfitGenerationOptions = {
           useAllItems: true,
           maxResults: Math.min(
@@ -295,11 +387,15 @@ export const useOutfitRecommendation = (
             Math.max(15, Math.floor(availableItemsForGeneration.length * 1.5))
           ),
           minScore: 0.45,
+          existingOutfits,
           ...initialOptions,
           ...options,
         };
 
         console.log('🔄 Generating outfits with options:', mergedOptions);
+        console.log(
+          `🔍 Checking against ${existingOutfits.length} existing outfits for similarity`
+        );
 
         setState(prev => ({ ...prev, generationProgress: 0.5 }));
 
@@ -311,30 +407,38 @@ export const useOutfitRecommendation = (
 
         setState(prev => ({ ...prev, generationProgress: 0.8 }));
 
+        // Filter out similar outfits using advanced similarity detection
+        const uniqueOutfits = await filterSimilarOutfits(
+          generatedOutfits,
+          existingOutfits
+        );
+
         console.log(
           '✅ Generated',
           generatedOutfits.length,
-          'outfits with scores:',
-          generatedOutfits
+          'outfits, filtered to',
+          uniqueOutfits.length,
+          'unique outfits with scores:',
+          uniqueOutfits
             .map(o => Math.round(o.score.total * 100) + '%')
             .slice(0, 10)
         );
 
-        // Only keep in memory, no database save
+        // Only keep unique outfits in memory, no database save
         console.log(
-          '📝 Keeping outfits in memory only (not saving to database)'
+          '📝 Keeping unique outfits in memory only (not saving to database)'
         );
 
         setState(prev => ({
           ...prev,
-          outfits: generatedOutfits,
+          outfits: uniqueOutfits,
           loading: false,
           generationProgress: 1,
         }));
 
         console.log('✅ Generation completed successfully');
-        console.log('📊 Final outfit count in state:', generatedOutfits.length);
-        return generatedOutfits;
+        console.log('📊 Final outfit count in state:', uniqueOutfits.length);
+        return uniqueOutfits;
       } catch (error) {
         console.error('❌ Generation failed:', error);
         setState(prev => ({
@@ -348,7 +452,14 @@ export const useOutfitRecommendation = (
         isGeneratingRef.current = false;
       }
     },
-    [availableItemsForGeneration, generateOutfits, initialOptions]
+    [
+      availableItemsForGeneration,
+      generateOutfits,
+      initialOptions,
+      state.manualOutfits,
+      state.aiGeneratedOutfits,
+      state.outfits,
+    ]
   );
 
   const clearAndRegenerateOutfits = useCallback(async () => {

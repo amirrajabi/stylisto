@@ -1,13 +1,11 @@
 import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
 import {
   ClothingCategory,
   ClothingItem,
   Occasion,
-  Outfit,
   Season,
 } from '../types/wardrobe';
-import { generateOutfitName } from '../utils/outfitNaming';
+import { OutfitSimilarityDetector } from '../utils/outfitSimilarity';
 
 // Types for outfit generation
 export interface OutfitGenerationOptions {
@@ -21,6 +19,7 @@ export interface OutfitGenerationOptions {
   maxResults?: number;
   minScore?: number;
   useAllItems?: boolean;
+  existingOutfits?: { items: ClothingItem[]; id?: string; name?: string }[];
 }
 
 export interface WeatherData {
@@ -125,6 +124,7 @@ class OutfitGenerator {
         layering: 0.5,
         colorfulness: 0.5,
       },
+      existingOutfits: [],
     };
 
     const mergedOptions = { ...defaultOptions, ...options };
@@ -196,7 +196,10 @@ class OutfitGenerator {
     const uniqueOutfits = this.removeDuplicateOutfits(qualifyingOutfits);
 
     // Apply variety filter to avoid similar outfits
-    const diverseOutfits = this.ensureOutfitVariety(uniqueOutfits);
+    const diverseOutfits = this.ensureOutfitVarietyWithExistingOutfits(
+      uniqueOutfits,
+      mergedOptions.existingOutfits || []
+    );
 
     // Limit results
     const finalOutfits = diverseOutfits.slice(0, mergedOptions.maxResults);
@@ -212,7 +215,7 @@ class OutfitGenerator {
 
     const endTime = performance.now();
     console.log(
-      `✅ Generated ${finalOutfits.length} outfits in ${(endTime - startTime).toFixed(0)}ms`
+      `🎯 Generated ${finalOutfits.length} diverse outfits from ${outfitCombinations.length} combinations in ${(endTime - startTime).toFixed(2)}ms`
     );
 
     return finalOutfits;
@@ -2047,153 +2050,75 @@ class OutfitGenerator {
   }
 
   /**
-   * Ensure variety in the selected outfits
+   * Ensure variety in generated outfits and prevent similarity with existing outfits
    */
-  private ensureOutfitVariety(outfits: GeneratedOutfit[]): GeneratedOutfit[] {
+  private ensureOutfitVarietyWithExistingOutfits(
+    outfits: GeneratedOutfit[],
+    existingOutfits: { items: ClothingItem[]; id?: string; name?: string }[]
+  ): GeneratedOutfit[] {
     if (outfits.length <= 1) return outfits;
 
-    const result: GeneratedOutfit[] = [outfits[0]];
-    const selectedKeys = new Set([this.getOutfitKey(outfits[0].items)]);
+    console.log(
+      `🔍 Checking ${outfits.length} new outfits against ${existingOutfits.length} existing outfits for similarity`
+    );
 
-    // Add outfits that are sufficiently different from already selected ones
-    for (let i = 1; i < outfits.length; i++) {
-      const currentKey = this.getOutfitKey(outfits[i].items);
-      let isUnique = true;
+    const result: GeneratedOutfit[] = [];
+    let duplicatesFiltered = 0;
+    let similarToExisting = 0;
 
-      for (const selectedKey of selectedKeys) {
-        const similarity = this.calculateOutfitSimilarity(
-          currentKey,
-          selectedKey
-        );
-        if (similarity > 0.7) {
-          isUnique = false;
-          break;
+    for (const outfit of outfits) {
+      let shouldInclude = true;
+
+      // First check against existing outfits from database
+      if (existingOutfits.length > 0) {
+        const similarToExistingOutfits =
+          OutfitSimilarityDetector.findSimilarOutfits(
+            outfit.items,
+            existingOutfits
+          );
+
+        if (similarToExistingOutfits.length > 0) {
+          const mostSimilar = similarToExistingOutfits[0];
+          console.log(
+            `❌ Outfit similar to existing outfit (similarity: ${(mostSimilar.similarity.similarity * 100).toFixed(1)}%)`
+          );
+          shouldInclude = false;
+          similarToExisting++;
         }
       }
 
-      if (isUnique) {
-        result.push(outfits[i]);
-        selectedKeys.add(currentKey);
+      // Then check against already selected new outfits
+      if (shouldInclude && result.length > 0) {
+        const newOutfitsData = result.map(r => ({ items: r.items }));
+        const similarToNewOutfits = OutfitSimilarityDetector.findSimilarOutfits(
+          outfit.items,
+          newOutfitsData
+        );
+
+        if (similarToNewOutfits.length > 0) {
+          const mostSimilar = similarToNewOutfits[0];
+          console.log(
+            `❌ Outfit similar to already selected outfit (similarity: ${(mostSimilar.similarity.similarity * 100).toFixed(1)}%)`
+          );
+          shouldInclude = false;
+          duplicatesFiltered++;
+        }
       }
+
+      if (shouldInclude) {
+        result.push(outfit);
+        console.log(`✅ Outfit added (${result.length}/${outfits.length})`);
+      }
+
+      // Limit results to prevent infinite processing
+      if (result.length >= 50) break;
     }
+
+    console.log(
+      `📊 Filtering complete: ${result.length} unique outfits selected, ${duplicatesFiltered} duplicates filtered, ${similarToExisting} similar to existing`
+    );
 
     return result;
-  }
-
-  /**
-   * Convert hex color to HSL
-   */
-  private hexToHSL(hex: string): { h: number; s: number; l: number } {
-    // Default to black if invalid hex
-    if (!hex || !hex.startsWith('#')) {
-      return { h: 0, s: 0, l: 0 };
-    }
-
-    // Remove # if present
-    hex = hex.replace('#', '');
-
-    // Convert hex to RGB
-    const r = parseInt(hex.substring(0, 2), 16) / 255;
-    const g = parseInt(hex.substring(2, 4), 16) / 255;
-    const b = parseInt(hex.substring(4, 6), 16) / 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0,
-      s = 0,
-      l = (max + min) / 2;
-
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-      switch (max) {
-        case r:
-          h = (g - b) / d + (g < b ? 6 : 0);
-          break;
-        case g:
-          h = (b - r) / d + 2;
-          break;
-        case b:
-          h = (r - g) / d + 4;
-          break;
-      }
-
-      h /= 6;
-    }
-
-    return {
-      h: h * 360,
-      s,
-      l,
-    };
-  }
-
-  /**
-   * Check if two colors are visually close
-   */
-  private areColorsClose(color1: string, color2: string): boolean {
-    const hsl1 = this.hexToHSL(color1);
-    const hsl2 = this.hexToHSL(color2);
-
-    // Calculate distance between colors
-    const hueDiff = Math.min(
-      Math.abs(hsl1.h - hsl2.h),
-      360 - Math.abs(hsl1.h - hsl2.h)
-    );
-    const satDiff = Math.abs(hsl1.s - hsl2.s);
-    const lightDiff = Math.abs(hsl1.l - hsl2.l);
-
-    // Colors are close if all components are within thresholds
-    return hueDiff < 30 && satDiff < 0.3 && lightDiff < 0.3;
-  }
-
-  /**
-   * Create an outfit object from generated items
-   */
-  createOutfit(items: ClothingItem[], name?: string): Outfit {
-    // Generate a smart name if not provided
-    const outfitName = name || generateOutfitName(items);
-
-    // Determine seasons and occasions based on items
-    const seasons = this.findCommonValues(items.map(item => item.season));
-    const occasions = this.findCommonValues(items.map(item => item.occasion));
-
-    // Generate tags based on items
-    const tags = Array.from(
-      new Set(items.flatMap(item => item.tags).slice(0, 5))
-    );
-
-    return {
-      id: uuidv4(),
-      name: outfitName,
-      items,
-      season: seasons,
-      occasion: occasions,
-      tags,
-      isFavorite: false,
-      timesWorn: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Find common values across multiple arrays
-   */
-  private findCommonValues<T>(arrays: T[][]): T[] {
-    if (arrays.length === 0) return [];
-    if (arrays.length === 1) return arrays[0];
-
-    // Start with all values from first array
-    let common = [...arrays[0]];
-
-    // Intersect with each subsequent array
-    for (let i = 1; i < arrays.length; i++) {
-      common = common.filter(value => arrays[i].includes(value));
-    }
-
-    return common;
   }
 
   /**
@@ -2277,6 +2202,117 @@ class OutfitGenerator {
 
     console.log(`      ❌ No items available in ${category} category`);
     return null;
+  }
+
+  /**
+   * Convert hex color to HSL
+   */
+  private hexToHSL(hex: string): { h: number; s: number; l: number } {
+    // Default to black if invalid hex
+    if (!hex || !hex.startsWith('#')) {
+      return { h: 0, s: 0, l: 0 };
+    }
+
+    // Remove # if present
+    hex = hex.replace('#', '');
+
+    // Convert hex to RGB
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0,
+      s = 0,
+      l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+
+      h /= 6;
+    }
+
+    return {
+      h: h * 360,
+      s,
+      l,
+    };
+  }
+
+  /**
+   * Check if two colors are visually close
+   */
+  private areColorsClose(color1: string, color2: string): boolean {
+    const hsl1 = this.hexToHSL(color1);
+    const hsl2 = this.hexToHSL(color2);
+
+    // Calculate distance between colors
+    const hueDiff = Math.min(
+      Math.abs(hsl1.h - hsl2.h),
+      360 - Math.abs(hsl1.h - hsl2.h)
+    );
+    const satDiff = Math.abs(hsl1.s - hsl2.s);
+    const lightDiff = Math.abs(hsl1.l - hsl2.l);
+
+    // Colors are close if all components are within thresholds
+    return hueDiff < 30 && satDiff < 0.3 && lightDiff < 0.3;
+  }
+
+  /**
+   * Find common values across multiple arrays
+   */
+  private findCommonValues<T>(arrays: T[][]): T[] {
+    if (arrays.length === 0) return [];
+    if (arrays.length === 1) return arrays[0];
+
+    // Start with all values from first array
+    let common = [...arrays[0]];
+
+    // Intersect with each subsequent array
+    for (let i = 1; i < arrays.length; i++) {
+      common = common.filter(value => arrays[i].includes(value));
+    }
+
+    return common;
+  }
+
+  /**
+   * Create an outfit object from generated items (for internal use)
+   */
+  createOutfit(items: ClothingItem[], name?: string): any {
+    // This is a temporary wrapper - actual implementation should be handled by OutfitService
+    const seasons = this.findCommonValues(items.map(item => item.season));
+    const occasions = this.findCommonValues(items.map(item => item.occasion));
+    const tags = Array.from(
+      new Set(items.flatMap(item => item.tags).slice(0, 5))
+    );
+
+    return {
+      id: `temp-${Date.now()}`,
+      name: name || 'Generated Outfit',
+      items,
+      season: seasons,
+      occasion: occasions,
+      tags,
+      isFavorite: false,
+      timesWorn: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   }
 }
 
