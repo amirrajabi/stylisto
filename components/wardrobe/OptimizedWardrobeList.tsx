@@ -96,6 +96,10 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
   // Track if component is mounted
   const isMounted = useRef(true);
 
+  // Track pagination state to prevent infinite calls
+  const [hasReachedEnd, setHasReachedEnd] = useState(false);
+  const lastDataLength = useRef(items.length);
+
   // Track scroll performance
   const scrollStartTime = useRef(0);
   const scrollEndTime = useRef(0);
@@ -116,6 +120,12 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
       setDataProvider(
         new DataProvider((r1, r2) => r1.id !== r2.id).cloneWithRows(items)
       );
+
+      // Reset hasReachedEnd if new items are loaded
+      if (items.length > lastDataLength.current) {
+        setHasReachedEnd(false);
+      }
+      lastDataLength.current = items.length;
     }
   }, [items]);
 
@@ -260,6 +270,26 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
     transform: [{ scale: listScale.value }],
   }));
 
+  // Handle onEndReached with proper loading state control
+  const handleEndReached = useCallback(() => {
+    // Only call onEndReached if:
+    // 1. Not currently loading
+    // 2. Haven't reached end yet
+    // 3. onEndReached function is provided
+    // 4. We have some items (not on initial load)
+    if (!isLoading && !hasReachedEnd && onEndReached && items.length > 0) {
+      setHasReachedEnd(true);
+      onEndReached();
+    }
+  }, [isLoading, hasReachedEnd, onEndReached, items.length]);
+
+  // Reset hasReachedEnd when loading starts
+  useEffect(() => {
+    if (isLoading) {
+      // Don't reset immediately, wait for new items to arrive
+    }
+  }, [isLoading]);
+
   // Render empty state if no items
   if (items.length === 0 && !isLoading) {
     return (
@@ -295,21 +325,19 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
             </View>
           ) : null
         }
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.5}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.8}
         renderAheadOffset={1000}
         scrollViewProps={{
-          refreshControl:
-            onRefresh && UI_CONFIG.ENABLE_PULL_TO_REFRESH ? (
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={onRefresh}
-                colors={[Colors.primary[500]]}
-                tintColor={Colors.primary[500]}
-                progressViewOffset={UI_CONFIG.PULL_TO_REFRESH_OFFSET}
-                progressBackgroundColor="white"
-              />
-            ) : undefined,
+          refreshControl: onRefresh ? (
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary[500]]}
+              tintColor={Colors.primary[500]}
+              progressBackgroundColor="white"
+            />
+          ) : undefined,
           onScrollBeginDrag: handleScrollStart,
           onScrollEndDrag: handleScrollEnd,
           onScroll: handleScroll,

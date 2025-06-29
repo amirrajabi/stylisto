@@ -1,13 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus } from 'lucide-react-native';
 import React from 'react';
 import {
   Animated,
   Platform,
   StyleSheet,
   TouchableOpacity,
+  View,
   ViewStyle,
 } from 'react-native';
+import { Colors } from '../../constants';
 
 interface FloatingActionButtonProps {
   onPress: () => void;
@@ -18,7 +19,136 @@ interface FloatingActionButtonProps {
   iconColor?: string;
   iconSize?: number;
   gradientColors?: readonly [string, string, ...string[]];
+  icon?: 'plus' | 'stylisto-logo';
 }
+
+const StylistoLogoIcon = ({
+  size = 24,
+  color = '#ffffff',
+}: {
+  size?: number;
+  color?: string;
+}) => {
+  const strokeWidth = size >= 32 ? 4 : 3.5;
+  const adjustedSize = size * 0.85;
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <View
+        style={{
+          position: 'relative',
+          width: adjustedSize,
+          height: adjustedSize,
+        }}
+      >
+        {/* First diagonal line (top-left to bottom-right) */}
+        <View
+          style={{
+            position: 'absolute',
+            top: adjustedSize * 0.12,
+            left: adjustedSize * 0.12,
+            width: adjustedSize * 0.76,
+            height: strokeWidth,
+            backgroundColor: color,
+            transform: [{ rotate: '45deg' }],
+            borderRadius: strokeWidth / 2,
+            shadowColor: color,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+          }}
+        />
+        {/* Second diagonal line (top-right to bottom-left) */}
+        <View
+          style={{
+            position: 'absolute',
+            top: adjustedSize * 0.12,
+            right: adjustedSize * 0.12,
+            width: adjustedSize * 0.76,
+            height: strokeWidth,
+            backgroundColor: color,
+            transform: [{ rotate: '-45deg' }],
+            borderRadius: strokeWidth / 2,
+            shadowColor: color,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
+const CustomPlusIcon = ({
+  size = 24,
+  color = '#ffffff',
+}: {
+  size?: number;
+  color?: string;
+}) => {
+  const strokeWidth = size >= 32 ? 4.5 : 4;
+  const adjustedSize = size * 0.8;
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <View
+        style={{
+          position: 'relative',
+          width: adjustedSize,
+          height: adjustedSize,
+        }}
+      >
+        {/* Horizontal line */}
+        <View
+          style={{
+            position: 'absolute',
+            top: (adjustedSize - strokeWidth) / 2,
+            left: adjustedSize * 0.15,
+            width: adjustedSize * 0.7,
+            height: strokeWidth,
+            backgroundColor: color,
+            borderRadius: strokeWidth / 2,
+            shadowColor: color,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 3,
+          }}
+        />
+        {/* Vertical line */}
+        <View
+          style={{
+            position: 'absolute',
+            left: (adjustedSize - strokeWidth) / 2,
+            top: adjustedSize * 0.15,
+            width: strokeWidth,
+            height: adjustedSize * 0.7,
+            backgroundColor: color,
+            borderRadius: strokeWidth / 2,
+            shadowColor: color,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 3,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
 
 export function FloatingActionButton({
   onPress,
@@ -28,7 +158,8 @@ export function FloatingActionButton({
   backgroundColor = '#ff4757',
   iconColor = '#ffffff',
   iconSize = 24,
-  gradientColors = ['#ff6b6b', '#ff4757', '#ff3742'],
+  gradientColors = [Colors.primary[500], Colors.secondary[500]], // Default to Stylisto brand colors
+  icon = 'plus',
 }: FloatingActionButtonProps) {
   const scaleValue = React.useRef(new Animated.Value(1)).current;
 
@@ -44,6 +175,24 @@ export function FloatingActionButton({
       toValue: 1,
       useNativeDriver: true,
     }).start();
+  };
+
+  const renderIcon = () => {
+    if (icon === 'stylisto-logo') {
+      return (
+        <StylistoLogoIcon
+          size={iconSize}
+          color={disabled ? '#6b7280' : iconColor}
+        />
+      );
+    }
+
+    return (
+      <CustomPlusIcon
+        size={iconSize}
+        color={disabled ? '#6b7280' : iconColor}
+      />
+    );
   };
 
   return (
@@ -86,11 +235,7 @@ export function FloatingActionButton({
             },
           ]}
         >
-          <Plus
-            size={iconSize}
-            color={disabled ? '#6b7280' : iconColor}
-            strokeWidth={2.5}
-          />
+          {renderIcon()}
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -106,7 +251,7 @@ const styles = StyleSheet.create({
   },
   touchable: {
     elevation: 12,
-    shadowColor: '#667eea',
+    shadowColor: Colors.primary[500],
     shadowOffset: {
       width: 0,
       height: 6,

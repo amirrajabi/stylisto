@@ -1,5 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Filter, Search, ShoppingBag } from 'lucide-react-native';
+import {
+  Filter,
+  Heart,
+  Search,
+  ShoppingBag,
+  Trash2,
+} from 'lucide-react-native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
@@ -325,6 +331,54 @@ export default function WardrobeScreen() {
     await actions.loadClothingItems();
   };
 
+  // Batch operations for selected items
+  const handleBatchDelete = useCallback(() => {
+    if (selectedItems.length === 0) return;
+
+    Alert.alert(
+      'Delete Items',
+      `Are you sure you want to delete ${selectedItems.length} selected item${selectedItems.length > 1 ? 's' : ''}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              for (const itemId of selectedItems) {
+                await actions.deleteItem(itemId);
+              }
+              actions.clearSelection();
+              Alert.alert(
+                'Success',
+                `${selectedItems.length} item${selectedItems.length > 1 ? 's' : ''} deleted successfully`
+              );
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete some items');
+            }
+          },
+        },
+      ]
+    );
+  }, [selectedItems, actions]);
+
+  const handleBatchLike = useCallback(async () => {
+    if (selectedItems.length === 0) return;
+
+    try {
+      for (const itemId of selectedItems) {
+        await actions.toggleFavorite(itemId);
+      }
+      actions.clearSelection();
+      Alert.alert(
+        'Success',
+        `${selectedItems.length} item${selectedItems.length > 1 ? 's' : ''} ${selectedItems.length > 1 ? 'updated' : 'updated'} successfully`
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update some items');
+    }
+  }, [selectedItems, actions]);
+
   const renderItem = useCallback(
     ({ item, index }: { item: ClothingItem; index: number }) => (
       <ClothingItemCard
@@ -348,17 +402,6 @@ export default function WardrobeScreen() {
   );
 
   const keyExtractor = useCallback((item: ClothingItem) => item.id, []);
-
-  const getItemLayout = useCallback(
-    (data: any, index: number) => ({
-      length: viewMode === 'grid' ? 268 : 160, // Approximate item height
-      offset:
-        (viewMode === 'grid' ? 268 : 160) *
-        Math.floor(index / (viewMode === 'grid' ? 2 : 1)),
-      index,
-    }),
-    [viewMode]
-  );
 
   const activeFiltersCount = Object.values(filters).reduce((count, filter) => {
     if (Array.isArray(filter)) {
@@ -441,12 +484,28 @@ export default function WardrobeScreen() {
             {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''}{' '}
             selected
           </Text>
-          <TouchableOpacity
-            style={styles.clearSelectionButton}
-            onPress={actions.clearSelection}
-          >
-            <Text style={styles.clearSelectionText}>Clear</Text>
-          </TouchableOpacity>
+          <View style={styles.selectionActions}>
+            <TouchableOpacity
+              style={styles.likeActionButton}
+              onPress={handleBatchLike}
+            >
+              <Heart size={16} color="#ec4899" />
+              <Text style={styles.likeActionText}>Like</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteActionButton}
+              onPress={handleBatchDelete}
+            >
+              <Trash2 size={16} color="#ef4444" />
+              <Text style={styles.deleteActionText}>Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.clearSelectionButton}
+              onPress={actions.clearSelection}
+            >
+              <Text style={styles.clearSelectionText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -456,17 +515,20 @@ export default function WardrobeScreen() {
         data={filteredItems}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
         numColumns={viewMode === 'grid' ? 2 : 1}
         key={viewMode} // Force re-render when view mode changes
         contentContainerStyle={styles.listContainer}
         columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-        initialNumToRender={8}
-        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={false}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        initialNumToRender={6}
+        updateCellsBatchingPeriod={100}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
+        }}
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.emptyContainer}>
@@ -535,9 +597,10 @@ export default function WardrobeScreen() {
 
       <FloatingActionButton
         onPress={() => setShowAddModal(true)}
-        size={64}
-        iconSize={28}
-        gradientColors={['#667eea', '#764ba2']}
+        size={68}
+        iconSize={38}
+        icon="plus"
+        gradientColors={[Colors.primary[500], Colors.secondary[500]]}
       />
     </SafeAreaView>
   );
@@ -689,6 +752,41 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#A428FC',
     fontFamily: 'Inter-SemiBold',
+  },
+  selectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  likeActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+  },
+  likeActionText: {
+    fontSize: 14,
+    color: '#ec4899',
+    fontFamily: 'Inter-Regular',
+    fontWeight: '500',
+  },
+  deleteActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  deleteActionText: {
+    fontSize: 14,
+    color: '#ef4444',
+    fontFamily: 'Inter-Regular',
+    fontWeight: '500',
   },
   clearSelectionButton: {
     padding: 4,

@@ -189,51 +189,55 @@ export default function ItemDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Image */}
-        <View style={styles.imageContainer}>
-          <OptimizedImage
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            contentFit="cover"
-            priority="high"
-            placeholder={{
-              uri: 'https://via.placeholder.com/400x400/f5f5f5/999999?text=Loading',
-            }}
-            onLoad={() => {
-              if (__DEV__) {
-                console.log('Item image loaded successfully');
-              }
-            }}
-            onError={error => {
-              if (__DEV__) {
-                console.warn('Failed to load item image:', {
-                  name: item.name,
-                  urlLength: item.imageUrl?.length,
-                  isSupabaseUrl: item.imageUrl?.includes('supabase'),
-                  errorType:
-                    error instanceof Error ? error.message : 'Unknown error',
-                });
-              }
-            }}
+      {/* Fixed Image Section */}
+      <View style={styles.imageContainer}>
+        <OptimizedImage
+          source={{ uri: item.imageUrl }}
+          style={styles.image}
+          contentFit="cover"
+          priority="high"
+          placeholder={{
+            uri: 'https://via.placeholder.com/400x400/f5f5f5/999999?text=Loading',
+          }}
+          onLoad={() => {
+            if (__DEV__) {
+              console.log('Item image loaded successfully');
+            }
+          }}
+          onError={error => {
+            if (__DEV__) {
+              console.warn('Failed to load item image:', {
+                name: item.name,
+                urlLength: item.imageUrl?.length,
+                isSupabaseUrl: item.imageUrl?.includes('supabase'),
+                errorType:
+                  error instanceof Error ? error.message : 'Unknown error',
+              });
+            }
+          }}
+        />
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <ArrowLeft size={24} color={Colors.white} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => actions.toggleFavorite(item.id)}
+        >
+          <Heart
+            size={24}
+            color={item.isFavorite ? Colors.error[500] : Colors.white}
+            fill={item.isFavorite ? Colors.error[500] : 'transparent'}
           />
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <ArrowLeft size={24} color={Colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={() => actions.toggleFavorite(item.id)}
-          >
-            <Heart
-              size={24}
-              color={item.isFavorite ? Colors.error[500] : Colors.white}
-              fill={item.isFavorite ? Colors.error[500] : 'transparent'}
-            />
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
+      </View>
 
-        {/* Content */}
-        <View style={styles.detailsContainer}>
+      {/* Scrollable Content Section */}
+      <View style={styles.detailsContainer}>
+        <ScrollView
+          style={styles.scrollableContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContentContainer}
+        >
           {/* Header */}
           <View style={styles.header}>
             <H1 style={styles.title} numberOfLines={2}>
@@ -294,13 +298,6 @@ export default function ItemDetailScreen() {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <H3 style={styles.sectionTitle}>Tags</H3>
-              {/* <TouchableOpacity
-                style={styles.editTagsButton}
-                onPress={handleEditTags}
-              >
-                <Tag size={16} color={Colors.primary[700]} />
-                <Text style={styles.editTagsText}>Edit Tags</Text>
-              </TouchableOpacity> */}
             </View>
             <View style={styles.tagsContainer}>
               {item.tags.length > 0 ? (
@@ -406,8 +403,9 @@ export default function ItemDetailScreen() {
               leftIcon={<Trash2 size={20} color={Colors.error[600]} />}
             />
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
+
       {showEditModal && (
         <AddItemModal
           visible={showEditModal}
@@ -425,12 +423,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.primary,
   },
-  content: {
-    flex: 1,
-  },
   imageContainer: {
     position: 'relative',
-    height: 400,
+    height: 350,
   },
   image: {
     width: '100%',
@@ -464,6 +459,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Layout.borderRadius.xl,
     borderTopRightRadius: Layout.borderRadius.xl,
     marginTop: -20,
+  },
+  scrollableContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
   },
@@ -609,9 +609,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   actionButtonsContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.lg,
     gap: Spacing.md,
   },
   editButton: {
