@@ -1,11 +1,23 @@
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
+
 interface ClothingAnalysis {
+  name: string;
   category: string;
+  brand: string;
+  size: string;
   color: string;
+  price: string;
+  season: string[];
+  occasion: string[];
+  tags: string[];
+  notes: string;
+  description: string; // AI description - comprehensive analysis
   pattern?: string;
   material?: string;
   style?: string;
-  occasion?: string;
-  detailedDescription: string;
+  detailedDescription: string; // Legacy field for compatibility
+  stylingNotes?: string; // Legacy field for compatibility
 }
 
 export class GPT4VisionService {
@@ -170,6 +182,63 @@ export class GPT4VisionService {
     }
   }
 
+  /**
+   * Convert local file URI to base64 for OpenAI API
+   */
+  private async getBase64FromUri(uri: string): Promise<string> {
+    if (Platform.OS === 'web') {
+      // For web, fetch the image and convert to base64
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix to get pure base64
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } else {
+      // For native platforms, use FileSystem
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return base64;
+    }
+  }
+
+  /**
+   * Check if URL is a local file URI that needs base64 conversion
+   */
+  private isLocalFileUri(uri: string): boolean {
+    return (
+      uri.startsWith('file://') ||
+      uri.startsWith('/') ||
+      uri.includes('ImagePicker') ||
+      uri.includes('ExponentExperienceData')
+    );
+  }
+
+  /**
+   * Prepare image for OpenAI API - convert local files to base64 or use direct URL
+   */
+  private async prepareImageForAPI(
+    imageUri: string
+  ): Promise<{ url?: string; base64?: string }> {
+    if (this.isLocalFileUri(imageUri)) {
+      console.log('🔄 Converting local image to base64 for API...');
+      const base64 = await this.getBase64FromUri(imageUri);
+      return { base64 };
+    } else {
+      // It's already a valid HTTP/HTTPS URL
+      return { url: imageUri };
+    }
+  }
+
   async analyzeClothingImage(imageUrl: string): Promise<ClothingAnalysis> {
     if (!this.API_KEY) {
       console.warn('⚠️ OpenAI API key not configured, using fallback analysis');
@@ -182,41 +251,66 @@ export class GPT4VisionService {
       const requestTimestamp = new Date().toISOString();
       const requestStartTime = Date.now();
 
+      // Prepare image for API (convert to base64 if local file)
+      const imageData = await this.prepareImageForAPI(imageUrl);
+
+      const imageContent = imageData.base64
+        ? {
+            type: 'image_url' as const,
+            image_url: {
+              url: `data:image/jpeg;base64,${imageData.base64}`,
+              detail: 'high' as const,
+            },
+          }
+        : {
+            type: 'image_url' as const,
+            image_url: {
+              url: imageData.url!,
+              detail: 'high' as const,
+            },
+          };
+
       const payload = {
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
             content:
-              'You are a fashion expert AI that analyzes clothing items. Provide detailed, accurate descriptions focusing on style, color, pattern, material, and suitable occasions.',
+              'You are a professional fashion expert and clothing analyst. Your task is to thoroughly examine clothing items and provide comprehensive, detailed descriptions that capture every aspect of the garment. You must respond with valid JSON only - no markdown, no code blocks, no additional text.',
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Analyze this clothing item and provide:
-1. Category (e.g., dress, shirt, pants, shoes, accessory)
-2. Primary color and any secondary colors
-3. Pattern (if any)
-4. Material/fabric type (if visible)
-5. Style (e.g., casual, formal, sporty)
-6. Suitable occasions
-7. A detailed description for virtual try-on
+                text: `Analyze this clothing item comprehensively and provide detailed information. Extract as much information as possible from the image.
 
-Format as JSON with these fields: category, color, pattern, material, style, occasion, detailedDescription`,
+IMPORTANT: Respond with ONLY valid JSON. Do not use markdown code blocks or any formatting. Return the raw JSON object directly.
+
+Required JSON format with these exact fields:
+{
+  "name": "Create a descriptive product name like 'Navy Cotton Crew Neck T-Shirt' or 'Black Leather High-Top Sneakers'",
+  "category": "exact clothing type: shirt, dress, pants, shoes, jacket, tops, bottoms, outerwear, underwear, swimwear, etc.",
+  "brand": "identify brand if visible in image, otherwise use empty string",
+  "size": "estimate size if visible tags/labels, or suggest typical size like 'M' based on appearance, or empty string",
+  "color": "primary color name: black, white, blue, red, etc.",
+  "price": "estimate reasonable retail price in AUD without currency symbol, just number like '45' or empty string",
+  "season": ["suitable seasons array: spring, summer, fall, winter"],
+  "occasion": ["suitable occasions array: casual, work, formal, party, sport, travel"],
+  "tags": ["descriptive tags array: cotton, comfortable, versatile, classic, modern - maximum 8 tags"],
+  "notes": "styling tips and care instructions in 2-3 sentences",
+  "description": "comprehensive 2-3 paragraph description with all visual details, fabric analysis, style notes, and quality assessment"
+}
+
+Extract maximum information from the image. For brand, look for logos, labels, or distinctive design elements. For size, check for visible tags or estimate based on fit/style. For price, provide realistic Australian retail estimates based on apparent quality and brand. Be specific and detailed in your analysis.
+
+Remember: Return ONLY the JSON object with no additional text, markdown, or formatting.`,
               },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl,
-                  detail: 'high',
-                },
-              },
+              imageContent,
             ],
           },
         ],
-        max_tokens: 300,
+        max_tokens: 800,
         temperature: 0.3,
       };
 
@@ -271,13 +365,61 @@ Format as JSON with these fields: category, color, pattern, material, style, occ
 
       const content = data.choices[0]?.message?.content || '';
 
-      // Try to parse JSON response
+      // Try to parse JSON response with enhanced error handling
       try {
-        const analysis = JSON.parse(content);
-        console.log('✅ Clothing analysis complete:', analysis);
-        return analysis;
-      } catch {
-        // If not valid JSON, extract information from text
+        // First, try direct JSON parsing
+        let analysis = JSON.parse(content);
+        console.log('✅ Direct JSON parse successful:', analysis);
+
+        // Validate the parsed result has required fields
+        if (analysis && typeof analysis === 'object' && analysis.name) {
+          return analysis;
+        } else {
+          console.warn(
+            '⚠️ Parsed JSON lacks required fields, trying extraction...'
+          );
+          throw new Error('Invalid JSON structure');
+        }
+      } catch (directParseError) {
+        console.log(
+          '❌ Direct JSON parse failed, trying content extraction...'
+        );
+
+        // Try to extract JSON from content that might be wrapped in markdown or text
+        try {
+          // Remove markdown code blocks if present
+          let cleanContent = content
+            .replace(/^```json\s*/, '')
+            .replace(/\s*```$/, '');
+          cleanContent = cleanContent
+            .replace(/^```\s*/, '')
+            .replace(/\s*```$/, '');
+
+          // Try to find JSON object in the cleaned content
+          const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[0];
+            // Fix common JSON issues
+            const fixedJsonStr = jsonStr
+              .replace(/\\"/g, '"') // Unescape quotes
+              .replace(/\n/g, ' ') // Remove newlines
+              .replace(/\s+/g, ' ') // Normalize whitespace
+              .trim();
+
+            const analysis = JSON.parse(fixedJsonStr);
+            console.log('✅ Extracted and parsed JSON successfully:', analysis);
+
+            // Validate the extracted result
+            if (analysis && typeof analysis === 'object' && analysis.name) {
+              return analysis;
+            }
+          }
+        } catch (extractError) {
+          console.error('❌ JSON extraction also failed:', extractError);
+        }
+
+        // If all JSON parsing fails, extract information from text
+        console.log('🔄 Falling back to text parsing...');
         return this.parseTextResponse(content, imageUrl);
       }
     } catch (error) {
@@ -300,24 +442,91 @@ Format as JSON with these fields: category, color, pattern, material, style, occ
   }
 
   private parseTextResponse(text: string, imageUrl: string): ClothingAnalysis {
-    // Simple parsing logic for non-JSON responses
+    console.log('🔧 Parsing text response as fallback...');
+    console.log('📄 Raw text content:', text.substring(0, 200) + '...');
+
+    // Try to extract JSON from the text first
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const potentialJson = jsonMatch[0];
+        console.log(
+          '🔍 Found potential JSON in text:',
+          potentialJson.substring(0, 100) + '...'
+        );
+
+        try {
+          const parsed = JSON.parse(potentialJson);
+          if (parsed && typeof parsed === 'object') {
+            console.log('✅ Successfully parsed JSON from text response');
+            return {
+              name: parsed.name || 'Clothing Item',
+              category: parsed.category || this.detectCategoryFromUrl(imageUrl),
+              brand: parsed.brand || '',
+              size: parsed.size || '',
+              color: parsed.color || 'unknown',
+              price: parsed.price || '',
+              season: Array.isArray(parsed.season) ? parsed.season : ['spring'],
+              occasion: Array.isArray(parsed.occasion)
+                ? parsed.occasion
+                : ['casual'],
+              tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+              notes: parsed.notes || '',
+              description: parsed.description || text || 'A clothing item',
+              pattern: parsed.pattern,
+              material: parsed.material,
+              style: parsed.style || 'casual',
+              detailedDescription:
+                parsed.description || text || 'A clothing item',
+            };
+          }
+        } catch (jsonParseError) {
+          console.warn(
+            '⚠️ JSON found in text but parsing failed:',
+            jsonParseError
+          );
+        }
+      }
+    } catch (extractionError) {
+      console.warn('⚠️ JSON extraction from text failed:', extractionError);
+    }
+
+    // Fallback to regex parsing
+    console.log('🔧 Using regex pattern matching as final fallback...');
     const categoryMatch = text.match(/category[:\s]+([^\n,]+)/i);
     const colorMatch = text.match(/color[:\s]+([^\n,]+)/i);
     const patternMatch = text.match(/pattern[:\s]+([^\n,]+)/i);
     const materialMatch = text.match(/material[:\s]+([^\n,]+)/i);
     const styleMatch = text.match(/style[:\s]+([^\n,]+)/i);
     const occasionMatch = text.match(/occasion[:\s]+([^\n,]+)/i);
+    const nameMatch = text.match(/name[:\s]+([^\n,]+)/i);
+    const brandMatch = text.match(/brand[:\s]+([^\n,]+)/i);
+    const sizeMatch = text.match(/size[:\s]+([^\n,]+)/i);
+    const priceMatch = text.match(/price[:\s]+([^\n,]+)/i);
 
-    return {
+    const result: ClothingAnalysis = {
+      name: nameMatch?.[1]?.trim() || 'Clothing Item',
       category:
         categoryMatch?.[1]?.trim() || this.detectCategoryFromUrl(imageUrl),
+      brand: brandMatch?.[1]?.trim() || '',
+      size: sizeMatch?.[1]?.trim() || '',
       color: colorMatch?.[1]?.trim() || 'unknown',
+      price: priceMatch?.[1]?.trim() || '',
+      season: ['spring'],
+      occasion: occasionMatch?.[1]?.trim()
+        ? [occasionMatch[1].trim()]
+        : ['casual'],
+      tags: [],
+      notes: '',
+      description: text || 'A clothing item',
       pattern: patternMatch?.[1]?.trim(),
       material: materialMatch?.[1]?.trim(),
       style: styleMatch?.[1]?.trim() || 'casual',
-      occasion: occasionMatch?.[1]?.trim(),
       detailedDescription: text || 'A clothing item',
     };
+
+    console.log('✅ Regex parsing complete:', result);
+    return result;
   }
 
   private getFallbackAnalysis(imageUrl: string): ClothingAnalysis {
@@ -325,50 +534,103 @@ Format as JSON with these fields: category, color, pattern, material, style, occ
 
     const fallbackDescriptions: Record<string, ClothingAnalysis> = {
       dress: {
+        name: 'Elegant Dress',
         category: 'dress',
+        brand: '',
+        size: '',
         color: 'elegant',
+        price: '',
+        season: ['spring', 'summer'],
+        occasion: ['casual', 'formal'],
+        tags: ['elegant', 'feminine'],
+        notes: '',
+        description:
+          'An elegant dress with feminine styling, perfect for various occasions',
         style: 'feminine',
-        occasion: 'versatile wear',
         detailedDescription:
           'An elegant dress with feminine styling, perfect for various occasions',
       },
       shirt: {
+        name: 'Classic Shirt',
         category: 'shirt',
+        brand: '',
+        size: '',
         color: 'classic',
+        price: '',
+        season: ['spring', 'fall'],
+        occasion: ['casual', 'work'],
+        tags: ['classic', 'versatile'],
+        notes: '',
+        description:
+          'A classic shirt with smart casual appeal, suitable for everyday wear',
         style: 'smart casual',
-        occasion: 'daily wear',
         detailedDescription:
           'A classic shirt with smart casual appeal, suitable for everyday wear',
       },
       pants: {
+        name: 'Modern Pants',
         category: 'pants',
+        brand: '',
+        size: '',
         color: 'versatile',
+        price: '',
+        season: ['spring', 'fall', 'winter'],
+        occasion: ['casual', 'work'],
+        tags: ['modern', 'versatile'],
+        notes: '',
+        description:
+          'Modern fit pants with versatile styling for various occasions',
         style: 'modern fit',
-        occasion: 'all occasions',
         detailedDescription:
           'Modern fit pants with versatile styling for various occasions',
       },
       shoes: {
+        name: 'Stylish Footwear',
         category: 'footwear',
+        brand: '',
+        size: '',
         color: 'stylish',
+        price: '',
+        season: ['spring', 'summer', 'fall'],
+        occasion: ['casual'],
+        tags: ['stylish', 'comfortable'],
+        notes: '',
+        description:
+          'Contemporary footwear with comfortable design and stylish appearance',
         style: 'contemporary',
-        occasion: 'daily wear',
         detailedDescription:
           'Contemporary footwear with comfortable design and stylish appearance',
       },
       jacket: {
+        name: 'Sophisticated Outerwear',
         category: 'outerwear',
+        brand: '',
+        size: '',
         color: 'sophisticated',
+        price: '',
+        season: ['fall', 'winter'],
+        occasion: ['casual', 'work'],
+        tags: ['sophisticated', 'layering'],
+        notes: '',
+        description:
+          'Sophisticated outerwear perfect for layering and transitional weather',
         style: 'layered look',
-        occasion: 'transitional weather',
         detailedDescription:
           'Sophisticated outerwear perfect for layering and transitional weather',
       },
       accessory: {
+        name: 'Stylish Accessory',
         category: 'accessory',
+        brand: '',
+        size: '',
         color: 'accent',
+        price: '',
+        season: ['spring', 'summer', 'fall', 'winter'],
+        occasion: ['casual', 'formal'],
+        tags: ['stylish', 'complementary'],
+        notes: '',
+        description: 'A stylish accessory to complement and enhance any outfit',
         style: 'complementary',
-        occasion: 'style enhancement',
         detailedDescription:
           'A stylish accessory to complement and enhance any outfit',
       },
@@ -376,8 +638,17 @@ Format as JSON with these fields: category, color, pattern, material, style, occ
 
     return (
       fallbackDescriptions[category] || {
+        name: `${category.charAt(0).toUpperCase() + category.slice(1)}`,
         category: category,
+        brand: '',
+        size: '',
         color: 'stylish',
+        price: '',
+        season: ['spring'],
+        occasion: ['casual'],
+        tags: ['modern'],
+        notes: '',
+        description: `A ${category} with modern styling and quality construction`,
         style: 'modern',
         detailedDescription: `A ${category} with modern styling and quality construction`,
       }
@@ -445,12 +716,12 @@ The result should look like the person is actually wearing these specific items.
 
   async analyzeCollageAndGeneratePrompt(
     collageImageUrl: string
-  ): Promise<string> {
+  ): Promise<{ prompt: string; analysis?: any }> {
     if (!this.API_KEY) {
       console.warn(
         '⚠️ OpenAI API key not configured, using fallback prompt generation'
       );
-      return this.getFallbackPrompt();
+      return { prompt: this.getFallbackPrompt() };
     }
 
     try {
@@ -461,8 +732,27 @@ The result should look like the person is actually wearing these specific items.
       const requestTimestamp = new Date().toISOString();
       const requestStartTime = Date.now();
 
+      // Prepare image for API (convert to base64 if local file)
+      const imageData = await this.prepareImageForAPI(collageImageUrl);
+
+      const imageContent = imageData.base64
+        ? {
+            type: 'image_url' as const,
+            image_url: {
+              url: `data:image/jpeg;base64,${imageData.base64}`,
+              detail: 'high' as const,
+            },
+          }
+        : {
+            type: 'image_url' as const,
+            image_url: {
+              url: imageData.url!,
+              detail: 'high' as const,
+            },
+          };
+
       const payload = {
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -478,28 +768,36 @@ Your task is to create a professional, detailed prompt for FLUX API that will dr
             content: [
               {
                 type: 'text',
-                text: `Analyze this collage image carefully:
-1. The person on the RIGHT side needs to wear all the clothing items shown on the LEFT side
-2. Describe each clothing item in EXTREME detail (color, pattern, material, style, brand characteristics)
-3. Create a professional English prompt for virtual try-on that:
-   - Lists EVERY clothing item with precise descriptions
-   - Emphasizes keeping the person's identity (face, body, pose) EXACTLY the same
-   - Ensures natural, realistic fitting and layering
-   - Maintains professional fashion photography quality
-   
-Generate ONLY the English prompt, no explanations. The prompt should be detailed enough that an AI can recreate these EXACT items on the person.`,
+                text: `Please analyze this collage image and create a detailed FLUX prompt for virtual try-on. Also provide a JSON analysis of the outfit:
+
+FLUX PROMPT REQUIREMENTS:
+1. Describe the person's body type, pose, and background setting
+2. Detail each clothing item being worn (colors, styles, fit, textures)
+3. Specify how the clothes should fit and look on the person
+4. Include lighting, shadows, and fabric behavior details
+5. Ensure photorealistic quality and natural appearance
+
+JSON ANALYSIS REQUIREMENTS:
+Provide a separate JSON object with these fields:
+- category: (overall outfit type)
+- color: (dominant colors in the outfit)
+- pattern: (any patterns visible or null)
+- material: (fabric types if identifiable or null)
+- style: (overall style/aesthetic)
+- occasion: (suitable occasions for this outfit)
+- detailedDescription: (comprehensive description of the complete outfit)
+- stylingNotes: (styling tips for this outfit combination, care instructions, and recommendations)
+
+Format your response as:
+FLUX_PROMPT: [your detailed prompt here]
+
+JSON_ANALYSIS: [your JSON analysis here]`,
               },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: collageImageUrl,
-                  detail: 'high',
-                },
-              },
+              imageContent,
             ],
           },
         ],
-        max_tokens: 500,
+        max_tokens: 1000,
         temperature: 0.7,
       };
 
@@ -538,7 +836,7 @@ Generate ONLY the English prompt, no explanations. The prompt should be detailed
           error,
         });
 
-        return this.getFallbackPrompt();
+        return { prompt: this.getFallbackPrompt() };
       }
 
       const data = await response.json();
@@ -552,12 +850,35 @@ Generate ONLY the English prompt, no explanations. The prompt should be detailed
         responseData: data,
       });
 
-      const generatedPrompt = data.choices[0]?.message?.content || '';
+      const responseText = data.choices[0]?.message?.content || '';
+      console.log('📝 GPT-4 Vision response:', responseText);
 
-      console.log('✅ Generated virtual try-on prompt:', generatedPrompt);
+      // Extract FLUX prompt and JSON analysis from the response
+      const fluxPromptMatch = responseText.match(
+        /FLUX_PROMPT:\s*(.*?)(?=JSON_ANALYSIS:|$)/s
+      );
+      const jsonAnalysisMatch = responseText.match(/JSON_ANALYSIS:\s*({.*})/s);
+
+      let fluxPrompt = responseText;
+      let outfitAnalysis: any = null;
+
+      if (fluxPromptMatch) {
+        fluxPrompt = fluxPromptMatch[1].trim();
+      }
+
+      if (jsonAnalysisMatch) {
+        try {
+          outfitAnalysis = JSON.parse(jsonAnalysisMatch[1]);
+          console.log('📊 Extracted outfit analysis:', outfitAnalysis);
+        } catch (parseError) {
+          console.warn('⚠️ Could not parse JSON analysis:', parseError);
+        }
+      }
+
+      console.log('✅ Generated virtual try-on prompt:', fluxPrompt);
 
       // Add extra instructions to ensure quality
-      const enhancedPrompt = `${generatedPrompt}
+      const enhancedPrompt = `${fluxPrompt}
 
 ADDITIONAL REQUIREMENTS:
 - Maintain the exact lighting and background from the original person's photo
@@ -566,10 +887,13 @@ ADDITIONAL REQUIREMENTS:
 - The final image should look like a professional fashion photoshoot
 - All clothing items must be clearly visible and properly layered`;
 
-      return enhancedPrompt;
+      return {
+        prompt: enhancedPrompt,
+        analysis: outfitAnalysis,
+      };
     } catch (error) {
       console.error('❌ Error generating prompt from collage:', error);
-      return this.getFallbackPrompt();
+      return { prompt: this.getFallbackPrompt() };
     }
   }
 
