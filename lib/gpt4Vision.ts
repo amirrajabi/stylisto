@@ -285,32 +285,43 @@ export class GPT4VisionService {
                 type: 'text',
                 text: `Analyze this clothing item comprehensively and provide detailed information. Extract as much information as possible from the image.
 
-IMPORTANT: Respond with ONLY valid JSON. Do not use markdown code blocks or any formatting. Return the raw JSON object directly.
+CRITICAL REQUIREMENTS:
+1. ALWAYS provide a comprehensive "description" field - this is mandatory and must never be empty
+2. Respond with ONLY valid JSON - no markdown, no code blocks, no additional text
+3. Every field must be filled with meaningful content or appropriate defaults
 
-Required JSON format with these exact fields:
+Required JSON format with ALL fields mandatory:
 {
   "name": "Create a descriptive product name like 'Navy Cotton Crew Neck T-Shirt' or 'Black Leather High-Top Sneakers'",
   "category": "exact clothing type: shirt, dress, pants, shoes, jacket, tops, bottoms, outerwear, underwear, swimwear, etc.",
-  "brand": "identify brand if visible in image, otherwise use empty string",
+  "brand": "identify brand if visible in image, otherwise use empty string",  
   "size": "estimate size if visible tags/labels, or suggest typical size like 'M' based on appearance, or empty string",
   "color": "primary color name: black, white, blue, red, etc.",
   "price": "estimate reasonable retail price in AUD without currency symbol, just number like '45' or empty string",
   "season": ["suitable seasons array: spring, summer, fall, winter"],
-  "occasion": ["suitable occasions array: casual, work, formal, party, sport, travel"],
+  "occasion": ["suitable occasions array: casual, work, formal, party, sport, travel"],  
   "tags": ["descriptive tags array: cotton, comfortable, versatile, classic, modern - maximum 8 tags"],
   "notes": "styling tips and care instructions in 2-3 sentences",
-  "description": "comprehensive 2-3 paragraph description with all visual details, fabric analysis, style notes, and quality assessment"
+  "description": "MANDATORY: Write a comprehensive 2-3 paragraph description including: visual appearance, fabric/material analysis, style characteristics, fit assessment, quality indicators, styling versatility, and fashion context. This field must NEVER be empty - provide rich, detailed analysis of every visual aspect you can observe."
 }
 
-Extract maximum information from the image. For brand, look for logos, labels, or distinctive design elements. For size, check for visible tags or estimate based on fit/style. For price, provide realistic Australian retail estimates based on apparent quality and brand. Be specific and detailed in your analysis.
+DESCRIPTION FIELD REQUIREMENTS:
+- Minimum 150 words, maximum 300 words
+- Include fabric texture analysis (cotton, polyester, leather, etc.)
+- Describe visual elements (patterns, prints, textures, hardware)
+- Assess quality indicators (stitching, construction, finishing)
+- Provide styling suggestions and versatility notes
+- Never leave this field empty - always provide comprehensive analysis
 
-Remember: Return ONLY the JSON object with no additional text, markdown, or formatting.`,
+Extract maximum information from the image. For brand, look for logos, labels, or distinctive design elements. For size, check for visible tags or estimate based on fit/style. For price, provide realistic Australian retail estimates based on apparent quality and brand.
+
+Remember: Return ONLY the JSON object with no additional text, markdown, or formatting. The description field is CRITICAL and must always contain detailed analysis.`,
               },
               imageContent,
             ],
           },
         ],
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.3,
       };
 
@@ -543,12 +554,13 @@ Remember: Return ONLY the JSON object with no additional text, markdown, or form
         season: ['spring', 'summer'],
         occasion: ['casual', 'formal'],
         tags: ['elegant', 'feminine'],
-        notes: '',
+        notes:
+          'Perfect for various occasions. Hand wash or dry clean to maintain quality.',
         description:
-          'An elegant dress with feminine styling, perfect for various occasions',
+          'An elegant dress featuring feminine design elements and flattering silhouette. The garment displays quality construction with careful attention to fit and draping. The fabric appears to have a smooth texture with good color retention. This versatile piece can be dressed up or down depending on accessories and styling choices. The cut and design suggest it would complement various body types while maintaining a sophisticated aesthetic. Perfect for both professional and social settings.',
         style: 'feminine',
         detailedDescription:
-          'An elegant dress with feminine styling, perfect for various occasions',
+          'An elegant dress featuring feminine design elements and flattering silhouette. The garment displays quality construction with careful attention to fit and draping. The fabric appears to have a smooth texture with good color retention. This versatile piece can be dressed up or down depending on accessories and styling choices.',
       },
       shirt: {
         name: 'Classic Shirt',
@@ -560,12 +572,12 @@ Remember: Return ONLY the JSON object with no additional text, markdown, or form
         season: ['spring', 'fall'],
         occasion: ['casual', 'work'],
         tags: ['classic', 'versatile'],
-        notes: '',
+        notes: 'Machine washable. Iron on medium heat. Versatile for layering.',
         description:
-          'A classic shirt with smart casual appeal, suitable for everyday wear',
+          'A classic shirt design featuring clean lines and traditional tailoring. The fabric quality appears consistent with good color depth and minimal wrinkle retention. Construction details include proper seaming and finishing touches that suggest durability. The cut provides a balanced fit that works well for professional and casual settings. This piece demonstrates versatility in styling - can be worn alone, layered under sweaters, or paired with blazers. The collar and cuff construction maintain their shape well over time.',
         style: 'smart casual',
         detailedDescription:
-          'A classic shirt with smart casual appeal, suitable for everyday wear',
+          'A classic shirt design featuring clean lines and traditional tailoring. The fabric quality appears consistent with good color depth and minimal wrinkle retention. Construction details include proper seaming and finishing touches that suggest durability.',
       },
       pants: {
         name: 'Modern Pants',
@@ -646,11 +658,11 @@ Remember: Return ONLY the JSON object with no additional text, markdown, or form
         price: '',
         season: ['spring'],
         occasion: ['casual'],
-        tags: ['modern'],
-        notes: '',
-        description: `A ${category} with modern styling and quality construction`,
+        tags: ['modern', 'stylish', 'versatile'],
+        notes: 'Follow care label instructions. Store in cool, dry place.',
+        description: `A ${category} featuring contemporary design and quality construction. The piece showcases modern styling with attention to detail and finishing. The fabric appears to have good texture and color consistency. This versatile garment can be incorporated into various outfits and styling approaches. The construction quality suggests durability and long-term wear value. Perfect for building a modern wardrobe with pieces that offer both style and functionality.`,
         style: 'modern',
-        detailedDescription: `A ${category} with modern styling and quality construction`,
+        detailedDescription: `A ${category} featuring contemporary design and quality construction. The piece showcases modern styling with attention to detail and finishing. The fabric appears to have good texture and color consistency.`,
       }
     );
   }

@@ -54,116 +54,61 @@ export default function ItemDetailScreen() {
   const handleDelete = () => {
     if (!item) return;
 
-    Alert.alert('Delete Item', `How would you like to delete "${item.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Hide Only',
-        onPress: async () => {
-          try {
-            const result = await actions.deleteItem(item.id);
+    Alert.alert(
+      'Delete Item',
+      `Are you sure you want to permanently delete "${item.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await actions.deleteItem(item.id);
 
-            if (result.success) {
-              router.back();
-            } else {
-              // Show specific error message
-              let errorMessage = result.error || 'Failed to hide item';
+              if (result.success) {
+                router.back();
+              } else {
+                // Show specific error message
+                let errorMessage = result.error || 'Failed to delete item';
 
-              // Provide user-friendly error messages
-              if (
-                errorMessage.includes('Permission denied') ||
-                errorMessage.includes('row-level security')
-              ) {
-                errorMessage =
-                  'You do not have permission to hide this item. Please make sure you are logged in.';
-              } else if (errorMessage.includes('Item not found')) {
-                errorMessage =
-                  'This item has already been deleted or does not exist.';
-              } else if (errorMessage.includes('already deleted')) {
-                errorMessage = 'This item has already been deleted.';
-              }
+                // Provide user-friendly error messages
+                if (
+                  errorMessage.includes('Permission denied') ||
+                  errorMessage.includes('row-level security')
+                ) {
+                  errorMessage =
+                    'You do not have permission to delete this item. Please make sure you are logged in.';
+                } else if (errorMessage.includes('Item not found')) {
+                  errorMessage =
+                    'This item has already been deleted or does not exist.';
+                } else if (errorMessage.includes('already deleted')) {
+                  errorMessage = 'This item has already been deleted.';
+                }
 
-              Alert.alert('Hide Failed', errorMessage, [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    // Go back if item was already deleted
-                    if (errorMessage.includes('already been deleted')) {
-                      router.back();
-                    }
-                  },
-                },
-              ]);
-            }
-          } catch (error) {
-            Alert.alert(
-              'Error',
-              'An unexpected error occurred while hiding the item.',
-              [{ text: 'OK' }]
-            );
-          }
-        },
-      },
-      {
-        text: 'Delete Permanently',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert(
-            'Permanent Delete',
-            `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete Forever',
-                style: 'destructive',
-                onPress: async () => {
-                  try {
-                    const result = await actions.permanentlyDeleteItem(item.id);
-
-                    if (result.success) {
-                      router.back();
-                    } else {
-                      // Show specific error message
-                      let errorMessage =
-                        result.error || 'Failed to permanently delete item';
-
-                      // Provide user-friendly error messages
-                      if (
-                        errorMessage.includes('Permission denied') ||
-                        errorMessage.includes('row-level security')
-                      ) {
-                        errorMessage =
-                          'You do not have permission to delete this item. Please make sure you are logged in.';
-                      } else if (errorMessage.includes('Item not found')) {
-                        errorMessage =
-                          'This item has already been deleted or does not exist.';
+                Alert.alert('Delete Failed', errorMessage, [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Go back if item was already deleted
+                      if (errorMessage.includes('already been deleted')) {
+                        router.back();
                       }
-
-                      Alert.alert('Delete Failed', errorMessage, [
-                        {
-                          text: 'OK',
-                          onPress: () => {
-                            // Go back if item was already deleted
-                            if (errorMessage.includes('already been deleted')) {
-                              router.back();
-                            }
-                          },
-                        },
-                      ]);
-                    }
-                  } catch (error) {
-                    Alert.alert(
-                      'Error',
-                      'An unexpected error occurred while permanently deleting the item.',
-                      [{ text: 'OK' }]
-                    );
-                  }
-                },
-              },
-            ]
-          );
+                    },
+                  },
+                ]);
+              }
+            } catch (error) {
+              Alert.alert(
+                'Error',
+                'An unexpected error occurred while deleting the item.',
+                [{ text: 'OK' }]
+              );
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleEditTags = () => {

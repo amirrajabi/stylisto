@@ -622,14 +622,12 @@ class StorageService {
       const { data: clothingItems } = await supabase
         .from('clothing_items')
         .select('image_url')
-        .eq('user_id', userId)
-        .not('deleted_at', 'is', null);
+        .eq('user_id', userId);
 
       const { data: savedOutfits } = await supabase
         .from('saved_outfits')
         .select('image_url')
-        .eq('user_id', userId)
-        .not('deleted_at', 'is', null);
+        .eq('user_id', userId);
 
       const { data: userProfiles } = await supabase
         .from('users')

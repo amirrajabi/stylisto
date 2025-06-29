@@ -148,30 +148,6 @@ export const useWardrobe = () => {
     }
   };
 
-  const permanentlyDeleteItem = async (itemId: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result =
-        await wardrobeService.permanentlyDeleteClothingItem(itemId);
-      if (result.error) {
-        setError(result.error);
-        return { success: false, error: result.error };
-      } else {
-        dispatch(wardrobeActions.deleteItem(itemId));
-        return { success: true };
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const loadFavoriteItems = async () => {
     setIsLoading(true);
     setError(null);
@@ -419,7 +395,6 @@ export const useWardrobe = () => {
       addItem,
       updateItem,
       deleteItem,
-      permanentlyDeleteItem,
       loadFavoriteItems,
       toggleFavorite,
       loadClothingItems,
@@ -451,7 +426,6 @@ export const useWardrobe = () => {
       addItem,
       updateItem,
       deleteItem,
-      permanentlyDeleteItem,
       loadFavoriteItems,
       toggleFavorite,
       loadClothingItems,

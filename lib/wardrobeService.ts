@@ -369,7 +369,6 @@ class WardrobeService {
         .from('clothing_items')
         .select('*')
         .eq('user_id', user.id)
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -428,51 +427,6 @@ class WardrobeService {
 
       console.log('Delete attempt - User ID:', user.id, 'Item ID:', itemId);
 
-      // Use the database function to perform soft delete with proper RLS handling
-      const { data: result, error: rpcError } = await supabase.rpc(
-        'soft_delete_clothing_item',
-        {
-          item_id: itemId,
-        }
-      );
-
-      if (rpcError) {
-        console.error('Database function error:', rpcError);
-        return { error: `Delete failed: ${rpcError.message}` };
-      }
-
-      if (!result || !result.success) {
-        const errorMessage = result?.error || 'Unknown error occurred';
-        console.error('Delete operation failed:', errorMessage);
-        return { error: errorMessage };
-      }
-
-      console.log('Soft delete successful:', result.message);
-      return { error: null };
-    } catch (error) {
-      console.error('Error deleting clothing item:', error);
-      return { error: (error as Error).message };
-    }
-  }
-
-  async permanentlyDeleteClothingItem(
-    itemId: string
-  ): Promise<{ error: string | null }> {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        return { error: 'User not authenticated' };
-      }
-
-      console.log(
-        'Permanent delete attempt - User ID:',
-        user.id,
-        'Item ID:',
-        itemId
-      );
-
       // First, get the item to find the image path
       const { data: item, error: fetchError } = await supabase
         .from('clothing_items')
@@ -526,7 +480,7 @@ class WardrobeService {
         console.log('Final extracted image path:', imagePath);
       }
 
-      // Delete the database record first
+      // Delete the database record
       const { error: deleteError } = await supabase
         .from('clothing_items')
         .delete()
@@ -542,17 +496,7 @@ class WardrobeService {
       if (imagePath) {
         console.log('Attempting to delete image from storage:', imagePath);
 
-        // First, check if the file exists
         try {
-          const { data: fileInfo, error: infoError } =
-            await storageService.getFileInfo(imagePath);
-          console.log('File info before deletion:', { fileInfo, infoError });
-        } catch (infoException) {
-          console.log('Could not get file info:', infoException);
-        }
-
-        try {
-          // Try the main deletion method
           const { error: storageError } =
             await storageService.deleteImage(imagePath);
 
@@ -608,10 +552,10 @@ class WardrobeService {
         );
       }
 
-      console.log('Permanent delete successful');
+      console.log('Delete operation successful');
       return { error: null };
     } catch (error) {
-      console.error('Error permanently deleting clothing item:', error);
+      console.error('Error deleting clothing item:', error);
       return { error: (error as Error).message };
     }
   }
@@ -633,7 +577,6 @@ class WardrobeService {
         .select('*')
         .eq('user_id', user.id)
         .eq('is_favorite', true)
-        .is('deleted_at', null)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -729,8 +672,7 @@ class WardrobeService {
       const { data: allItems, error: fetchError } = await supabase
         .from('clothing_items')
         .select('id')
-        .eq('user_id', user.id)
-        .is('deleted_at', null);
+        .eq('user_id', user.id);
 
       if (fetchError) {
         console.error('Error checking user items:', fetchError);
@@ -790,7 +732,6 @@ class WardrobeService {
         .from('clothing_items')
         .select('id, name, image_url')
         .eq('user_id', targetUserId)
-        .is('deleted_at', null)
         .limit(5);
 
       if (error) {

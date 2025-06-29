@@ -199,47 +199,20 @@ export default function WardrobeScreen() {
             } else if (buttonIndex === 1) {
               Alert.alert(
                 'Delete Item',
-                `How would you like to delete "${item.name}"?`,
+                `Are you sure you want to permanently delete "${item.name}"? This action cannot be undone.`,
                 [
                   { text: 'Cancel', style: 'cancel' },
                   {
-                    text: 'Hide Only',
+                    text: 'Delete',
+                    style: 'destructive',
                     onPress: async () => {
                       const result = await actions.deleteItem(item.id);
                       if (!result.success) {
                         Alert.alert(
                           'Error',
-                          result.error || 'Failed to hide item'
+                          result.error || 'Failed to delete item'
                         );
                       }
-                    },
-                  },
-                  {
-                    text: 'Delete Permanently',
-                    style: 'destructive',
-                    onPress: () => {
-                      Alert.alert(
-                        'Permanent Delete',
-                        `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete Forever',
-                            style: 'destructive',
-                            onPress: async () => {
-                              const result =
-                                await actions.permanentlyDeleteItem(item.id);
-                              if (!result.success) {
-                                Alert.alert(
-                                  'Error',
-                                  result.error ||
-                                    'Failed to permanently delete item'
-                                );
-                              }
-                            },
-                          },
-                        ]
-                      );
                     },
                   },
                 ]
@@ -262,47 +235,20 @@ export default function WardrobeScreen() {
             onPress: () => {
               Alert.alert(
                 'Delete Item',
-                `How would you like to delete "${item.name}"?`,
+                `Are you sure you want to permanently delete "${item.name}"? This action cannot be undone.`,
                 [
                   { text: 'Cancel', style: 'cancel' },
                   {
-                    text: 'Hide Only',
+                    text: 'Delete',
+                    style: 'destructive',
                     onPress: async () => {
                       const result = await actions.deleteItem(item.id);
                       if (!result.success) {
                         Alert.alert(
                           'Error',
-                          result.error || 'Failed to hide item'
+                          result.error || 'Failed to delete item'
                         );
                       }
-                    },
-                  },
-                  {
-                    text: 'Delete Permanently',
-                    style: 'destructive',
-                    onPress: () => {
-                      Alert.alert(
-                        'Permanent Delete',
-                        `This will permanently delete "${item.name}" and its image from the database. This action cannot be undone.`,
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete Forever',
-                            style: 'destructive',
-                            onPress: async () => {
-                              const result =
-                                await actions.permanentlyDeleteItem(item.id);
-                              if (!result.success) {
-                                Alert.alert(
-                                  'Error',
-                                  result.error ||
-                                    'Failed to permanently delete item'
-                                );
-                              }
-                            },
-                          },
-                        ]
-                      );
                     },
                   },
                 ]

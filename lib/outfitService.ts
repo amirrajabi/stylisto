@@ -310,7 +310,6 @@ export class OutfitService {
         )
         .eq('user_id', user.id)
         .eq('source_type', 'ai_generated')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -424,7 +423,6 @@ export class OutfitService {
         )
         .eq('user_id', user.id)
         .eq('source_type', 'manual')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -498,10 +496,9 @@ export class OutfitService {
 
       const { error } = await supabase
         .from('saved_outfits')
-        .update({ deleted_at: new Date().toISOString() })
+        .delete()
         .eq('user_id', user.id)
-        .eq('source_type', 'ai_generated')
-        .is('deleted_at', null);
+        .eq('source_type', 'ai_generated');
 
       if (error) {
         console.error('❌ Database error clearing outfits:', error);
@@ -537,7 +534,6 @@ export class OutfitService {
         .select('id')
         .eq('user_id', user.id)
         .eq('source_type', 'ai_generated')
-        .is('deleted_at', null)
         .limit(1);
 
       if (error) {
@@ -573,7 +569,6 @@ export class OutfitService {
         .select('id')
         .eq('user_id', user.id)
         .eq('source_type', 'manual')
-        .is('deleted_at', null)
         .limit(1);
 
       if (error) {

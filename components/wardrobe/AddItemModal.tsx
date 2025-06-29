@@ -105,6 +105,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     imageUrl: SAMPLE_IMAGES[0],
     tags: [],
     notes: '',
+    description_with_ai: '',
     price: undefined,
     purchaseDate: undefined,
   });
@@ -142,6 +143,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         imageUrl: editItem.imageUrl || SAMPLE_IMAGES[0],
         tags: editItem.tags || [],
         notes: editItem.notes || '',
+        description_with_ai: editItem.description_with_ai || '',
         price: editItem.price || undefined,
         purchaseDate: editItem.purchaseDate || undefined,
       });
@@ -399,6 +401,16 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
       suggestions.notes = aiAnalysis.notes.trim();
     }
 
+    // Map description
+    if (
+      aiAnalysis.description &&
+      aiAnalysis.description.trim() !== '' &&
+      aiAnalysis.description !== 'null'
+    ) {
+      suggestions.description_with_ai = aiAnalysis.description.trim();
+      console.log('✅ Mapped description:', suggestions.description_with_ai);
+    }
+
     // Map tags
     if (aiAnalysis.tags && Array.isArray(aiAnalysis.tags)) {
       const validTags = aiAnalysis.tags
@@ -432,22 +444,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     }
 
     try {
-      // Since AI analysis is done on image selection, use the stored AI description
-      let aiDescription = '';
-
-      // Check if this is an edit with existing AI description
-      if (editItem?.description_with_ai) {
-        aiDescription = editItem.description_with_ai;
-      }
-
-      // For new items, use the AI analysis description if available
-      if (!editItem && aiAnalysisResult?.description) {
-        aiDescription = aiAnalysisResult.description;
-      } else if (!editItem && formData.notes) {
-        // Fallback to generic description if no AI description available
-        aiDescription =
-          'AI-analyzed clothing item with styling recommendations';
-      }
+      // Use AI description from form data (which includes AI suggestions)
+      const aiDescription = formData.description_with_ai || '';
 
       const itemData = {
         name: formData.name?.trim() || '',
@@ -715,7 +713,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             tags: rawAiAnalysis.tags || [],
             notes: rawAiAnalysis.notes || '',
             description:
-              rawAiAnalysis.description || 'AI-analyzed clothing item',
+              rawAiAnalysis.description ||
+              'This clothing item was analyzed by AI but requires additional details. Please review and add comprehensive information about fabric type, construction quality, style characteristics, and care instructions to complete the description.',
           };
           parsedAiAnalysis = fallbackData;
           console.log('✅ Created final fallback analysis:', parsedAiAnalysis);
@@ -761,6 +760,8 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
               ? aiSuggestions.occasion
               : formData.occasion,
           notes: aiSuggestions.notes || formData.notes,
+          description_with_ai:
+            aiSuggestions.description_with_ai || formData.description_with_ai,
           tags: [
             ...(formData.tags || []),
             ...(aiSuggestions.tags || []),
@@ -799,12 +800,25 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
           season: [],
           occasion: [],
           tags: [],
-          notes: '',
+          notes: 'Please verify details and add care instructions manually.',
           description:
-            'Please add details manually - AI analysis was not available.',
+            "This clothing item requires manual analysis as AI processing was unavailable. Please review the image carefully and add detailed information about the fabric type, construction quality, style characteristics, and any special features. Consider the garment's versatility, suitable occasions, and care requirements when completing the description.",
         };
 
         setAiAnalysisResult(fallbackAnalysis);
+
+        // Apply fallback analysis to form as well
+        const fallbackSuggestions =
+          mapAIAnalysisToFormSuggestions(fallbackAnalysis);
+        const fallbackFormData = {
+          ...formData,
+          imageUrl: imageUri,
+          name: fallbackSuggestions.name || formData.name,
+          category: fallbackSuggestions.category || formData.category,
+          description_with_ai:
+            fallbackAnalysis.description || formData.description_with_ai,
+        };
+        setFormData(fallbackFormData);
         console.log(
           '🔄 Created fallback analysis for saving:',
           fallbackAnalysis
@@ -833,11 +847,24 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         season: [],
         occasion: [],
         tags: [],
-        notes: '',
-        description: 'AI analysis failed - please add details manually.',
+        notes:
+          'AI analysis failed. Please add all details manually including care instructions.',
+        description:
+          "AI analysis encountered an error and could not process this clothing item. Please manually review the image and provide a comprehensive description including fabric type, style characteristics, construction quality, color details, and any special features. Consider the garment's versatility, appropriate occasions for wear, and recommended care instructions.",
       };
 
       setAiAnalysisResult(emergencyFallback);
+
+      // Apply emergency fallback to form as well
+      const emergencyFormData = {
+        ...formData,
+        imageUrl: imageUri,
+        name: emergencyFallback.name,
+        category: emergencyFallback.category as any,
+        description_with_ai: emergencyFallback.description,
+        notes: emergencyFallback.notes,
+      };
+      setFormData(emergencyFormData);
       console.log('🆘 Created emergency fallback analysis:', emergencyFallback);
 
       setAnalysisProgress(
