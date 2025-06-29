@@ -817,6 +817,29 @@ export default function StylistScreen() {
       )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Generate AI Outfits Button - Always Available */}
+        <View style={styles.generateButtonContainer}>
+          <TouchableOpacity
+            style={styles.generateButton}
+            onPress={() =>
+              generateRecommendations({
+                maxResults: Math.min(30, Math.max(8, filteredItems.length)),
+                minScore: 0.45,
+                useAllItems: true,
+              })
+            }
+            disabled={loading || filteredItems.length < 2}
+          >
+            <Sparkles size={20} color={Colors.background.primary} />
+            <Text style={styles.generateButtonText}>Generate AI Outfits</Text>
+          </TouchableOpacity>
+          {filteredItems.length < 2 && (
+            <Text style={styles.warningText}>
+              Add at least 2 items to your wardrobe to generate outfits
+            </Text>
+          )}
+        </View>
+
         {/* Outfit Generation Statistics */}
         <OutfitStatsDisplay
           totalItems={filteredItems.length}
@@ -1006,27 +1029,8 @@ export default function StylistScreen() {
             <Text style={styles.emptyStateTitle}>AI Stylist Ready</Text>
             <Text style={styles.emptyStateDescription}>
               Your AI stylist is ready to create amazing outfit combinations.
-              Generate general recommendations.
+              Use the Generate AI Outfits button above to get started.
             </Text>
-            <TouchableOpacity
-              style={styles.generateButton}
-              onPress={() =>
-                generateRecommendations({
-                  maxResults: Math.min(30, Math.max(8, filteredItems.length)),
-                  minScore: 0.45,
-                  useAllItems: true,
-                })
-              }
-              disabled={loading || filteredItems.length < 2}
-            >
-              <Sparkles size={20} color={Colors.background.primary} />
-              <Text style={styles.generateButtonText}>Generate AI Outfits</Text>
-            </TouchableOpacity>
-            {filteredItems.length < 2 && (
-              <Text style={styles.warningText}>
-                Add at least 2 items to your wardrobe to generate outfits
-              </Text>
-            )}
           </View>
         ) : hasActiveFilters && !loading && outfits.length === 0 ? (
           <View style={styles.emptyState}>
@@ -1443,6 +1447,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.lg,
     lineHeight: 24,
+  },
+  generateButtonContainer: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
   },
   generateButton: {
     flexDirection: 'row',
