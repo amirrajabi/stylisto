@@ -39,6 +39,7 @@ export default function WardrobeScreen() {
     searchQuery,
     isLoading,
     error,
+    favoriteLoading,
     actions,
   } = useWardrobe();
 
@@ -390,6 +391,7 @@ export default function WardrobeScreen() {
         onToggleFavorite={() => handleToggleFavorite(item.id)}
         onMoreOptions={() => handleMoreOptions(item)}
         showStats
+        favoriteLoading={favoriteLoading[item.id] || false}
       />
     ),
     [
@@ -398,6 +400,7 @@ export default function WardrobeScreen() {
       handleItemLongPress,
       handleToggleFavorite,
       handleMoreOptions,
+      favoriteLoading,
     ]
   );
 

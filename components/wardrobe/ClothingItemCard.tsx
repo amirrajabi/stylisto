@@ -1,6 +1,7 @@
 import { Heart, MoreVertical } from 'lucide-react-native';
 import React, { memo } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   StyleSheet,
   Text,
@@ -21,6 +22,7 @@ interface ClothingItemCardProps {
   onMoreOptions: () => void;
   showStats?: boolean;
   index?: number;
+  favoriteLoading?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -36,6 +38,7 @@ const ClothingItemCard: React.FC<ClothingItemCardProps> = memo(
     onMoreOptions,
     showStats = false,
     index = 0,
+    favoriteLoading = false,
   }) => {
     return (
       <TouchableOpacity
@@ -82,12 +85,17 @@ const ClothingItemCard: React.FC<ClothingItemCardProps> = memo(
               item.isFavorite ? 'Remove from favorites' : 'Add to favorites'
             }
             accessibilityRole="button"
+            disabled={favoriteLoading}
           >
-            <Heart
-              size={20}
-              color={item.isFavorite ? '#ef4444' : '#ffffff'}
-              fill={item.isFavorite ? '#ef4444' : 'transparent'}
-            />
+            {favoriteLoading ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Heart
+                size={20}
+                color={item.isFavorite ? '#ef4444' : '#ffffff'}
+                fill={item.isFavorite ? '#ef4444' : 'transparent'}
+              />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.moreButton}
@@ -163,7 +171,8 @@ const ClothingItemCard: React.FC<ClothingItemCardProps> = memo(
       prevProps.item.imageUrl === nextProps.item.imageUrl &&
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.showStats === nextProps.showStats &&
-      prevProps.index === nextProps.index
+      prevProps.index === nextProps.index &&
+      prevProps.favoriteLoading === nextProps.favoriteLoading
     );
   }
 );

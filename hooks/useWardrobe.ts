@@ -21,6 +21,9 @@ export const useWardrobe = () => {
   const wardrobeState = useSelector((state: RootState) => state.wardrobe);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [favoriteLoading, setFavoriteLoading] = useState<
+    Record<string, boolean>
+  >({});
   const hasLoadedOnce = useRef(false);
 
   // Load items from database on mount only if not already loaded
@@ -192,8 +195,10 @@ export const useWardrobe = () => {
   };
 
   const toggleFavorite = async (itemId: string) => {
-    setIsLoading(true);
-    setError(null);
+    if (favoriteLoading[itemId])
+      return { success: false, error: 'Already processing' };
+
+    setFavoriteLoading(prev => ({ ...prev, [itemId]: true }));
 
     try {
       const result = await wardrobeService.toggleFavorite(itemId);
@@ -210,7 +215,7 @@ export const useWardrobe = () => {
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
-      setIsLoading(false);
+      setFavoriteLoading(prev => ({ ...prev, [itemId]: false }));
     }
   };
 
@@ -462,6 +467,7 @@ export const useWardrobe = () => {
     stats,
     isLoading: isLoading || wardrobeState.isLoading,
     error: error || wardrobeState.error,
+    favoriteLoading,
     actions,
   };
 };
