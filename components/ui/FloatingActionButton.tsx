@@ -1,7 +1,9 @@
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
   Animated,
+  Image,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -19,7 +21,7 @@ interface FloatingActionButtonProps {
   iconColor?: string;
   iconSize?: number;
   gradientColors?: readonly [string, string, ...string[]];
-  icon?: 'plus' | 'stylisto-logo';
+  icon?: 'plus' | 'stylisto-logo' | 'safour-logo' | 'none' | 'app-icon';
 }
 
 const StylistoLogoIcon = ({
@@ -150,6 +152,141 @@ const CustomPlusIcon = ({
   );
 };
 
+const SafourIcon = ({
+  size = 24,
+  disabled = false,
+}: {
+  size?: number;
+  disabled?: boolean;
+}) => {
+  const strokeWidth = size >= 32 ? 6 : 4;
+  const adjustedSize = size * 0.9;
+
+  if (disabled) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <View
+          style={{
+            position: 'relative',
+            width: adjustedSize,
+            height: adjustedSize,
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              top: adjustedSize * 0.1,
+              left: adjustedSize * 0.1,
+              width: adjustedSize * 0.8,
+              height: strokeWidth,
+              backgroundColor: '#6b7280',
+              transform: [{ rotate: '45deg' }],
+              borderRadius: strokeWidth / 2,
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: adjustedSize * 0.1,
+              right: adjustedSize * 0.1,
+              width: adjustedSize * 0.8,
+              height: strokeWidth,
+              backgroundColor: '#6b7280',
+              transform: [{ rotate: '-45deg' }],
+              borderRadius: strokeWidth / 2,
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  // For better visibility on background image, use white color with shadow
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <View
+        style={{
+          position: 'relative',
+          width: adjustedSize,
+          height: adjustedSize,
+        }}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            top: adjustedSize * 0.1,
+            left: adjustedSize * 0.1,
+            width: adjustedSize * 0.8,
+            height: strokeWidth,
+            backgroundColor: '#ffffff',
+            transform: [{ rotate: '45deg' }],
+            borderRadius: strokeWidth / 2,
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 5,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: adjustedSize * 0.1,
+            right: adjustedSize * 0.1,
+            width: adjustedSize * 0.8,
+            height: strokeWidth,
+            backgroundColor: '#ffffff',
+            transform: [{ rotate: '-45deg' }],
+            borderRadius: strokeWidth / 2,
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 5,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
+const AppIcon = ({ size = 24 }: { size?: number }) => {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <Image
+        source={require('../../assets/images/icon.png')}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+        }}
+        resizeMode="cover"
+      />
+    </View>
+  );
+};
+
 export function FloatingActionButton({
   onPress,
   disabled = false,
@@ -178,6 +315,10 @@ export function FloatingActionButton({
   };
 
   const renderIcon = () => {
+    if (icon === 'none') {
+      return null;
+    }
+
     if (icon === 'stylisto-logo') {
       return (
         <StylistoLogoIcon
@@ -187,11 +328,110 @@ export function FloatingActionButton({
       );
     }
 
+    if (icon === 'safour-logo') {
+      return <SafourIcon size={iconSize} disabled={disabled} />;
+    }
+
+    if (icon === 'app-icon') {
+      return <AppIcon size={iconSize} />;
+    }
+
     return (
       <CustomPlusIcon
         size={iconSize}
         color={disabled ? '#6b7280' : iconColor}
       />
+    );
+  };
+
+  // Check if gradient colors are white/transparent for glassy effect
+  const isGlassyStyle = gradientColors.some(
+    color =>
+      color.includes('rgba(255, 255, 255') || color.includes('rgba(255,255,255')
+  );
+
+  const renderBackground = () => {
+    // Use app icon as background for safour-logo
+    if (icon === 'safour-logo' && !disabled) {
+      return (
+        <View
+          style={[
+            styles.gradient,
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              overflow: 'hidden',
+            },
+          ]}
+        >
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={{
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+            }}
+            resizeMode="cover"
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            {renderIcon()}
+          </View>
+        </View>
+      );
+    }
+
+    if (isGlassyStyle && !disabled) {
+      return (
+        <BlurView
+          intensity={20}
+          tint="light"
+          style={[
+            styles.gradient,
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.4)',
+              overflow: 'hidden',
+            },
+          ]}
+        >
+          {renderIcon()}
+        </BlurView>
+      );
+    }
+
+    return (
+      <LinearGradient
+        colors={disabled ? ['#d1d5db', '#9ca3af'] : gradientColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.gradient,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            overflow: 'hidden',
+          },
+        ]}
+      >
+        {renderIcon()}
+      </LinearGradient>
     );
   };
 
@@ -214,7 +454,10 @@ export function FloatingActionButton({
             width: size,
             height: size,
             borderRadius: size / 2,
+            overflow: 'hidden',
           },
+          isGlassyStyle && styles.glassyTouchable,
+          icon === 'safour-logo' && styles.iconBackgroundTouchable,
         ]}
         onPress={onPress}
         disabled={disabled}
@@ -222,21 +465,7 @@ export function FloatingActionButton({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <LinearGradient
-          colors={disabled ? ['#d1d5db', '#9ca3af'] : gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.gradient,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-            },
-          ]}
-        >
-          {renderIcon()}
-        </LinearGradient>
+        {renderBackground()}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -262,5 +491,11 @@ const styles = StyleSheet.create({
   gradient: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  glassyTouchable: {
+    // Add any additional styles for the glassy touchable if needed
+  },
+  iconBackgroundTouchable: {
+    // Add any additional styles for the icon background touchable if needed
   },
 });

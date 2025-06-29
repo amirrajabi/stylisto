@@ -597,10 +597,11 @@ export default function WardrobeScreen() {
 
       <FloatingActionButton
         onPress={() => setShowAddModal(true)}
-        size={68}
-        iconSize={38}
-        icon="plus"
-        gradientColors={[Colors.primary[500], Colors.secondary[500]]}
+        size={56}
+        iconSize={36}
+        gradientColors={['#ffffff', '#ffffff']}
+        icon="app-icon"
+        style={styles.floatingButton}
       />
     </SafeAreaView>
   );
@@ -765,11 +766,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   likeActionText: {
     fontSize: 14,
-    color: '#ec4899',
+    color: '#ef4444',
     fontFamily: 'Inter-Regular',
     fontWeight: '500',
   },
@@ -884,5 +885,10 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     justifyContent: 'space-between',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 110 : 90,
+    right: 20,
   },
 });
