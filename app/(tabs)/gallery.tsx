@@ -19,6 +19,7 @@ import { Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
 import { useAuth } from '../../hooks/useAuth';
 import { useOutfitScoring } from '../../hooks/useOutfitScoring';
+import { OutfitService } from '../../lib/outfitService';
 import { supabase } from '../../lib/supabase';
 import { ClothingItem } from '../../types/wardrobe';
 
@@ -212,17 +213,43 @@ export default function GalleryScreen() {
 
   const handleRemoveFromFavorites = async (outfitId: string) => {
     try {
-      const { error } = await supabase
+      // First, check if this is an AI-generated outfit
+      const { data: outfit, error: fetchError } = await supabase
         .from('saved_outfits')
-        .update({ is_favorite: false })
-        .eq('id', outfitId);
+        .select('source_type')
+        .eq('id', outfitId)
+        .single();
 
-      if (error) {
-        console.error('Error removing from favorites:', error);
+      if (fetchError) {
+        console.error('Error fetching outfit details:', fetchError);
+      }
+
+      const isAIGenerated = outfit?.source_type === 'ai_generated';
+
+      // Use OutfitService.toggleOutfitFavorite which handles the logic for both manual and AI outfits
+      const result = await OutfitService.toggleOutfitFavorite(outfitId);
+
+      if (result.error) {
+        console.error('Error removing from favorites:', result.error);
         return;
       }
 
+      // Remove from local state regardless of outfit type
       setFavoriteOutfits(prev => prev.filter(outfit => outfit.id !== outfitId));
+
+      console.log(
+        `✅ Outfit ${outfitId} removed from favorites. isFavorite: ${result.isFavorite}`
+      );
+
+      // If this was an AI-generated outfit, it should now appear back in the Generate screen
+      if (isAIGenerated) {
+        console.log(
+          '🔄 AI outfit unfavorited, it will now appear in Generate screen again'
+        );
+      }
+
+      // Refresh the Gallery to ensure consistency
+      fetchFavoriteOutfits();
     } catch (error) {
       console.error('Error removing from favorites:', error);
     }

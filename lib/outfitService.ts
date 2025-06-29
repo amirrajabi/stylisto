@@ -233,7 +233,7 @@ export class OutfitService {
         seasons: [],
         tags: [this.GENERATED_OUTFIT_TAG],
         source_type: 'ai_generated',
-        is_favorite: false,
+        is_favorite: true, // Save as favorite when AI outfit is favorited
         notes: `AI-generated outfit with ${outfit.items?.length || 0} items. Score: ${Math.round(outfit.score.total * 100)}%`,
       };
 
@@ -412,25 +412,29 @@ export class OutfitService {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        console.log('❌ No authenticated user found');
+        console.log(
+          '❌ No authenticated user found for loading manual outfits'
+        );
         return [];
       }
 
-      console.log('🔍 Loading manual outfits for user:', user.id);
+      console.log('📥 Loading manual outfits for user:', user.id);
 
-      const { data: outfits, error } = await supabase
+      const { data, error } = await supabase
         .from('saved_outfits')
         .select(
           `
           id,
           name,
-          tags,
-          notes,
-          occasions,
-          seasons,
-          is_favorite,
+          user_id,
           created_at,
           updated_at,
+          occasions,
+          seasons,
+          tags,
+          is_favorite,
+          notes,
+          source_type,
           outfit_items (
             clothing_items (
               id,
@@ -449,30 +453,31 @@ export class OutfitService {
               last_worn,
               times_worn,
               is_favorite,
-              notes
+              notes,
+              description_with_ai
             )
           )
         `
         )
         .eq('user_id', user.id)
         .eq('source_type', 'manual')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ Error loading manual outfits:', error);
-        throw error;
+        return [];
       }
 
-      console.log('✅ Found', outfits?.length || 0, 'manual outfits for user');
+      if (!data || data.length === 0) {
+        console.log('📝 No manual outfits found for user');
+        return [];
+      }
 
-      return outfits.map(outfit => ({
-        id: outfit.id,
-        name: outfit.name,
-        userId: user.id,
-        items: outfit.outfit_items
+      const outfits: GeneratedOutfitRecord[] = data.map(outfit => {
+        const items = outfit.outfit_items
           .map(oi => oi.clothing_items)
           .filter(Boolean)
-          .flat()
           .map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -491,26 +496,146 @@ export class OutfitService {
             purchaseDate: item.purchase_date,
             price: item.price,
             notes: item.notes,
+            description_with_ai: item.description_with_ai || undefined,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-          })),
-        score: {
-          total: 0.85,
-          color: 0.85,
-          style: 0.85,
-          season: 0.85,
-          occasion: 0.85,
-          weather: undefined,
-          userPreference: 0.8,
-          variety: 0.75,
-        },
-        isFavorite: outfit.is_favorite || false,
-        tags: outfit.tags,
-        createdAt: outfit.created_at,
-        updatedAt: outfit.updated_at,
-      }));
+          }));
+
+        return {
+          id: outfit.id,
+          name: outfit.name,
+          userId: outfit.user_id,
+          items,
+          score: this.extractScoreFromNotes(outfit.notes),
+          isFavorite: outfit.is_favorite || false,
+          tags: outfit.tags || [],
+          createdAt: outfit.created_at || new Date().toISOString(),
+          updatedAt: outfit.updated_at || new Date().toISOString(),
+        };
+      });
+
+      console.log(`✅ Loaded ${outfits.length} manual outfits from database`);
+      return outfits;
     } catch (error) {
       console.error('❌ Error loading manual outfits:', error);
+      return [];
+    }
+  }
+
+  static async loadAIGeneratedOutfits(): Promise<GeneratedOutfitRecord[]> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.log(
+          '❌ No authenticated user found for loading AI-generated outfits'
+        );
+        return [];
+      }
+
+      console.log('📥 Loading AI-generated outfits for user:', user.id);
+
+      const { data, error } = await supabase
+        .from('saved_outfits')
+        .select(
+          `
+          id,
+          name,
+          user_id,
+          created_at,
+          updated_at,
+          occasions,
+          seasons,
+          tags,
+          is_favorite,
+          notes,
+          source_type,
+          outfit_items (
+            clothing_items (
+              id,
+              name,
+              category,
+              color,
+              brand,
+              image_url,
+              seasons,
+              occasions,
+              size,
+              subcategory,
+              tags,
+              price,
+              purchase_date,
+              last_worn,
+              times_worn,
+              is_favorite,
+              notes,
+              description_with_ai
+            )
+          )
+        `
+        )
+        .eq('user_id', user.id)
+        .eq('source_type', 'ai_generated')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error loading AI-generated outfits:', error);
+        return [];
+      }
+
+      if (!data || data.length === 0) {
+        console.log('📝 No AI-generated outfits found for user');
+        return [];
+      }
+
+      const outfits: GeneratedOutfitRecord[] = data.map(outfit => {
+        const items = outfit.outfit_items
+          .map(oi => oi.clothing_items)
+          .filter(Boolean)
+          .map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            subcategory: item.subcategory,
+            color: item.color,
+            brand: item.brand,
+            size: item.size,
+            season: item.seasons || [],
+            occasion: item.occasions || [],
+            imageUrl: item.image_url,
+            tags: item.tags || [],
+            isFavorite: item.is_favorite || false,
+            lastWorn: item.last_worn,
+            timesWorn: item.times_worn || 0,
+            purchaseDate: item.purchase_date,
+            price: item.price,
+            notes: item.notes,
+            description_with_ai: item.description_with_ai || undefined,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+
+        return {
+          id: outfit.id,
+          name: outfit.name,
+          userId: outfit.user_id,
+          items,
+          score: this.extractScoreFromNotes(outfit.notes),
+          isFavorite: outfit.is_favorite || false,
+          tags: outfit.tags || [],
+          createdAt: outfit.created_at || new Date().toISOString(),
+          updatedAt: outfit.updated_at || new Date().toISOString(),
+        };
+      });
+
+      console.log(
+        `✅ Loaded ${outfits.length} AI-generated outfits from database`
+      );
+      return outfits;
+    } catch (error) {
+      console.error('❌ Error loading AI-generated outfits:', error);
       return [];
     }
   }
@@ -618,6 +743,44 @@ export class OutfitService {
     }
   }
 
+  static async hasAIGeneratedOutfits(): Promise<boolean> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.log(
+          '❌ No authenticated user found for hasAIGeneratedOutfits check'
+        );
+        return false;
+      }
+
+      console.log(
+        '🔍 Checking for existing AI-generated outfits for user:',
+        user.id
+      );
+
+      const { data, error } = await supabase
+        .from('saved_outfits')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('source_type', 'ai_generated')
+        .limit(1);
+
+      if (error) {
+        console.error('❌ Error checking for AI-generated outfits:', error);
+        throw error;
+      }
+
+      const hasOutfits = data.length > 0;
+      console.log('✅ User has AI-generated outfits:', hasOutfits);
+      return hasOutfits;
+    } catch (error) {
+      console.error('❌ Error checking for AI-generated outfits:', error);
+      return false;
+    }
+  }
+
   private static extractScoreFromNotes(notes: string | null): {
     total: number;
     color: number;
@@ -654,7 +817,7 @@ export class OutfitService {
 
       const { data: outfit, error: fetchError } = await supabase
         .from('saved_outfits')
-        .select('is_favorite')
+        .select('is_favorite, source_type')
         .eq('id', outfitId)
         .eq('user_id', user.id)
         .single();
@@ -666,6 +829,7 @@ export class OutfitService {
 
       const newFavoriteStatus = !outfit.is_favorite;
 
+      // Update favorite status for both manual and AI-generated outfits
       const { error: updateError } = await supabase
         .from('saved_outfits')
         .update({ is_favorite: newFavoriteStatus })
@@ -678,7 +842,7 @@ export class OutfitService {
       }
 
       console.log(
-        `✅ Outfit ${outfitId} favorite status updated to: ${newFavoriteStatus}`
+        `✅ Outfit ${outfitId} (${outfit.source_type}) favorite status updated to: ${newFavoriteStatus}`
       );
       return { error: null, isFavorite: newFavoriteStatus };
     } catch (error) {

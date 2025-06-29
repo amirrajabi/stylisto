@@ -38,6 +38,7 @@ interface OutfitCardProps {
   onGoToIndex?: (index: number) => void;
   currentIndex?: number;
   onFavoriteToggled?: (outfitId: string, isFavorite: boolean) => void;
+  onAIOutfitFavorited?: (outfitIndex: number) => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -52,6 +53,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   onGoToIndex,
   currentIndex = 0,
   onFavoriteToggled,
+  onAIOutfitFavorited,
 }) => {
   const flatListRef = useRef<FlatList>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -105,24 +107,16 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           return;
         }
 
-        // Now favorite the saved outfit
-        const favoriteResult = await OutfitService.toggleOutfitFavorite(
-          saveResult.outfitId
-        );
-
-        if (favoriteResult.error) {
-          console.error(
-            'Failed to favorite saved outfit:',
-            favoriteResult.error
-          );
-          return;
-        }
-
-        const newFavoriteStatus = favoriteResult.isFavorite || false;
+        // Outfit is already saved as favorite, no need to toggle
+        const newFavoriteStatus = true;
         setFavorites(prev => ({ ...prev, [outfitId]: newFavoriteStatus }));
 
         if (onFavoriteToggled) {
           onFavoriteToggled(outfitId, newFavoriteStatus);
+        }
+
+        if (onAIOutfitFavorited) {
+          onAIOutfitFavorited(outfitIndex);
         }
         return;
       }

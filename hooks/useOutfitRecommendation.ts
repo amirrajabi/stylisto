@@ -14,7 +14,7 @@
  * - Weather/occasion recommendations are temporary (in memory only)
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import {
   GeneratedOutfit,
@@ -32,9 +32,11 @@ export interface OutfitRecommendationState {
   error: string | null;
   outfits: GeneratedOutfit[];
   manualOutfits: GeneratedOutfitRecord[];
+  aiGeneratedOutfits: GeneratedOutfitRecord[];
   selectedOutfitIndex: number;
   generationProgress: number;
   hasPersistedManualOutfits: boolean;
+  hasPersistedAIOutfits: boolean;
   isLoadedFromDatabase: boolean;
 }
 
@@ -61,11 +63,51 @@ export const useOutfitRecommendation = (
     error: null,
     outfits: [],
     manualOutfits: [],
+    aiGeneratedOutfits: [],
     selectedOutfitIndex: 0,
     generationProgress: 0,
     hasPersistedManualOutfits: false,
+    hasPersistedAIOutfits: false,
     isLoadedFromDatabase: false,
   });
+
+  // Filter out items that are already liked in favorite outfits (both manual and AI-generated)
+  const availableItemsForGeneration = useMemo(() => {
+    // Get all item IDs that are in favorite outfits (both manual and AI-generated)
+    const favoriteItemIds = new Set<string>();
+
+    // Add items from favorite manual outfits
+    state.manualOutfits.forEach(outfit => {
+      if (outfit.isFavorite) {
+        outfit.items.forEach(item => {
+          favoriteItemIds.add(item.id);
+        });
+      }
+    });
+
+    // Add items from favorite AI-generated outfits
+    state.aiGeneratedOutfits.forEach(outfit => {
+      if (outfit.isFavorite) {
+        outfit.items.forEach(item => {
+          favoriteItemIds.add(item.id);
+        });
+      }
+    });
+
+    // Filter out favorite items from the available items
+    const filteredForGeneration = filteredItems.filter(
+      item => !favoriteItemIds.has(item.id)
+    );
+
+    console.log(
+      `🎯 Filtered out ${favoriteItemIds.size} favorite items from ${filteredItems.length} total items`
+    );
+    console.log(
+      `📊 Available items for generation: ${filteredForGeneration.length}`
+    );
+
+    return filteredForGeneration;
+  }, [filteredItems, state.manualOutfits, state.aiGeneratedOutfits]);
 
   const isGeneratingRef = useRef(false);
   const hasInitialGeneration = useRef(false);
@@ -80,79 +122,133 @@ export const useOutfitRecommendation = (
 
   const checkForExistingOutfits = useCallback(async () => {
     try {
+      console.log('🔍 Checking for existing outfits for current user...');
+
+      // Check for both manual and AI-generated outfits
+      const [hasManualOutfits, hasAIOutfits] = await Promise.all([
+        OutfitService.hasManualOutfits(),
+        OutfitService.hasAIGeneratedOutfits(),
+      ]);
+
       console.log(
-        '🔍 Checking for existing manual outfits for current user...'
+        `📊 User outfits status: Manual=${hasManualOutfits}, AI=${hasAIOutfits}`
       );
-
-      // Only check for manual outfits, AI outfits are always generated fresh
-      const hasManualOutfits = await OutfitService.hasManualOutfits();
-
-      console.log(`📊 User manual outfits status: Manual=${hasManualOutfits}`);
 
       setState(prev => ({
         ...prev,
         hasPersistedManualOutfits: hasManualOutfits,
+        hasPersistedAIOutfits: hasAIOutfits,
       }));
 
-      // Load manual outfits if they exist
+      // Load existing outfits in parallel
+      const loadPromises = [];
       if (hasManualOutfits) {
-        console.log('📥 User has manual outfits, loading from database...');
+        loadPromises.push(OutfitService.loadManualOutfits());
+      }
+      if (hasAIOutfits) {
+        loadPromises.push(OutfitService.loadAIGeneratedOutfits());
+      }
 
-        const manualOutfits = await OutfitService.loadManualOutfits();
+      if (loadPromises.length > 0) {
+        console.log('📥 Loading existing outfits from database...');
+
+        const results = await Promise.all(loadPromises);
+        let manualOutfits: any[] = [];
+        let aiGeneratedOutfits: any[] = [];
+
+        if (hasManualOutfits && hasAIOutfits) {
+          [manualOutfits, aiGeneratedOutfits] = results;
+        } else if (hasManualOutfits) {
+          [manualOutfits] = results;
+        } else if (hasAIOutfits) {
+          [aiGeneratedOutfits] = results;
+        }
 
         setState(prev => ({
           ...prev,
-          manualOutfits: manualOutfits, // Use directly without converting
+          manualOutfits: manualOutfits || [],
+          aiGeneratedOutfits: aiGeneratedOutfits || [],
           isLoadedFromDatabase: true,
         }));
 
         console.log(
           '✅ Loaded from database:',
           manualOutfits.length,
-          'manual outfits'
+          'manual outfits,',
+          aiGeneratedOutfits.length,
+          'AI-generated outfits'
         );
       }
 
-      // Always auto-generate AI outfits (they are not saved to database)
-      console.log('🎯 Will auto-generate fresh AI outfits');
+      // Auto-generate fresh AI outfits if needed (in addition to existing ones)
+      console.log('🎯 Will auto-generate fresh AI outfits if needed');
     } catch (error) {
       console.error('❌ Error checking for existing outfits:', error);
     }
   }, []);
 
-  const refreshManualOutfits = useCallback(async () => {
+  const refreshOutfits = useCallback(async () => {
     try {
-      console.log('🔄 Refreshing manual outfits from database...');
+      console.log('🔄 Refreshing outfits from database...');
 
-      const hasManualOutfits = await OutfitService.hasManualOutfits();
+      const [hasManualOutfits, hasAIOutfits] = await Promise.all([
+        OutfitService.hasManualOutfits(),
+        OutfitService.hasAIGeneratedOutfits(),
+      ]);
 
       setState(prev => ({
         ...prev,
         hasPersistedManualOutfits: hasManualOutfits,
+        hasPersistedAIOutfits: hasAIOutfits,
       }));
 
+      // Load existing outfits in parallel
+      const loadPromises = [];
       if (hasManualOutfits) {
-        const manualOutfits = await OutfitService.loadManualOutfits();
+        loadPromises.push(OutfitService.loadManualOutfits());
+      }
+      if (hasAIOutfits) {
+        loadPromises.push(OutfitService.loadAIGeneratedOutfits());
+      }
+
+      if (loadPromises.length > 0) {
+        const results = await Promise.all(loadPromises);
+        let manualOutfits: any[] = [];
+        let aiGeneratedOutfits: any[] = [];
+
+        if (hasManualOutfits && hasAIOutfits) {
+          [manualOutfits, aiGeneratedOutfits] = results;
+        } else if (hasManualOutfits) {
+          [manualOutfits] = results;
+          aiGeneratedOutfits = [];
+        } else if (hasAIOutfits) {
+          manualOutfits = [];
+          [aiGeneratedOutfits] = results;
+        }
 
         setState(prev => ({
           ...prev,
-          manualOutfits: manualOutfits, // Use directly without converting
+          manualOutfits: manualOutfits,
+          aiGeneratedOutfits: aiGeneratedOutfits,
           isLoadedFromDatabase: true,
         }));
 
         console.log(
-          '✅ Refreshed manual outfits:',
+          '✅ Refreshed outfits:',
           manualOutfits.length,
-          'outfits'
+          'manual outfits,',
+          aiGeneratedOutfits.length,
+          'AI-generated outfits'
         );
       } else {
         setState(prev => ({
           ...prev,
           manualOutfits: [],
+          aiGeneratedOutfits: [],
         }));
       }
     } catch (error) {
-      console.error('❌ Error refreshing manual outfits:', error);
+      console.error('❌ Error refreshing outfits:', error);
     }
   }, []);
 
@@ -165,15 +261,18 @@ export const useOutfitRecommendation = (
 
       console.log(
         '🎯 Starting outfit generation with',
-        filteredItems.length,
-        'items'
+        availableItemsForGeneration.length,
+        'items (filtered out favorite items from manual and AI outfits)'
       );
 
-      if (filteredItems.length < 2) {
-        console.warn('⚠️ Not enough items for generation');
+      if (availableItemsForGeneration.length < 2) {
+        console.warn(
+          '⚠️ Not enough items for generation after filtering favorite items'
+        );
         setState(prev => ({
           ...prev,
-          error: 'Not enough items in your wardrobe to generate outfits',
+          error:
+            'Not enough items available for outfit generation (excluding favorite items from manual and AI outfits)',
         }));
         return [];
       }
@@ -193,7 +292,7 @@ export const useOutfitRecommendation = (
           useAllItems: true,
           maxResults: Math.min(
             75,
-            Math.max(15, Math.floor(filteredItems.length * 1.5))
+            Math.max(15, Math.floor(availableItemsForGeneration.length * 1.5))
           ),
           minScore: 0.45,
           ...initialOptions,
@@ -204,8 +303,11 @@ export const useOutfitRecommendation = (
 
         setState(prev => ({ ...prev, generationProgress: 0.5 }));
 
-        // Generate outfits
-        const generatedOutfits = generateOutfits(filteredItems, mergedOptions);
+        // Generate outfits using filtered items (excluding favorite items from manual and AI outfits)
+        const generatedOutfits = generateOutfits(
+          availableItemsForGeneration,
+          mergedOptions
+        );
 
         setState(prev => ({ ...prev, generationProgress: 0.8 }));
 
@@ -246,7 +348,7 @@ export const useOutfitRecommendation = (
         isGeneratingRef.current = false;
       }
     },
-    [filteredItems, generateOutfits, initialOptions]
+    [availableItemsForGeneration, generateOutfits, initialOptions]
   );
 
   const clearAndRegenerateOutfits = useCallback(async () => {
@@ -286,7 +388,7 @@ export const useOutfitRecommendation = (
       if (
         screenReady &&
         !hasInitialGeneration.current &&
-        filteredItems.length >= 2 &&
+        availableItemsForGeneration.length >= 2 &&
         !state.loading &&
         state.outfits.length === 0
       ) {
@@ -301,7 +403,7 @@ export const useOutfitRecommendation = (
     autoGenerateIfNeeded();
   }, [
     screenReady,
-    filteredItems.length,
+    availableItemsForGeneration.length,
     state.loading,
     state.outfits.length,
     generateRecommendations,
@@ -376,11 +478,14 @@ export const useOutfitRecommendation = (
       return generateRecommendations({
         season: weatherSeason,
         weather: weatherData,
-        maxResults: Math.min(30, Math.max(8, filteredItems.length)),
+        maxResults: Math.min(
+          30,
+          Math.max(8, availableItemsForGeneration.length)
+        ),
         minScore: 0.4,
       });
     },
-    [generateRecommendations, filteredItems.length]
+    [generateRecommendations, availableItemsForGeneration.length]
   );
 
   const getOccasionBasedRecommendation = useCallback(
@@ -388,11 +493,14 @@ export const useOutfitRecommendation = (
       // Generate occasion-based outfits
       return generateRecommendations({
         occasion,
-        maxResults: Math.min(20, Math.max(6, filteredItems.length)),
+        maxResults: Math.min(
+          20,
+          Math.max(6, availableItemsForGeneration.length)
+        ),
         minScore: 0.5,
       });
     },
-    [generateRecommendations, filteredItems.length]
+    [generateRecommendations, availableItemsForGeneration.length]
   );
 
   const toggleOutfitFavorite = async (outfitId: string) => {
@@ -413,6 +521,19 @@ export const useOutfitRecommendation = (
             : outfit
         ),
       }));
+
+      console.log(
+        `🎯 Manual outfit ${outfitId} favorite status changed to: ${result.isFavorite}`
+      );
+      console.log(
+        '🔄 Regenerating AI outfit recommendations due to liked items change...'
+      );
+
+      // Regenerate AI outfit recommendations since available items for generation have changed
+      // We need to delay this slightly to allow the state update to propagate
+      setTimeout(() => {
+        clearAndRegenerateOutfits();
+      }, 100);
 
       return result.isFavorite;
     } catch (error) {
@@ -441,18 +562,79 @@ export const useOutfitRecommendation = (
     }
   }, []);
 
-  const refreshOutfits = useCallback(async () => {
-    await loadOutfits();
-  }, [loadOutfits]);
+  // Add method to remove AI-generated outfit from memory when favorited
+  const removeOutfitFromMemory = useCallback(
+    (outfitIndex: number) => {
+      setState(prev => {
+        const newOutfits = prev.outfits.filter(
+          (_, index) => index !== outfitIndex
+        );
+        let newSelectedIndex = prev.selectedOutfitIndex;
+
+        // Adjust selected index if needed
+        if (outfitIndex < prev.selectedOutfitIndex) {
+          newSelectedIndex = Math.max(0, prev.selectedOutfitIndex - 1);
+        } else if (outfitIndex === prev.selectedOutfitIndex) {
+          newSelectedIndex = Math.min(
+            prev.selectedOutfitIndex,
+            newOutfits.length - 1
+          );
+        }
+
+        // Ensure index is within bounds
+        newSelectedIndex = Math.max(
+          0,
+          Math.min(newSelectedIndex, newOutfits.length - 1)
+        );
+
+        return {
+          ...prev,
+          outfits: newOutfits,
+          selectedOutfitIndex: newOutfits.length > 0 ? newSelectedIndex : 0,
+        };
+      });
+
+      console.log(
+        `🗑️ Removed AI-generated outfit at index ${outfitIndex} from memory`
+      );
+
+      // If no more AI outfits remain and we have enough items, generate new ones
+      setTimeout(() => {
+        setState(current => {
+          if (
+            current.outfits.length === 0 &&
+            availableItemsForGeneration.length >= 2
+          ) {
+            console.log('📦 No AI outfits remaining, generating new ones...');
+            generateRecommendations();
+          }
+          return current;
+        });
+      }, 100);
+    },
+    [availableItemsForGeneration.length, generateRecommendations]
+  );
+
+  // Add method to refresh all outfits (for when unfavoriting)
+  const refreshAllOutfits = useCallback(async () => {
+    console.log('🔄 Refreshing all outfits after unfavorite...');
+    await refreshOutfits();
+    // AI outfits are already in memory, no need to regenerate unless empty
+    if (state.outfits.length === 0) {
+      await generateRecommendations();
+    }
+  }, [state.outfits.length]);
 
   return {
     loading: state.loading,
     error: state.error,
     outfits: state.outfits,
     manualOutfits: state.manualOutfits,
+    aiGeneratedOutfits: state.aiGeneratedOutfits,
     selectedOutfitIndex: state.selectedOutfitIndex,
     generationProgress: state.generationProgress,
     hasPersistedManualOutfits: state.hasPersistedManualOutfits,
+    hasPersistedAIOutfits: state.hasPersistedAIOutfits,
     isLoadedFromDatabase: state.isLoadedFromDatabase,
     generateRecommendations,
     clearAndRegenerateOutfits,
@@ -462,9 +644,10 @@ export const useOutfitRecommendation = (
     getWeatherBasedRecommendation,
     getOccasionBasedRecommendation,
     checkForExistingOutfits,
-    refreshManualOutfits,
+    refreshOutfits,
     toggleOutfitFavorite,
     loadOutfits,
-    refreshOutfits,
+    removeOutfitFromMemory,
+    refreshAllOutfits,
   };
 };
