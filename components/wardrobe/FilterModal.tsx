@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react-native';
+import { Check, Filter, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -11,13 +11,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 import {
   ClothingCategory,
   FilterOptions,
   Occasion,
   Season,
 } from '../../types/wardrobe';
+import { Button } from '../ui';
 
 interface FilterModalProps {
   visible: boolean;
@@ -57,10 +60,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       favorites: false,
     };
     setLocalFilters(resetFilters);
-    // Automatically apply the reset filters
-    onApplyFilters(resetFilters);
-    onClose();
   };
+
+  const hasActiveFilters =
+    localFilters.categories.length > 0 ||
+    localFilters.seasons.length > 0 ||
+    localFilters.occasions.length > 0 ||
+    localFilters.colors.length > 0 ||
+    localFilters.brands.length > 0 ||
+    localFilters.tags.length > 0 ||
+    localFilters.favorites;
 
   const toggleArrayFilter = <T,>(
     array: T[],
@@ -77,31 +86,35 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const FilterSection: React.FC<{
     title: string;
     children: React.ReactNode;
-  }> = ({ title, children }) => (
+    description?: string;
+  }> = ({ title, children, description }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
+      {description && (
+        <Text style={styles.sectionDescription}>{description}</Text>
+      )}
       {children}
     </View>
   );
 
-  const FilterChip: React.FC<{
+  const FilterCard: React.FC<{
     label: string;
     selected: boolean;
     onPress: () => void;
-    color?: string;
-  }> = ({ label, selected, onPress, color }) => (
+  }> = ({ label, selected, onPress }) => (
     <TouchableOpacity
-      style={[styles.chip, selected && styles.selectedChip]}
+      style={[styles.optionCard, selected && styles.optionCardSelected]}
       onPress={onPress}
     >
-      <Text style={[styles.chipText, selected && styles.selectedChipText]}>
+      <Text
+        style={[styles.optionLabel, selected && styles.optionLabelSelected]}
+      >
         {label}
       </Text>
-      {selected && <Check size={16} color="#A428FC" />}
     </TouchableOpacity>
   );
 
-  const ColorChip: React.FC<{
+  const ColorCard: React.FC<{
     color: string;
     selected: boolean;
     onPress: () => void;
@@ -112,9 +125,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     return (
       <TouchableOpacity
         style={[
-          styles.colorChip,
+          styles.colorCard,
           { backgroundColor: displayColor },
-          selected && styles.selectedColorChip,
+          selected && styles.colorCardSelected,
         ]}
         onPress={onPress}
       >
@@ -142,14 +155,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Filter Items</Text>
+          <View style={styles.headerLeft}>
+            <Filter size={24} color="#A428FC" />
+            <Text style={styles.headerTitle}>Filter Items</Text>
           </View>
-          <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
-            <Text style={styles.resetText}>Reset</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color={Colors.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -161,14 +172,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           contentInsetAdjustmentBehavior="automatic"
         >
           <FilterSection title="Categories">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalScrollContent}
-            >
+            <View style={styles.optionsGrid}>
               {Object.values(ClothingCategory).map(category => (
-                <FilterChip
+                <FilterCard
                   key={category}
                   label={category.replace('_', ' ')}
                   selected={localFilters.categories.includes(category)}
@@ -182,18 +188,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   }
                 />
               ))}
-            </ScrollView>
+            </View>
           </FilterSection>
 
           <FilterSection title="Seasons">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalScrollContent}
-            >
+            <View style={styles.optionsGrid}>
               {Object.values(Season).map(season => (
-                <FilterChip
+                <FilterCard
                   key={season}
                   label={season}
                   selected={localFilters.seasons.includes(season)}
@@ -204,18 +205,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   }
                 />
               ))}
-            </ScrollView>
+            </View>
           </FilterSection>
 
           <FilterSection title="Occasions">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalScrollContent}
-            >
+            <View style={styles.optionsGrid}>
               {Object.values(Occasion).map(occasion => (
-                <FilterChip
+                <FilterCard
                   key={occasion}
                   label={occasion}
                   selected={localFilters.occasions.includes(occasion)}
@@ -229,43 +225,31 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   }
                 />
               ))}
-            </ScrollView>
+            </View>
           </FilterSection>
 
-          {availableColors.length > 0 && (
-            <FilterSection title="Colors">
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.horizontalScroll}
-                contentContainerStyle={styles.horizontalScrollContent}
-              >
-                {availableColors.map(color => (
-                  <ColorChip
-                    key={color}
-                    color={color}
-                    selected={localFilters.colors.includes(color)}
-                    onPress={() =>
-                      toggleArrayFilter(localFilters.colors, color, colors =>
-                        setLocalFilters({ ...localFilters, colors })
-                      )
-                    }
-                  />
-                ))}
-              </ScrollView>
-            </FilterSection>
-          )}
+          <FilterSection title="Colors">
+            <View style={styles.colorGrid}>
+              {availableColors.map(color => (
+                <ColorCard
+                  key={color}
+                  color={color}
+                  selected={localFilters.colors.includes(color)}
+                  onPress={() =>
+                    toggleArrayFilter(localFilters.colors, color, colors =>
+                      setLocalFilters({ ...localFilters, colors })
+                    )
+                  }
+                />
+              ))}
+            </View>
+          </FilterSection>
 
           {availableBrands.length > 0 && (
             <FilterSection title="Brands">
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.horizontalScroll}
-                contentContainerStyle={styles.horizontalScrollContent}
-              >
+              <View style={styles.optionsGrid}>
                 {availableBrands.map(brand => (
-                  <FilterChip
+                  <FilterCard
                     key={brand}
                     label={brand}
                     selected={localFilters.brands.includes(brand)}
@@ -276,18 +260,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     }
                   />
                 ))}
-              </ScrollView>
+              </View>
             </FilterSection>
           )}
 
           <FilterSection title="Other">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalScrollContent}
-            >
-              <FilterChip
+            <View style={styles.optionsGrid}>
+              <FilterCard
                 label="Favorites Only"
                 selected={localFilters.favorites}
                 onPress={() =>
@@ -297,23 +276,37 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   })
                 }
               />
-            </ScrollView>
+            </View>
           </FilterSection>
 
           {/* Extra padding for better scroll experience */}
           <View style={styles.extraPadding} />
         </ScrollView>
 
-        {/* Footer with button */}
+        {/* Footer */}
         <View
           style={[
             styles.footer,
             { paddingBottom: Math.max(insets.bottom, Spacing.xl) + Spacing.lg },
           ]}
         >
-          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-            <Text style={styles.applyButtonText}>Apply Filters</Text>
-          </TouchableOpacity>
+          <View style={styles.footerButtons}>
+            <Button
+              title="Reset All"
+              variant="outline"
+              onPress={handleReset}
+              disabled={!hasActiveFilters}
+              style={styles.resetButton}
+            />
+            <Button
+              title="Apply Filters"
+              onPress={handleApply}
+              style={styles.applyButton}
+            />
+          </View>
+
+          {/* Home indicator */}
+          <View style={styles.homeIndicator} />
         </View>
       </SafeAreaView>
     </Modal>
@@ -327,44 +320,29 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
-    backgroundColor: Colors.surface.primary,
+    ...Shadows.sm,
   },
-  closeButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 0,
-    paddingVertical: Spacing.xs,
-    minWidth: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titleContainer: {
-    flex: 1,
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  title: {
+  headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 0,
+    marginLeft: Spacing.sm,
   },
-  resetButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 0,
-    paddingVertical: Spacing.xs,
-    minWidth: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resetText: {
-    fontSize: 16,
-    color: '#A428FC',
-    fontWeight: '600',
+  closeButton: {
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.surface.secondary,
   },
   scrollView: {
     flex: 1,
@@ -380,46 +358,51 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
-  horizontalScroll: {
-    flexGrow: 0,
+  sectionDescription: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
+    lineHeight: 20,
   },
-  horizontalScrollContent: {
-    paddingRight: Spacing.lg,
-    gap: 10,
-  },
-  chip: {
+  optionsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    borderWidth: 1.5,
-    borderColor: Colors.border.primary,
-    backgroundColor: Colors.surface.primary,
-    gap: 6,
-    minHeight: 40,
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
   },
-  selectedChip: {
+  optionCard: {
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    minWidth: '45%',
+    flex: 1,
+  },
+  optionCardSelected: {
     backgroundColor: '#f3f4ff',
     borderColor: '#A428FC',
   },
-  chipText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    fontWeight: '500',
+  optionLabel: {
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
-  selectedChipText: {
+  optionLabelSelected: {
     color: '#A428FC',
-    fontWeight: '600',
   },
-  colorChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  colorCard: {
+    width: 60,
+    height: 60,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
     borderColor: Colors.border.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -431,40 +414,40 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    marginBottom: Spacing.sm,
   },
-  selectedColorChip: {
+  colorCardSelected: {
     borderColor: '#A428FC',
-    borderWidth: 3,
+    borderWidth: 2,
   },
   extraPadding: {
     height: Spacing['4xl'],
   },
   footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
     borderTopWidth: 1,
     borderTopColor: Colors.border.primary,
-    backgroundColor: Colors.surface.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    ...Shadows.sm,
+  },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  resetButton: {
+    flex: 1,
   },
   applyButton: {
-    width: '100%',
-    height: 52,
-    backgroundColor: '#A428FC',
-    borderRadius: Layout.borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#A428FC',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    flex: 2,
   },
-  applyButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
+  homeIndicator: {
+    width: 134,
+    height: 5,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2.5,
+    alignSelf: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
   },
 });

@@ -3,7 +3,6 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft,
   Camera,
-  Check,
   Image as ImageIcon,
   Plus,
   X,
@@ -21,6 +20,8 @@ import {
   View,
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
+import { Layout } from '../../constants/Spacing';
+import { Typography } from '../../constants/Typography';
 import { useWardrobe } from '../../hooks/useWardrobe';
 import { GPT4VisionService } from '../../lib/gpt4Vision';
 import {
@@ -997,52 +998,48 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Category *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.chipContainer}>
-                    {[
-                      'tops',
-                      'bottoms',
-                      'dresses',
-                      'outerwear',
-                      'shoes',
-                      'accessories',
-                      'underwear',
-                      'activewear',
-                      'sleepwear',
-                      'swimwear',
-                    ].map(category => (
-                      <TouchableOpacity
-                        key={category}
+                <View style={styles.optionsGrid}>
+                  {[
+                    'tops',
+                    'bottoms',
+                    'dresses',
+                    'outerwear',
+                    'shoes',
+                    'accessories',
+                    'underwear',
+                    'activewear',
+                    'sleepwear',
+                    'swimwear',
+                  ].map(category => (
+                    <TouchableOpacity
+                      key={category}
+                      style={[
+                        styles.optionCard,
+                        formData.category === category &&
+                          styles.optionCardSelected,
+                        isAnalyzing && styles.disabledOptionCard,
+                      ]}
+                      onPress={() =>
+                        !isAnalyzing &&
+                        setFormData({
+                          ...formData,
+                          category: category as ClothingCategory,
+                        })
+                      }
+                      disabled={isAnalyzing}
+                    >
+                      <Text
                         style={[
-                          styles.chip,
-                          formData.category === category && styles.selectedChip,
-                          isAnalyzing && styles.disabledChip,
+                          styles.optionLabel,
+                          formData.category === category &&
+                            styles.optionLabelSelected,
                         ]}
-                        onPress={() =>
-                          !isAnalyzing &&
-                          setFormData({
-                            ...formData,
-                            category: category as ClothingCategory,
-                          })
-                        }
-                        disabled={isAnalyzing}
                       >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            formData.category === category &&
-                              styles.selectedChipText,
-                          ]}
-                        >
-                          {category.replace('_', ' ')}
-                        </Text>
-                        {formData.category === category && (
-                          <Check size={14} color="#A428FC" />
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
+                        {category.replace('_', ' ')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
 
               <View style={styles.row}>
@@ -1076,29 +1073,27 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Color</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.colorContainer}>
-                    {COLORS.map(color => (
-                      <TouchableOpacity
-                        key={color}
-                        style={[
-                          styles.colorOption,
-                          { backgroundColor: color },
-                          formData.color === color && styles.selectedColor,
-                          isAnalyzing && styles.disabledColor,
-                        ]}
-                        onPress={() =>
-                          !isAnalyzing && setFormData({ ...formData, color })
-                        }
-                        disabled={isAnalyzing}
-                      >
-                        {formData.color === color && (
-                          <Check size={16} color="#ffffff" />
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
+                <View style={styles.colorGrid}>
+                  {COLORS.map(color => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorCard,
+                        { backgroundColor: color },
+                        formData.color === color && styles.colorCardSelected,
+                        isAnalyzing && styles.disabledColor,
+                      ]}
+                      onPress={() =>
+                        !isAnalyzing && setFormData({ ...formData, color })
+                      }
+                      disabled={isAnalyzing}
+                    >
+                      {formData.color === color && (
+                        <View style={styles.colorSelectedIndicator} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -1125,16 +1120,16 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             {/* Seasons Card */}
             <View style={styles.sectionCard}>
               <Text style={styles.cardTitle}>Seasons</Text>
-              <View style={styles.chipContainer}>
+              <View style={styles.optionsGrid}>
                 {(['spring', 'summer', 'fall', 'winter'] as Season[]).map(
                   season => (
                     <TouchableOpacity
                       key={season}
                       style={[
-                        styles.chip,
+                        styles.optionCard,
                         formData.season?.includes(season) &&
-                          styles.selectedChip,
-                        isAnalyzing && styles.disabledChip,
+                          styles.optionCardSelected,
+                        isAnalyzing && styles.disabledOptionCard,
                       ]}
                       onPress={() =>
                         !isAnalyzing &&
@@ -1150,16 +1145,13 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                     >
                       <Text
                         style={[
-                          styles.chipText,
+                          styles.optionLabel,
                           formData.season?.includes(season) &&
-                            styles.selectedChipText,
+                            styles.optionLabelSelected,
                         ]}
                       >
                         {season}
                       </Text>
-                      {formData.season?.includes(season) && (
-                        <Check size={14} color="#A428FC" />
-                      )}
                     </TouchableOpacity>
                   )
                 )}
@@ -1169,7 +1161,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             {/* Occasions Card */}
             <View style={styles.sectionCard}>
               <Text style={styles.cardTitle}>Occasions</Text>
-              <View style={styles.chipContainer}>
+              <View style={styles.optionsGrid}>
                 {(
                   [
                     'casual',
@@ -1185,10 +1177,10 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                   <TouchableOpacity
                     key={occasion}
                     style={[
-                      styles.chip,
+                      styles.optionCard,
                       formData.occasion?.includes(occasion) &&
-                        styles.selectedChip,
-                      isAnalyzing && styles.disabledChip,
+                        styles.optionCardSelected,
+                      isAnalyzing && styles.disabledOptionCard,
                     ]}
                     onPress={() =>
                       !isAnalyzing &&
@@ -1204,16 +1196,13 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                   >
                     <Text
                       style={[
-                        styles.chipText,
+                        styles.optionLabel,
                         formData.occasion?.includes(occasion) &&
-                          styles.selectedChipText,
+                          styles.optionLabelSelected,
                       ]}
                     >
                       {occasion}
                     </Text>
-                    {formData.occasion?.includes(occasion) && (
-                      <Check size={14} color="#A428FC" />
-                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1522,23 +1511,41 @@ const styles = StyleSheet.create({
     color: '#A428FC',
     fontWeight: '500',
   },
-  colorContainer: {
+  colorGrid: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 12,
     marginTop: 8,
   },
-  colorOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'transparent',
+  colorCard: {
+    width: 60,
+    height: 60,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  selectedColor: {
-    borderColor: '#D1D5DB',
+  colorCardSelected: {
+    borderColor: '#A428FC',
+    borderWidth: 2,
+  },
+  colorSelectedIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#A428FC',
   },
   tagInputContainer: {
     flexDirection: 'row',
@@ -1716,5 +1723,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
+  },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionCard: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: Colors.surface.primary,
+    minWidth: '30%',
+    flex: 1,
+    alignItems: 'center',
+  },
+  optionCardSelected: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#A428FC',
+  },
+  disabledOptionCard: {
+    opacity: 0.5,
+  },
+  optionLabel: {
+    ...Typography.body.medium,
+    color: '#6b7280',
+    textTransform: 'capitalize',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  optionLabelSelected: {
+    color: '#A428FC',
+    fontWeight: '600',
   },
 });
