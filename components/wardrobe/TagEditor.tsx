@@ -1,16 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import { CircleHelp as HelpCircle, Plus, Tag, X } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Tag, Plus, X, CircleHelp as HelpCircle } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { Spacing, Layout } from '../../constants/Spacing';
 
 // Import Alert
 import { Alert } from 'react-native';
@@ -30,7 +30,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
 }) => {
   const [newTag, setNewTag] = useState('');
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
-  
+
   // Handle adding a new tag
   const handleAddTag = useCallback(() => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -39,33 +39,43 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       setFilteredSuggestions([]);
     }
   }, [newTag, tags, onTagsChange]);
-  
+
   // Handle removing a tag
-  const handleRemoveTag = useCallback((tagToRemove: string) => {
-    onTagsChange(tags.filter(tag => tag !== tagToRemove));
-  }, [tags, onTagsChange]);
-  
+  const handleRemoveTag = useCallback(
+    (tagToRemove: string) => {
+      onTagsChange(tags.filter(tag => tag !== tagToRemove));
+    },
+    [tags, onTagsChange]
+  );
+
   // Handle adding a suggested tag
-  const handleAddSuggestedTag = useCallback((tag: string) => {
-    if (!tags.includes(tag)) {
-      onTagsChange([...tags, tag]);
-    }
-  }, [tags, onTagsChange]);
-  
+  const handleAddSuggestedTag = useCallback(
+    (tag: string) => {
+      if (!tags.includes(tag)) {
+        onTagsChange([...tags, tag]);
+      }
+    },
+    [tags, onTagsChange]
+  );
+
   // Filter suggestions as user types
-  const handleTagInputChange = useCallback((text: string) => {
-    setNewTag(text);
-    
-    if (text.trim().length > 0) {
-      const filtered = suggestedTags.filter(tag => 
-        tag.toLowerCase().includes(text.toLowerCase()) && 
-        !tags.includes(tag)
-      );
-      setFilteredSuggestions(filtered);
-    } else {
-      setFilteredSuggestions([]);
-    }
-  }, [suggestedTags, tags]);
+  const handleTagInputChange = useCallback(
+    (text: string) => {
+      setNewTag(text);
+
+      if (text.trim().length > 0) {
+        const filtered = suggestedTags.filter(
+          tag =>
+            tag.toLowerCase().includes(text.toLowerCase()) &&
+            !tags.includes(tag)
+        );
+        setFilteredSuggestions(filtered);
+      } else {
+        setFilteredSuggestions([]);
+      }
+    },
+    [suggestedTags, tags]
+  );
 
   return (
     <View style={styles.container}>
@@ -74,8 +84,8 @@ export const TagEditor: React.FC<TagEditorProps> = ({
           <Tag size={18} color={Colors.text.primary} />
           <Text style={styles.title}>Tags</Text>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.helpButton}
           onPress={() => {
             // Show help info
@@ -88,16 +98,16 @@ export const TagEditor: React.FC<TagEditorProps> = ({
           <HelpCircle size={16} color={Colors.text.secondary} />
         </TouchableOpacity>
       </View>
-      
+
       {/* Current Tags */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tagsScrollContainer}
       >
         {tags.length > 0 ? (
-          tags.map((tag) => (
-            <View key={tag} style={styles.tag}>
+          tags.map((tag, index) => (
+            <View key={`tag-${index}-${tag}`} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
               <TouchableOpacity
                 style={styles.removeTagButton}
@@ -112,7 +122,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
           <Text style={styles.noTagsText}>No tags added yet</Text>
         )}
       </ScrollView>
-      
+
       {/* Add New Tag */}
       <View style={styles.addTagContainer}>
         <TextInput
@@ -126,35 +136,37 @@ export const TagEditor: React.FC<TagEditorProps> = ({
           autoCapitalize="none"
         />
         <TouchableOpacity
-          style={[
-            styles.addTagButton,
-            !newTag.trim() && styles.disabledButton,
-          ]}
+          style={[styles.addTagButton, !newTag.trim() && styles.disabledButton]}
           onPress={handleAddTag}
           disabled={!newTag.trim()}
         >
           <Plus size={20} color={Colors.white} />
         </TouchableOpacity>
       </View>
-      
+
       {/* Tag Suggestions */}
       {(filteredSuggestions.length > 0 || suggestedTags.length > 0) && (
         <View style={styles.suggestionsContainer}>
           <Text style={styles.suggestionsTitle}>
-            {filteredSuggestions.length > 0 ? 'Matching Tags' : 'Suggested Tags'}
+            {filteredSuggestions.length > 0
+              ? 'Matching Tags'
+              : 'Suggested Tags'}
           </Text>
-          
-          <ScrollView 
-            horizontal 
+
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.suggestionsScrollContainer}
           >
-            {(filteredSuggestions.length > 0 ? filteredSuggestions : suggestedTags)
+            {(filteredSuggestions.length > 0
+              ? filteredSuggestions
+              : suggestedTags
+            )
               .filter(tag => !tags.includes(tag))
               .slice(0, 10)
-              .map((tag) => (
+              .map((tag, index) => (
                 <TouchableOpacity
-                  key={tag}
+                  key={`suggestion-${index}-${tag}`}
                   style={styles.suggestionTag}
                   onPress={() => handleAddSuggestedTag(tag)}
                 >
@@ -162,7 +174,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
                   <Plus size={12} color={Colors.primary[700]} />
                 </TouchableOpacity>
               ))}
-              
+
             {onRequestSuggestions && (
               <TouchableOpacity
                 style={styles.moreSuggestionsButton}

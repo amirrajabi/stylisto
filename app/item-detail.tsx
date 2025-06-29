@@ -246,8 +246,8 @@ export default function ItemDetailScreen() {
             </View>
             <View style={styles.tagsContainer}>
               {item.tags.length > 0 ? (
-                item.tags.map(tag => (
-                  <View key={tag} style={styles.customTag}>
+                item.tags.map((tag, index) => (
+                  <View key={`tag-${index}-${tag}`} style={styles.customTag}>
                     <Text style={styles.customTagText}>{tag}</Text>
                   </View>
                 ))
@@ -262,9 +262,9 @@ export default function ItemDetailScreen() {
             <View style={styles.sectionCard}>
               <H3 style={styles.sectionTitle}>Seasons</H3>
               <View style={styles.tagsContainer}>
-                {item.season.map(season => (
+                {item.season.map((season, index) => (
                   <View
-                    key={season}
+                    key={`season-${index}-${season}`}
                     style={[
                       styles.tag,
                       { backgroundColor: getSeasonColor(season) },
@@ -282,9 +282,9 @@ export default function ItemDetailScreen() {
             <View style={styles.sectionCard}>
               <H3 style={styles.sectionTitle}>Occasions</H3>
               <View style={styles.tagsContainer}>
-                {item.occasion.map(occasion => (
+                {item.occasion.map((occasion, index) => (
                   <View
-                    key={occasion}
+                    key={`occasion-${index}-${occasion}`}
                     style={[
                       styles.tag,
                       { backgroundColor: getOccasionColor(occasion) },

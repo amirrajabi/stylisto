@@ -578,8 +578,8 @@ export default function ItemTagEditorScreen() {
 
             {/* Current Tags */}
             <View style={styles.tagsContainer}>
-              {tags.map(tag => (
-                <View key={tag} style={styles.tag}>
+              {tags.map((tag, index) => (
+                <View key={`tag-${index}-${tag}`} style={styles.tag}>
                   <Text style={styles.tagText}>{tag}</Text>
                   <TouchableOpacity
                     style={styles.removeTagButton}
@@ -616,9 +616,9 @@ export default function ItemTagEditorScreen() {
               <View style={styles.suggestedTagsContainer}>
                 <Text style={styles.suggestedTagsTitle}>Suggested Tags</Text>
                 <View style={styles.suggestedTagsGrid}>
-                  {suggestedTags.map(tag => (
+                  {suggestedTags.map((tag, index) => (
                     <TouchableOpacity
-                      key={tag}
+                      key={`suggested-${index}-${tag}`}
                       style={styles.suggestedTag}
                       onPress={() => handleAddSuggestedTag(tag)}
                     >

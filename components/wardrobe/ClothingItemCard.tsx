@@ -122,7 +122,7 @@ const ClothingItemCard: React.FC<ClothingItemCardProps> = memo(
           <View style={styles.tagsContainer}>
             {item.season.slice(0, 2).map((season, index) => (
               <View
-                key={season}
+                key={`season-${index}-${season}`}
                 style={[
                   styles.seasonTag,
                   { backgroundColor: getSeasonColor(season) },

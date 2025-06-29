@@ -222,9 +222,9 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
           )}
 
           <View style={styles.listTags}>
-            {item.season.slice(0, 2).map(season => (
+            {item.season.slice(0, 2).map((season, index) => (
               <View
-                key={season}
+                key={`season-${index}-${season}`}
                 style={[
                   styles.seasonTag,
                   { backgroundColor: getSeasonColor(season) },
@@ -357,9 +357,9 @@ const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({
         )}
 
         <View style={styles.gridTags}>
-          {item.season.slice(0, 2).map(season => (
+          {item.season.slice(0, 2).map((season, index) => (
             <View
-              key={season}
+              key={`season-${index}-${season}`}
               style={[
                 styles.seasonTag,
                 { backgroundColor: getSeasonColor(season) },
