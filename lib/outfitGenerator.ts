@@ -7,6 +7,7 @@ import {
   Outfit,
   Season,
 } from '../types/wardrobe';
+import { generateOutfitName } from '../utils/outfitNaming';
 
 // Types for outfit generation
 export interface OutfitGenerationOptions {
@@ -191,8 +192,11 @@ class OutfitGenerator {
     // Sort by score (descending)
     qualifyingOutfits.sort((a, b) => b.score.total - a.score.total);
 
+    // Remove duplicates first
+    const uniqueOutfits = this.removeDuplicateOutfits(qualifyingOutfits);
+
     // Apply variety filter to avoid similar outfits
-    const diverseOutfits = this.ensureOutfitVariety(qualifyingOutfits);
+    const diverseOutfits = this.ensureOutfitVariety(uniqueOutfits);
 
     // Limit results
     const finalOutfits = diverseOutfits.slice(0, mergedOptions.maxResults);
@@ -2147,10 +2151,10 @@ class OutfitGenerator {
   /**
    * Create an outfit object from generated items
    */
-  createOutfit(
-    items: ClothingItem[],
-    name: string = 'Generated Outfit'
-  ): Outfit {
+  createOutfit(items: ClothingItem[], name?: string): Outfit {
+    // Generate a smart name if not provided
+    const outfitName = name || generateOutfitName(items);
+
     // Determine seasons and occasions based on items
     const seasons = this.findCommonValues(items.map(item => item.season));
     const occasions = this.findCommonValues(items.map(item => item.occasion));
@@ -2162,7 +2166,7 @@ class OutfitGenerator {
 
     return {
       id: uuidv4(),
-      name,
+      name: outfitName,
       items,
       season: seasons,
       occasion: occasions,

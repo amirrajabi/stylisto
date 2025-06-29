@@ -24,6 +24,8 @@ import {
   OutfitGenerationOptions,
   useOutfitGenerator,
 } from '../../lib/outfitGenerator';
+import { Outfit } from '../../types/wardrobe';
+import { generateOutfitName } from '../../utils/outfitNaming';
 import { OutfitPreview } from './OutfitPreview';
 
 interface OutfitGeneratorProps {
@@ -37,6 +39,9 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
 }) => {
   const { items, actions } = useWardrobe();
   const { generateOutfits, createOutfit } = useOutfitGenerator();
+
+  // Get existing outfits from wardrobe state to prevent duplicate names
+  const { outfits: existingOutfits } = useWardrobe();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedOutfits, setGeneratedOutfits] = useState<GeneratedOutfit[]>(
@@ -106,7 +111,10 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
     }
 
     const selectedOutfit = generatedOutfits[selectedOutfitIndex];
-    const outfitName = `Generated Outfit ${new Date().toLocaleDateString()}`;
+
+    // Get existing outfit names to prevent duplicates
+    const existingNames = existingOutfits.map((outfit: Outfit) => outfit.name);
+    const outfitName = generateOutfitName(selectedOutfit.items, existingNames);
 
     const outfit = createOutfit(selectedOutfit.items, outfitName);
     actions.addOutfit(outfit);
@@ -120,6 +128,7 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({
     createOutfit,
     actions,
     onSaveOutfit,
+    existingOutfits,
   ]);
 
   const handleUpdateOption = useCallback(

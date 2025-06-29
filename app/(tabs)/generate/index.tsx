@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Filter, Plus, Search, Sparkles, X } from 'lucide-react-native';
+import { Filter, Plus, Search, Sparkles } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Animated,
@@ -27,6 +27,7 @@ import { Typography } from '../../../constants/Typography';
 import { useAuth } from '../../../hooks/useAuth';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { useWardrobe } from '../../../hooks/useWardrobe';
+import { generateOutfitName } from '../../../utils/outfitNaming';
 
 import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
 import { useManualOutfits } from '../../../hooks/useManualOutfits';
@@ -121,8 +122,6 @@ export default function StylistScreen() {
     getOccasionBasedRecommendation,
     generateRecommendations,
     generationProgress,
-    hasPersistedManualOutfits,
-    clearAndRegenerateOutfits,
   } = useOutfitRecommendation(undefined, screenReady);
 
   const [selectedOutfit, setSelectedOutfit] = useState<any>(null);
@@ -493,15 +492,70 @@ export default function StylistScreen() {
     }
   }, [generateRecommendations, filteredItems.length]);
 
-  const handleSaveOutfit = useCallback(() => {
-    const outfitId = saveCurrentOutfit();
-    if (outfitId) {
-      router.push({
-        pathname: '/profile/saved' as any,
-        params: { highlight: outfitId },
-      });
-    }
-  }, [saveCurrentOutfit]);
+  const handleOutfitSave = useCallback(
+    async (outfitId: string) => {
+      console.log('🔍 Generate screen - saving outfit:', outfitId);
+
+      if (outfitId.startsWith('outfit-')) {
+        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+        const outfit = outfits[outfitIndex];
+
+        if (!outfit) {
+          console.error('Outfit not found at index:', outfitIndex);
+          return;
+        }
+
+        // Get existing outfit names to prevent duplicates
+        const existingNames = [
+          ...outfits
+            .slice(0, outfitIndex)
+            .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
+          ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
+        ];
+
+        const outfitWithMetadata = {
+          id: outfitId,
+          name: generateOutfitName(outfit.items, existingNames),
+          items: outfit.items,
+          score: {
+            total: outfit.score.total,
+            color: outfit.score.breakdown.colorHarmony,
+            style: outfit.score.breakdown.styleMatching,
+            season: outfit.score.breakdown.seasonSuitability,
+            occasion: outfit.score.breakdown.occasionSuitability,
+          },
+        };
+
+        console.log(
+          '🔍 Generate screen - outfit metadata:',
+          outfitWithMetadata
+        );
+
+        setSelectedOutfit(outfitWithMetadata);
+        setModalVisible(true);
+      } else if (outfitId.startsWith('manual-db-')) {
+        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+        if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
+          // Get existing outfit names to prevent duplicates
+          const existingNames = [
+            ...outfits
+              .slice(0, outfitIndex)
+              .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
+            ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
+          ];
+
+          const savedOutfitId = saveCurrentOutfit(
+            generateOutfitName(outfits[outfitIndex].items, existingNames)
+          );
+          if (savedOutfitId) {
+            // Refresh saved outfits from database after saving
+            await refreshManualOutfits();
+          }
+        }
+      }
+    },
+    [outfits, saveCurrentOutfit, refreshManualOutfits, manualOutfitsFromDB]
+  );
 
   const handleOutfitPress = useCallback(
     (outfitIndex: number) => {
@@ -510,7 +564,7 @@ export default function StylistScreen() {
         const outfitId = `outfit-${outfitIndex}`;
         const outfitWithMetadata = {
           id: outfitId,
-          name: `Generated Outfit ${outfitIndex + 1}`,
+          name: generateOutfitName(outfit.items),
           items: outfit.items,
           score: {
             total: outfit.score.total,
@@ -534,36 +588,6 @@ export default function StylistScreen() {
     setSelectedOutfit(null);
   }, []);
 
-  const handleOutfitSave = useCallback(
-    async (outfitId: string) => {
-      // Handle AI generated outfits
-      if (outfitId.startsWith('outfit-')) {
-        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
-        if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
-          const savedOutfitId = saveCurrentOutfit(
-            `Generated Outfit ${outfitIndex + 1}`
-          );
-          if (savedOutfitId) {
-            // Refresh saved outfits from database after saving
-            await refreshManualOutfits();
-
-            console.log('✅ Outfit updated successfully:', savedOutfitId);
-          }
-        }
-      }
-      // Handle manual outfits
-      else if (outfitId.startsWith('manual-db-')) {
-        const originalId = outfitId.replace('manual-db-', '');
-        const outfit = manualOutfitsFromDB.find(o => o.id === originalId);
-        if (outfit) {
-          // Manual outfits are already saved, just navigate to saved page
-          console.log('✅ Manual outfit already saved:', outfit.id);
-        }
-      }
-    },
-    [outfits, saveCurrentOutfit, refreshManualOutfits, manualOutfitsFromDB]
-  );
-
   const handleOutfitEdit = useCallback(
     (outfitId: string) => {
       const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
@@ -571,7 +595,7 @@ export default function StylistScreen() {
       if (outfit) {
         const outfitWithMetadata = {
           id: `outfit-${outfitIndex}`,
-          name: `Generated Outfit ${outfitIndex + 1}`,
+          name: generateOutfitName(outfit.items),
           items: outfit.items,
           score: {
             total: outfit.score.total,
@@ -598,7 +622,9 @@ export default function StylistScreen() {
       console.log('Updated outfit:', updatedOutfit);
       const outfitIndex = parseInt(updatedOutfit.id.replace('outfit-', ''), 10);
       if (!isNaN(outfitIndex)) {
-        const savedOutfitId = saveCurrentOutfit(updatedOutfit.name);
+        const savedOutfitId = saveCurrentOutfit(
+          generateOutfitName(updatedOutfit.items)
+        );
         if (savedOutfitId) {
           // Refresh saved outfits from database after updating
           await refreshManualOutfits();
@@ -863,49 +889,51 @@ export default function StylistScreen() {
                 </View>
                 <Text style={styles.outfitCount}>({outfits.length})</Text>
               </View>
-              {hasPersistedManualOutfits && (
-                <TouchableOpacity
-                  style={styles.regenerateButton}
-                  onPress={clearAndRegenerateOutfits}
-                  disabled={loading}
-                >
-                  <X size={16} color={Colors.primary[600]} />
-                  <Text style={styles.regenerateButtonText}>Clear All</Text>
-                </TouchableOpacity>
-              )}
             </View>
             <Text style={styles.sectionDescription}>
               Fresh outfit suggestions generated by AI based on your preferences
               and wardrobe
             </Text>
-            <OutfitCard
-              outfits={outfits.map((outfit, index) => ({
-                id: `outfit-${index}`,
-                name: `Generated Outfit ${index + 1}`,
-                items: outfit.items,
-                score: {
-                  total: outfit.score.total,
-                  color: outfit.score.breakdown.colorHarmony,
-                  style: outfit.score.breakdown.styleMatching,
-                  season: outfit.score.breakdown.seasonSuitability,
-                  occasion: outfit.score.breakdown.occasionSuitability,
-                },
-                isFavorite: favoriteStatus[`outfit-${index}`] || false,
-              }))}
-              onOutfitPress={(outfitId: string) => {
-                const index = parseInt(outfitId.replace('outfit-', ''), 10);
-                handleOutfitPress(index);
-              }}
-              onSaveOutfit={handleOutfitSave}
-              onEditOutfit={handleOutfitEdit}
-              onCurrentIndexChange={setCurrentOutfitIndex}
-              currentIndex={currentOutfitIndex}
-              onFavoriteToggled={(outfitId: string, isFavorite: boolean) => {
-                console.log(
-                  `✅ Outfit ${outfitId} favorite status changed to: ${isFavorite}`
-                );
-              }}
-            />
+            <View style={styles.outfitCardContainer}>
+              <OutfitCard
+                outfits={outfits.map((outfit, index) => {
+                  // Get existing outfit names to prevent duplicates
+                  const existingNames = [
+                    ...outfits
+                      .slice(0, index)
+                      .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
+                    ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
+                  ];
+
+                  return {
+                    id: `outfit-${index}`,
+                    name: generateOutfitName(outfit.items, existingNames),
+                    items: outfit.items,
+                    score: {
+                      total: outfit.score.total,
+                      color: outfit.score.breakdown.colorHarmony,
+                      style: outfit.score.breakdown.styleMatching,
+                      season: outfit.score.breakdown.seasonSuitability,
+                      occasion: outfit.score.breakdown.occasionSuitability,
+                    },
+                    isFavorite: favoriteStatus[`outfit-${index}`] || false,
+                  };
+                })}
+                onOutfitPress={(outfitId: string) => {
+                  const index = parseInt(outfitId.replace('outfit-', ''), 10);
+                  handleOutfitPress(index);
+                }}
+                onSaveOutfit={handleOutfitSave}
+                onEditOutfit={handleOutfitEdit}
+                onCurrentIndexChange={setCurrentOutfitIndex}
+                currentIndex={currentOutfitIndex}
+                onFavoriteToggled={(outfitId: string, isFavorite: boolean) => {
+                  console.log(
+                    `✅ Outfit ${outfitId} favorite status changed to: ${isFavorite}`
+                  );
+                }}
+              />
+            </View>
           </View>
         ) : showQuickFilters && !hasActiveFilters ? (
           <View style={styles.emptyState}>
@@ -987,74 +1015,79 @@ export default function StylistScreen() {
                 ))}
               </ScrollView>
             ) : manualOutfitsFromDB.length > 0 ? (
-              <OutfitCard
-                outfits={manualOutfitsFromDB.map(outfit => {
-                  console.log(
-                    '🔍 Mapping outfit for OutfitCard:',
-                    outfit.id,
-                    outfit.name,
-                    'isFavorite from DB:',
-                    outfit.isFavorite
-                  );
-                  return {
-                    id: `manual-db-${outfit.id}`,
-                    name: outfit.name,
-                    items: outfit.items,
-                    score: outfit.score,
-                    type: 'manual',
-                    originalData: outfit,
-                    isFavorite: outfit.isFavorite || false,
-                    createdAt: outfit.createdAt,
-                    updatedAt: outfit.updatedAt,
-                  };
-                })}
-                onOutfitPress={(outfitId: string) => {
-                  const id = outfitId.replace('manual-db-', '');
-                  const outfit = manualOutfitsFromDB.find(o => o.id === id);
-                  if (outfit) {
-                    console.log('🔍 Selected outfit for modal:', outfit);
-                    console.log('🔍 Outfit score:', outfit.score);
-
-                    // Ensure score structure matches OutfitDetailModal expectations
-                    const normalizedScore = {
-                      total: outfit.score?.total || 0.8,
-                      color: outfit.score?.color || 0.8,
-                      style: outfit.score?.style || 0.8,
-                      season: outfit.score?.season || 0.8,
-                      occasion: outfit.score?.occasion || 0.8,
-                    };
-
-                    setSelectedOutfit({
+              <View style={styles.outfitCardContainer}>
+                <OutfitCard
+                  outfits={manualOutfitsFromDB.map(outfit => {
+                    console.log(
+                      '🔍 Mapping outfit for OutfitCard:',
+                      outfit.id,
+                      outfit.name,
+                      'isFavorite from DB:',
+                      outfit.isFavorite
+                    );
+                    return {
                       id: `manual-db-${outfit.id}`,
                       name: outfit.name,
-                      items: outfit.items || [],
-                      score: normalizedScore,
-                    });
-                    setModalVisible(true);
-                  }
-                }}
-                onSaveOutfit={handleOutfitSave}
-                onEditOutfit={(outfit: any) => {
-                  const id = outfit.id.replace('manual-db-', '');
-                  const foundOutfit = manualOutfitsFromDB.find(
-                    o => o.id === id
-                  );
-                  if (foundOutfit) {
-                    setOutfitToEdit({
-                      ...outfit,
-                      isManual: true,
-                    });
-                    setEditModalVisible(true);
-                  }
-                }}
-                onCurrentIndexChange={setCurrentOutfitIndex}
-                currentIndex={0}
-                onFavoriteToggled={(outfitId: string, isFavorite: boolean) => {
-                  console.log(
-                    `✅ Manual outfit ${outfitId} favorite status changed to: ${isFavorite}`
-                  );
-                }}
-              />
+                      items: outfit.items,
+                      score: outfit.score,
+                      type: 'manual',
+                      originalData: outfit,
+                      isFavorite: outfit.isFavorite || false,
+                      createdAt: outfit.createdAt,
+                      updatedAt: outfit.updatedAt,
+                    };
+                  })}
+                  onOutfitPress={(outfitId: string) => {
+                    const id = outfitId.replace('manual-db-', '');
+                    const outfit = manualOutfitsFromDB.find(o => o.id === id);
+                    if (outfit) {
+                      console.log('🔍 Selected outfit for modal:', outfit);
+                      console.log('🔍 Outfit score:', outfit.score);
+
+                      // Ensure score structure matches OutfitDetailModal expectations
+                      const normalizedScore = {
+                        total: outfit.score?.total || 0.8,
+                        color: outfit.score?.color || 0.8,
+                        style: outfit.score?.style || 0.8,
+                        season: outfit.score?.season || 0.8,
+                        occasion: outfit.score?.occasion || 0.8,
+                      };
+
+                      setSelectedOutfit({
+                        id: `manual-db-${outfit.id}`,
+                        name: outfit.name,
+                        items: outfit.items || [],
+                        score: normalizedScore,
+                      });
+                      setModalVisible(true);
+                    }
+                  }}
+                  onSaveOutfit={handleOutfitSave}
+                  onEditOutfit={(outfit: any) => {
+                    const id = outfit.id.replace('manual-db-', '');
+                    const foundOutfit = manualOutfitsFromDB.find(
+                      o => o.id === id
+                    );
+                    if (foundOutfit) {
+                      setOutfitToEdit({
+                        ...outfit,
+                        isManual: true,
+                      });
+                      setEditModalVisible(true);
+                    }
+                  }}
+                  onCurrentIndexChange={setCurrentOutfitIndex}
+                  currentIndex={0}
+                  onFavoriteToggled={(
+                    outfitId: string,
+                    isFavorite: boolean
+                  ) => {
+                    console.log(
+                      `✅ Manual outfit ${outfitId} favorite status changed to: ${isFavorite}`
+                    );
+                  }}
+                />
+              </View>
             ) : (
               <ScrollView
                 horizontal
@@ -1082,8 +1115,10 @@ export default function StylistScreen() {
       {/* Floating Action Button for Manual Outfit Builder */}
       <FloatingActionButton
         onPress={handleManualOutfitBuilder}
-        icon="plus"
-        iconColor={Colors.background.primary}
+        size={56}
+        iconSize={36}
+        gradientColors={['#ffffff', '#ffffff']}
+        icon="app-icon"
         style={styles.fab}
       />
 
@@ -1125,6 +1160,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
+    marginBottom: 70,
   },
   header: {
     flexDirection: 'row',
@@ -1260,8 +1296,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.lg,
   },
+  outfitCardContainer: {
+    marginHorizontal: -Spacing.md,
+  },
   outfitsSection: {
-    marginVertical: Spacing.lg,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',

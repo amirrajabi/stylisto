@@ -23,7 +23,8 @@ import {
   WeatherData,
 } from '../lib/outfitGenerator';
 import { GeneratedOutfitRecord, OutfitService } from '../lib/outfitService';
-import { Occasion, Season } from '../types/wardrobe';
+import { Occasion, Outfit, Season } from '../types/wardrobe';
+import { generateOutfitName } from '../utils/outfitNaming';
 import { useWardrobe } from './useWardrobe';
 
 export interface OutfitRecommendationState {
@@ -41,12 +42,19 @@ export interface OutfitWithFavorite extends GeneratedOutfit {
   isFavorite?: boolean;
 }
 
+export interface OutfitRecordWithFavorite extends GeneratedOutfitRecord {
+  isFavorite?: boolean;
+}
+
 export const useOutfitRecommendation = (
   initialOptions?: Partial<OutfitGenerationOptions>,
   screenReady?: boolean
 ) => {
-  const { filteredItems, outfits: savedOutfits, actions } = useWardrobe();
+  const { items: filteredItems, actions } = useWardrobe();
   const { generateOutfits, createOutfit } = useOutfitGenerator();
+
+  // Get wardrobe state to access existing outfits
+  const wardrobeState = useWardrobe();
 
   const [state, setState] = useState<OutfitRecommendationState>({
     loading: false,
@@ -223,6 +231,7 @@ export const useOutfitRecommendation = (
         }));
 
         console.log('✅ Generation completed successfully');
+        console.log('📊 Final outfit count in state:', generatedOutfits.length);
         return generatedOutfits;
       } catch (error) {
         console.error('❌ Generation failed:', error);
@@ -242,6 +251,14 @@ export const useOutfitRecommendation = (
 
   const clearAndRegenerateOutfits = useCallback(async () => {
     try {
+      console.log(
+        '🧹 Starting clearAndRegenerateOutfits - current count:',
+        state.outfits.length
+      );
+
+      // Reset generation flag to prevent race conditions
+      isGeneratingRef.current = false;
+
       setState(prev => ({ ...prev, loading: true, generationProgress: 0.1 }));
 
       // Simply clear memory and regenerate (no database operations needed)
@@ -251,7 +268,7 @@ export const useOutfitRecommendation = (
         generationProgress: 0.3,
       }));
 
-      console.log('🔄 Regenerating AI outfits...');
+      console.log('🔄 Outfits cleared, regenerating AI outfits...');
       await generateRecommendations();
     } catch (error) {
       console.error('❌ Error regenerating outfits:', error);
@@ -261,7 +278,7 @@ export const useOutfitRecommendation = (
         error: 'Failed to regenerate outfits',
       }));
     }
-  }, [generateRecommendations]);
+  }, [generateRecommendations, state.outfits.length]);
 
   // Auto-generate AI outfits when screen is ready and items are available
   useEffect(() => {
@@ -318,15 +335,26 @@ export const useOutfitRecommendation = (
       }
 
       const selectedOutfit = state.outfits[state.selectedOutfitIndex];
+
+      // Get existing outfit names to prevent duplicates
+      const existingOutfitNames = wardrobeState.outfits.map(
+        (outfit: Outfit) => outfit.name
+      );
       const outfitName =
-        name || `Generated Outfit ${new Date().toLocaleDateString()}`;
+        name || generateOutfitName(selectedOutfit.items, existingOutfitNames);
 
       const outfit = createOutfit(selectedOutfit.items, outfitName);
       actions.addOutfit(outfit);
 
       return outfit.id;
     },
-    [state.outfits, state.selectedOutfitIndex, createOutfit, actions]
+    [
+      state.outfits,
+      state.selectedOutfitIndex,
+      createOutfit,
+      actions,
+      wardrobeState.outfits,
+    ]
   );
 
   const getWeatherBasedRecommendation = useCallback(
@@ -367,10 +395,6 @@ export const useOutfitRecommendation = (
     [generateRecommendations, filteredItems.length]
   );
 
-  const [outfits, setOutfits] = useState<OutfitWithFavorite[]>([]);
-  const [manualOutfits, setManualOutfits] = useState<OutfitWithFavorite[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-
   const toggleOutfitFavorite = async (outfitId: string) => {
     try {
       const result = await OutfitService.toggleOutfitFavorite(outfitId);
@@ -380,13 +404,15 @@ export const useOutfitRecommendation = (
         return;
       }
 
-      const updateOutfitFavorite = (outfit: OutfitWithFavorite) =>
-        outfit.id === outfitId
-          ? { ...outfit, isFavorite: result.isFavorite }
-          : outfit;
-
-      setOutfits(prev => prev.map(updateOutfitFavorite));
-      setManualOutfits(prev => prev.map(updateOutfitFavorite));
+      // Only update manual outfits that have persistent IDs
+      setState(prev => ({
+        ...prev,
+        manualOutfits: prev.manualOutfits.map(outfit =>
+          outfit.id === outfitId
+            ? { ...outfit, isFavorite: result.isFavorite }
+            : outfit
+        ),
+      }));
 
       return result.isFavorite;
     } catch (error) {
@@ -396,30 +422,27 @@ export const useOutfitRecommendation = (
   };
 
   const loadOutfits = useCallback(async () => {
+    // Only load manual outfits from database, AI outfits are generated fresh
     try {
-      setLoading(true);
-      const [generatedOutfits, manualOutfitsList] = await Promise.all([
-        OutfitService.loadGeneratedOutfits(),
-        OutfitService.loadManualOutfits(),
-      ]);
+      setState(prev => ({ ...prev, loading: true }));
+      const manualOutfitsList = await OutfitService.loadManualOutfits();
 
-      setOutfits(
-        generatedOutfits.map(outfit => ({ ...outfit, isFavorite: false }))
-      );
-      setManualOutfits(
-        manualOutfitsList.map(outfit => ({ ...outfit, isFavorite: false }))
-      );
+      setState(prev => ({
+        ...prev,
+        manualOutfits: manualOutfitsList.map(outfit => ({
+          ...outfit,
+          isFavorite: outfit.isFavorite || false,
+        })),
+        loading: false,
+      }));
     } catch (error) {
       console.error('Error loading outfits:', error);
-    } finally {
-      setLoading(false);
+      setState(prev => ({ ...prev, loading: false }));
     }
   }, []);
 
   const refreshOutfits = useCallback(async () => {
-    setRefreshing(true);
     await loadOutfits();
-    setRefreshing(false);
   }, [loadOutfits]);
 
   return {

@@ -15,6 +15,7 @@ import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
 import { OutfitService } from '../../lib/outfitService';
 import { ClothingItem } from '../../types/wardrobe';
+import { generateOutfitName } from '../../utils/outfitNaming';
 
 interface OutfitCardProps {
   outfits: {
@@ -40,7 +41,7 @@ interface OutfitCardProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-const cardWidth = screenWidth * 0.75;
+const cardWidth = screenWidth * 0.9;
 
 export const OutfitCard: React.FC<OutfitCardProps> = ({
   outfits,
@@ -84,10 +85,16 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           return;
         }
 
+        // Get existing outfit names to prevent duplicates
+        const existingNames = outfits
+          .filter((o, index) => index !== outfitIndex) // Exclude current outfit
+          .map(o => o.name);
+        const outfitName = generateOutfitName(outfit.items, existingNames);
+
         // Save the outfit first using the new method
         const saveResult = await OutfitService.saveSingleGeneratedOutfit(
           outfit,
-          `Generated Outfit ${outfitIndex + 1}`
+          outfitName
         );
 
         if (saveResult.error || !saveResult.outfitId) {
@@ -177,7 +184,10 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   };
 
   const renderOutfitItem = ({ item: outfit }: { item: any }) => {
-    const displayItems = (outfit.items || []).slice(0, 3);
+    const allItems = outfit.items || [];
+    const isManualOutfit =
+      outfit.id.startsWith('manual-') ||
+      (!outfit.id.startsWith('outfit-') && !outfit.id.includes('manual-'));
 
     return (
       <TouchableOpacity
@@ -199,7 +209,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           </Text>
           <View style={styles.headerActions}>
             <View style={styles.actionButtons}>
-              {onEditOutfit && (
+              {onEditOutfit && isManualOutfit && (
                 <TouchableOpacity
                   style={styles.editButton}
                   onPress={() => onEditOutfit(outfit.id)}
@@ -231,81 +241,23 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           </View>
         </View>
 
-        {/* Outfit Items Timeline */}
+        {/* Outfit Items Row */}
         <View style={styles.itemsContainer}>
-          {displayItems.map((item: ClothingItem, index: number) => (
-            <View key={item.id} style={styles.itemWrapper}>
-              <View style={styles.itemImageContainer}>
+          <View style={styles.horizontalItemsRow}>
+            {allItems.slice(0, 4).map((item: ClothingItem, index: number) => (
+              <View key={item.id} style={styles.itemContainer}>
                 <Image
                   source={{ uri: item.imageUrl }}
                   style={styles.itemImage}
                   contentFit="cover"
                 />
               </View>
-              {index < displayItems.length - 1 && (
-                <View style={styles.connector} />
-              )}
-            </View>
-          ))}
-
-          {outfit.items && outfit.items.length > 3 && (
-            <View style={styles.moreItemsIndicator}>
-              <Text style={styles.moreItemsText}>
-                +{outfit.items.length - 3}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Score Breakdown */}
-        <View style={styles.scoreBreakdown}>
-          <View style={styles.scoreItem}>
-            <View
-              style={[
-                styles.scoreDot,
-                { backgroundColor: Colors.primary[500] },
-              ]}
-            />
-            <Text style={styles.scoreLabel}>Style</Text>
-            <Text style={styles.scoreValue}>
-              {Math.round(
-                (outfit.score.breakdown?.styleMatching ||
-                  outfit.score.style ||
-                  0.85) * 100
-              )}
-              %
-            </Text>
-          </View>
-          <View style={styles.scoreItem}>
-            <View
-              style={[
-                styles.scoreDot,
-                { backgroundColor: Colors.success[500] },
-              ]}
-            />
-            <Text style={styles.scoreLabel}>Color</Text>
-            <Text style={styles.scoreValue}>
-              {Math.round(
-                (outfit.score.breakdown?.colorHarmony ||
-                  outfit.score.color ||
-                  0.85) * 100
-              )}
-              %
-            </Text>
-          </View>
-          <View style={styles.scoreItem}>
-            <View
-              style={[styles.scoreDot, { backgroundColor: Colors.info[500] }]}
-            />
-            <Text style={styles.scoreLabel}>Season</Text>
-            <Text style={styles.scoreValue}>
-              {Math.round(
-                (outfit.score.breakdown?.seasonSuitability ||
-                  outfit.score.season ||
-                  0.85) * 100
-              )}
-              %
-            </Text>
+            ))}
+            {allItems.length > 4 && (
+              <View style={styles.moreItemsCounter}>
+                <Text style={styles.moreItemsText}>+{allItems.length - 4}</Text>
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -341,19 +293,19 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 230,
-    // paddingHorizontal: Spacing.sm,
+    height: 180,
     paddingBottom: Spacing.md,
   },
   listContainer: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.xs,
   },
   card: {
     width: cardWidth,
+    height: 140,
     backgroundColor: Colors.surface.primary,
     borderRadius: Layout.borderRadius.xl,
     padding: Spacing.md,
-    ...Shadows.md,
+    ...Shadows.lg,
     position: 'relative',
     marginBottom: Spacing.md,
   },
@@ -366,7 +318,7 @@ const styles = StyleSheet.create({
   outfitName: {
     ...Typography.heading.h5,
     color: Colors.text.primary,
-    fontWeight: '600',
+    fontWeight: '700',
     flex: 1,
     marginRight: Spacing.sm,
   },
@@ -376,92 +328,60 @@ const styles = StyleSheet.create({
   },
 
   itemsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    height: 70,
-  },
-  itemWrapper: {
-    flexDirection: 'row',
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  itemImageContainer: {
-    width: 55,
-    height: 55,
+  horizontalItemsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemContainer: {
+    width: 45,
+    height: 45,
     borderRadius: Layout.borderRadius.md,
     overflow: 'hidden',
     backgroundColor: Colors.surface.secondary,
     borderWidth: 2,
     borderColor: Colors.primary[200],
+    ...Shadows.sm,
   },
   itemImage: {
     width: '100%',
     height: '100%',
   },
-  connector: {
-    width: 20,
-    height: 2,
-    backgroundColor: Colors.primary[300],
-    marginHorizontal: Spacing.xs,
-  },
-  moreItemsIndicator: {
-    width: 35,
-    height: 35,
-    borderRadius: Layout.borderRadius.full,
+  moreItemsCounter: {
+    width: 45,
+    height: 45,
+    borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: Spacing.sm,
+    borderWidth: 2,
+    borderColor: Colors.primary[300],
+    ...Shadows.sm,
   },
   moreItemsText: {
     ...Typography.caption.small,
     color: Colors.primary[700],
-    fontWeight: '600',
-  },
-  scoreBreakdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  scoreItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  scoreDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginBottom: Spacing.xs,
-  },
-  scoreLabel: {
-    ...Typography.caption.small,
-    color: Colors.text.secondary,
-    marginBottom: 2,
-  },
-  scoreValue: {
-    ...Typography.body.small,
-    color: Colors.text.primary,
-    fontWeight: '500',
+    fontWeight: '700',
+    fontSize: 11,
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
   },
   editButton: {
-    width: 28,
-    height: 28,
-    borderRadius: Layout.borderRadius.full,
+    padding: Spacing.xs,
+    borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: Spacing.xs,
   },
   saveButton: {
-    width: 28,
-    height: 28,
-    borderRadius: Layout.borderRadius.full,
+    padding: Spacing.xs,
+    borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: Spacing.xs,
   },
 });

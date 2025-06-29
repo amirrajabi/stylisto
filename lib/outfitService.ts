@@ -1,6 +1,7 @@
 import { store } from '../store/store';
 import { addOutfit } from '../store/wardrobeSlice';
 import { ClothingItem, Outfit } from '../types/wardrobe';
+import { generateOutfitName } from '../utils/outfitNaming';
 import { supabase } from './supabase';
 
 export interface GeneratedOutfitRecord {
@@ -35,16 +36,35 @@ export class OutfitService {
       } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const outfitsToSave = outfits.map((outfit, index) => ({
-        user_id: user.id,
-        name: `Generated Outfit ${index + 1}`,
-        occasions: [],
-        seasons: [],
-        tags: [this.GENERATED_OUTFIT_TAG],
-        source_type: 'ai_generated',
-        is_favorite: false,
-        notes: `AI-generated outfit with ${outfit.items?.length || 0} items. Score: ${Math.round(outfit.score.total * 100)}%`,
-      }));
+      // Get existing outfit names from database to prevent duplicates
+      const { data: existingOutfits } = await supabase
+        .from('saved_outfits')
+        .select('name')
+        .eq('user_id', user.id);
+
+      const existingNames = existingOutfits?.map(outfit => outfit.name) || [];
+
+      const outfitsToSave = outfits.map((outfit, index) => {
+        // Generate unique name for each outfit
+        const outfitName = generateOutfitName(outfit.items, [
+          ...existingNames,
+          // Also include names from outfits being saved in this batch
+          ...outfits
+            .slice(0, index)
+            .map(o => generateOutfitName(o.items, existingNames)),
+        ]);
+
+        return {
+          user_id: user.id,
+          name: outfitName,
+          occasions: [],
+          seasons: [],
+          tags: [this.GENERATED_OUTFIT_TAG],
+          source_type: 'ai_generated',
+          is_favorite: false,
+          notes: `AI-generated outfit with ${outfit.items?.length || 0} items. Score: ${Math.round(outfit.score.total * 100)}%`,
+        };
+      });
 
       const { data: savedOutfits, error: outfitError } = await supabase
         .from('saved_outfits')
@@ -183,7 +203,7 @@ export class OutfitService {
 
   static async saveSingleGeneratedOutfit(
     outfit: any,
-    name: string
+    name?: string
   ): Promise<{ error: string | null; outfitId?: string }> {
     try {
       const {
@@ -193,9 +213,22 @@ export class OutfitService {
         return { error: 'User not authenticated' };
       }
 
+      let outfitName = name;
+
+      // If no name provided, generate one while checking for duplicates
+      if (!outfitName) {
+        const { data: existingOutfits } = await supabase
+          .from('saved_outfits')
+          .select('name')
+          .eq('user_id', user.id);
+
+        const existingNames = existingOutfits?.map(outfit => outfit.name) || [];
+        outfitName = generateOutfitName(outfit.items, existingNames);
+      }
+
       const outfitToSave = {
         user_id: user.id,
-        name: name,
+        name: outfitName,
         occasions: [],
         seasons: [],
         tags: [this.GENERATED_OUTFIT_TAG],
