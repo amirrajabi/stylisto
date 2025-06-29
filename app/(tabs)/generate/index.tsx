@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Filter, Plus, Sparkles, X } from 'lucide-react-native';
+import { Filter, Plus, Search, Sparkles, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Animated,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -18,7 +19,7 @@ import {
   OutfitFiltersModal,
 } from '../../../components/outfits/OutfitFiltersModal';
 import { OutfitStatsDisplay } from '../../../components/outfits/OutfitStatsDisplay';
-import { BodyMedium, H1, H3 } from '../../../components/ui';
+import { FloatingActionButton, H3 } from '../../../components/ui';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -103,6 +104,7 @@ export default function StylistScreen() {
     useOutfitFavorites();
 
   const [screenReady, setScreenReady] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Ref to prevent infinite refreshing
   const hasRefreshedOnFocus = React.useRef(false);
@@ -661,13 +663,6 @@ export default function StylistScreen() {
     (currentFilters.temperatureRange &&
       (currentFilters.temperatureRange.min !== 15 ||
         currentFilters.temperatureRange.max !== 25)) ||
-    currentFilters.stylePreferences.formality !== 0.5 ||
-    currentFilters.stylePreferences.boldness !== 0.5 ||
-    currentFilters.stylePreferences.layering !== 0.5 ||
-    currentFilters.stylePreferences.colorfulness !== 0.5 ||
-    currentFilters.stylePreferences.autoWeather ||
-    !currentFilters.stylePreferences.saveHistory ||
-    !currentFilters.stylePreferences.useColorTheory ||
     currentFilters.weatherIntegration.enabled;
 
   // Add weather update handler
@@ -722,27 +717,35 @@ export default function StylistScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with integrated filter button */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View style={styles.titleSection}>
-            <H1 style={styles.title}>AI Stylist</H1>
-            <BodyMedium style={styles.headerSubtitle}>
-              Your personal AI stylist powered by advanced fashion intelligence
-            </BodyMedium>
-          </View>
+        <Text style={styles.title}>AI Stylist</Text>
+      </View>
+
+      {/* Search and Sort */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Search size={20} color="#6b7280" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search outfits by style, occasion..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#9ca3af"
+          />
+        </View>
+
+        <View style={styles.actionButtonsContainer}>
           <TouchableOpacity
             style={[
-              styles.headerFilterButton,
-              hasActiveFilters && styles.headerFilterButtonActive,
+              styles.filterButton,
+              hasActiveFilters && styles.activeFilterButton,
             ]}
             onPress={() => setFiltersModalVisible(true)}
           >
             <Filter
               size={20}
-              color={
-                hasActiveFilters ? Colors.primary[600] : Colors.text.secondary
-              }
+              color={hasActiveFilters ? '#ffffff' : '#6b7280'}
             />
             {hasActiveFilters && (
               <View style={styles.filterBadge}>
@@ -752,74 +755,61 @@ export default function StylistScreen() {
                     currentFilters.style,
                     currentFilters.formality,
                     currentFilters.includeWeather,
-                    currentFilters.stylePreferences.formality !== 0.5,
-                    currentFilters.stylePreferences.boldness !== 0.5,
-                    currentFilters.stylePreferences.layering !== 0.5,
-                    currentFilters.stylePreferences.colorfulness !== 0.5,
-                    !currentFilters.stylePreferences.autoWeather,
-                    !currentFilters.stylePreferences.saveHistory,
-                    !currentFilters.stylePreferences.useColorTheory,
                     currentFilters.weatherIntegration.enabled,
+                    currentFilters.temperatureRange &&
+                      (currentFilters.temperatureRange.min !== 15 ||
+                        currentFilters.temperatureRange.max !== 25),
                   ].filter(Boolean).length + currentFilters.colors.length}
                 </Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
-
-        {/* Active Filters Display */}
-        {hasActiveFilters && (
-          <View style={styles.activeFiltersContainer}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.activeFiltersScroll}
-              contentContainerStyle={styles.activeFiltersContent}
-            >
-              {currentFilters.occasion && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {getOccasionLabel(currentFilters.occasion)}
-                  </Text>
-                </View>
-              )}
-              {currentFilters.style && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {getStyleLabel(currentFilters.style)}
-                  </Text>
-                </View>
-              )}
-              {currentFilters.formality && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {getFormalityLabel(currentFilters.formality)}
-                  </Text>
-                </View>
-              )}
-              {currentFilters.colors.map(color => (
-                <View key={color} style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {getColorLabel(color)}
-                  </Text>
-                </View>
-              ))}
-              {currentFilters.includeWeather && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>Weather</Text>
-                </View>
-              )}
-            </ScrollView>
-            <TouchableOpacity
-              style={styles.clearFiltersButton}
-              onPress={handleClearAllFilters}
-            >
-              <X size={16} color={Colors.error[600]} />
-              <Text style={styles.clearFiltersText}>Clear All</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
+
+      {/* Active Filters - Compact Display */}
+      {hasActiveFilters && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.activeFiltersScroll}
+          contentContainerStyle={styles.activeFiltersContent}
+        >
+          {currentFilters.occasion && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>
+                {getOccasionLabel(currentFilters.occasion)}
+              </Text>
+            </View>
+          )}
+          {currentFilters.style && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>
+                {getStyleLabel(currentFilters.style)}
+              </Text>
+            </View>
+          )}
+          {currentFilters.formality && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>
+                {getFormalityLabel(currentFilters.formality)}
+              </Text>
+            </View>
+          )}
+          {currentFilters.colors.map(color => (
+            <View key={color} style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>
+                {getColorLabel(color)}
+              </Text>
+            </View>
+          ))}
+          {currentFilters.includeWeather && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>Weather</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Outfit Generation Statistics */}
@@ -1087,30 +1077,15 @@ export default function StylistScreen() {
             )}
           </View>
         )}
-
-        {/* Manual Outfit Builder */}
-        <View style={styles.manualBuilderContainer}>
-          <TouchableOpacity
-            style={styles.manualBuilderCard}
-            onPress={handleManualOutfitBuilder}
-          >
-            <View style={styles.manualBuilderIcon}>
-              <Plus size={28} color={Colors.primary[500]} />
-            </View>
-            <View style={styles.manualBuilderContent}>
-              <Text style={styles.manualBuilderTitle}>
-                Create Manual Outfit
-              </Text>
-              <Text style={styles.manualBuilderDescription}>
-                Build your own outfit combinations to train our AI
-              </Text>
-            </View>
-            <View style={styles.optionArrow}>
-              <Text style={styles.arrow}>›</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      {/* Floating Action Button for Manual Outfit Builder */}
+      <FloatingActionButton
+        onPress={handleManualOutfitBuilder}
+        icon="plus"
+        iconColor={Colors.background.primary}
+        style={styles.fab}
+      />
 
       {/* Filters Modal */}
       <OutfitFiltersModal
@@ -1149,202 +1124,123 @@ export default function StylistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.background.primary,
   },
   header: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-    ...Shadows.sm,
-  },
-  headerSubtitle: {
-    marginTop: Spacing.xs,
-    color: Colors.text.secondary,
-  },
-  content: {
-    flex: 1,
-    padding: Spacing.md,
-  },
-
-  outfitsSection: {
-    marginBottom: Spacing.xl,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  outfitCount: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    marginLeft: Spacing.sm,
-    fontWeight: '500',
-  },
-
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  emptyStateTitle: {
-    ...Typography.heading.h4,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  emptyStateDescription: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  loadingState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  loadingText: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  optionsContainer: {
-    marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.md,
-    color: Colors.text.primary,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
-  },
-  optionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionTitle: {
-    ...Typography.heading.h5,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  optionDescription: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-  },
-  optionArrow: {
-    marginLeft: Spacing.sm,
-  },
-  arrow: {
-    fontSize: 20,
-    color: Colors.text.tertiary,
-    fontWeight: '300',
-  },
-  manualBuilderContainer: {
-    marginBottom: Spacing.lg,
-  },
-  manualBuilderCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
-  },
-  manualBuilderIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  manualBuilderContent: {
-    flex: 1,
-  },
-  manualBuilderTitle: {
-    ...Typography.heading.h5,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  manualBuilderDescription: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-  },
-  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  titleSection: {
-    flex: 1,
-    paddingRight: Spacing.md,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: Colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
   title: {
-    color: Colors.text.primary,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1f2937',
+    fontFamily: 'Inter-Bold',
   },
-  headerFilterButton: {
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
+  searchContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: Colors.surface.primary,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    zIndex: 9998,
     position: 'relative',
   },
-  headerFilterButtonActive: {
-    backgroundColor: Colors.primary[50],
-    borderColor: Colors.primary[300],
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1f2937',
+    fontFamily: 'Inter-Regular',
+    height: 20,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 9999,
+    position: 'relative',
+  },
+  filterButton: {
+    position: 'relative',
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    height: 44,
+    width: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  activeFilterButton: {
+    backgroundColor: '#A428FC',
   },
   filterBadge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: Colors.primary[500],
+    top: -4,
+    right: -4,
+    backgroundColor: '#ef4444',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.surface.primary,
   },
   filterBadgeText: {
-    ...Typography.caption.small,
-    color: Colors.text.inverse,
+    fontSize: 12,
     fontWeight: '600',
-    fontSize: 10,
-  },
-  activeFiltersContainer: {
-    marginTop: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: '#ffffff',
   },
   activeFiltersScroll: {
-    flex: 1,
-    marginRight: Spacing.sm,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: Colors.surface.primary,
   },
   activeFiltersContent: {
-    paddingRight: Spacing.sm,
+    flexDirection: 'row',
     gap: Spacing.xs,
+    paddingRight: Spacing.sm,
   },
   activeFilterChip: {
     backgroundColor: Colors.primary[100],
@@ -1359,34 +1255,42 @@ const styles = StyleSheet.create({
     color: Colors.primary[700],
     fontWeight: '500',
   },
-  clearFiltersButton: {
+
+  content: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  outfitsSection: {
+    marginVertical: Spacing.lg,
+  },
+  sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.error[50],
-    borderWidth: 1,
-    borderColor: Colors.error[200],
-    borderRadius: 20,
-    marginLeft: Spacing.sm,
-    ...Shadows.sm,
-  },
-  clearFiltersText: {
-    ...Typography.body.small,
-    color: Colors.error[700],
-    fontWeight: '600',
-    marginLeft: Spacing.xs,
-  },
-  preparingProgressContainer: {
-    marginTop: Spacing.lg,
-    width: '100%',
-    maxWidth: 350,
-    alignSelf: 'center',
+    marginBottom: Spacing.sm,
   },
   sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  sectionTitleWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    color: Colors.text.primary,
+  },
+  outfitCount: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.sm,
+  },
+  sectionDescription: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
   },
   regenerateButton: {
     flexDirection: 'row',
@@ -1397,131 +1301,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary[200],
     borderRadius: 20,
-    ...Shadows.sm,
+    gap: Spacing.xs,
   },
   regenerateButtonText: {
     ...Typography.body.small,
     color: Colors.primary[700],
     fontWeight: '600',
-    marginLeft: Spacing.xs,
   },
-  recentOutfitsSection: {
-    marginBottom: Spacing.xl,
-  },
-  viewAllButton: {
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
-  },
-  viewAllText: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    fontWeight: '600',
-  },
-  recentOutfitsContainer: {
-    flex: 1,
-  },
-  recentOutfitsContent: {
-    paddingRight: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  recentOutfitCard: {
-    width: 120,
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.sm,
-    marginRight: Spacing.sm,
-    ...Shadows.sm,
-    position: 'relative',
-  },
-  recentOutfitPreview: {
-    width: '100%',
-    height: 80,
-    borderRadius: Layout.borderRadius.sm,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
+  emptyState: {
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
-  outfitItemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  outfitItemMini: {
-    width: 16,
-    height: 16,
-    borderRadius: Layout.borderRadius.sm,
-    margin: 1,
-  },
-  outfitPlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: Layout.borderRadius.sm,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  outfitPlaceholderText: {
-    ...Typography.heading.h4,
-    color: Colors.text.secondary,
-    fontWeight: '600',
-  },
-  recentOutfitName: {
-    ...Typography.body.small,
+  emptyStateTitle: {
+    ...Typography.heading.h3,
     color: Colors.text.primary,
-    fontWeight: '500',
     textAlign: 'center',
-    lineHeight: 16,
+    marginBottom: Spacing.md,
   },
-  favoriteIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: Colors.error[500],
-    borderRadius: Layout.borderRadius.full,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
+  emptyStateDescription: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+    lineHeight: 24,
+  },
+  generateButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  favoriteIcon: {
-    fontSize: 12,
-    color: Colors.white,
-  },
-  addOutfitCard: {
-    width: 120,
-    backgroundColor: Colors.surface.primary,
+    backgroundColor: Colors.primary[500],
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.sm,
-    marginRight: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
     ...Shadows.sm,
-    borderWidth: 2,
-    borderColor: Colors.border.primary,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
   },
-  addOutfitIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
+  generateButtonText: {
+    ...Typography.button.medium,
+    color: Colors.background.primary,
+    fontWeight: '600',
   },
-  addOutfitText: {
+  warningText: {
     ...Typography.body.small,
     color: Colors.text.secondary,
-    fontWeight: '500',
     textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  preparingProgressContainer: {
+    marginTop: Spacing.lg,
+    width: '100%',
+    maxWidth: 350,
+    alignSelf: 'center',
   },
   skeletonCard: {
     width: 120,
@@ -1530,55 +1361,55 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     marginRight: Spacing.sm,
     ...Shadows.sm,
-    position: 'relative',
   },
   skeletonPreview: {
     width: '100%',
     height: 80,
     borderRadius: Layout.borderRadius.sm,
     backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: Spacing.xs,
   },
   skeletonText: {
-    width: '100%',
-    height: 16,
+    width: '80%',
+    height: 12,
+    borderRadius: 6,
     backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.full,
   },
-  sectionDescription: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+  recentOutfitsContainer: {
+    flex: 1,
   },
-  sectionTitleWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  recentOutfitsContent: {
+    paddingRight: Spacing.sm,
     gap: Spacing.xs,
   },
-  generateButton: {
-    flexDirection: 'row',
+  addOutfitCard: {
+    width: 120,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary[500],
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: Layout.borderRadius.lg,
-    marginTop: Spacing.lg,
-    ...Shadows.sm,
+    borderWidth: 2,
+    borderColor: Colors.border.secondary,
+    borderStyle: 'dashed',
   },
-  generateButtonText: {
-    ...Typography.body.medium,
-    color: Colors.background.primary,
-    fontWeight: '600',
-    marginLeft: Spacing.sm,
+  addOutfitIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: Colors.primary[50],
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
-  warningText: {
-    ...Typography.body.small,
-    color: Colors.warning[600],
+  addOutfitText: {
+    ...Typography.caption.medium,
+    color: Colors.text.secondary,
     textAlign: 'center',
-    marginTop: Spacing.sm,
-    fontStyle: 'italic',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.lg,
   },
 });

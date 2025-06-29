@@ -20,7 +20,7 @@ export default function StylistLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'AI Stylist',
+          title: 'Stylist',
           headerShown: false,
         }}
       />
