@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Edit3, Heart } from 'lucide-react-native';
+import { Heart } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -41,7 +41,7 @@ interface OutfitCardProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-const cardWidth = screenWidth * 0.9;
+const cardWidth = screenWidth * 0.85;
 
 export const OutfitCard: React.FC<OutfitCardProps> = ({
   outfits,
@@ -167,8 +167,8 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   }, [currentIndex, outfits.length]);
 
   const getItemLayout = (data: any, index: number) => ({
-    length: cardWidth + Spacing.md,
-    offset: index * (cardWidth + Spacing.md),
+    length: cardWidth + Spacing.sm,
+    offset: index * (cardWidth + Spacing.sm),
     index,
   });
 
@@ -177,7 +177,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     // Fallback: scroll to approximate position
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({
-        offset: info.index * (cardWidth + Spacing.md),
+        offset: info.index * (cardWidth + Spacing.sm),
         animated: true,
       });
     }
@@ -209,14 +209,6 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           </Text>
           <View style={styles.headerActions}>
             <View style={styles.actionButtons}>
-              {onEditOutfit && isManualOutfit && (
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => onEditOutfit(outfit.id)}
-                >
-                  <Edit3 size={16} color={Colors.primary[500]} />
-                </TouchableOpacity>
-              )}
               {onSaveOutfit && (
                 <TouchableOpacity
                   style={styles.saveButton}
@@ -267,7 +259,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   const handleScroll = (event: any) => {
     if (onCurrentIndexChange) {
       const offsetX = event.nativeEvent.contentOffset.x;
-      const currentIndex = Math.round(offsetX / (cardWidth + Spacing.md));
+      const currentIndex = Math.round(offsetX / (cardWidth + Spacing.sm));
       onCurrentIndexChange(currentIndex);
     }
   };
@@ -279,10 +271,10 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         renderItem={renderOutfitItem}
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={cardWidth + Spacing.md}
+        snapToInterval={cardWidth + Spacing.sm}
         decelerationRate="fast"
         contentContainerStyle={styles.listContainer}
-        ItemSeparatorComponent={() => <View style={{ width: Spacing.md }} />}
+        ItemSeparatorComponent={() => <View style={{ width: Spacing.sm }} />}
         keyExtractor={item => item.id}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -293,21 +285,23 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 180,
-    paddingBottom: Spacing.md,
+    height: 200,
+    paddingVertical: Spacing.sm,
   },
   listContainer: {
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: Spacing.md,
   },
   card: {
     width: cardWidth,
-    height: 140,
+    height: 160,
     backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.xl,
+    borderRadius: Layout.borderRadius.lg,
     padding: Spacing.md,
-    ...Shadows.lg,
+    ...Shadows.md,
     position: 'relative',
-    marginBottom: Spacing.md,
+    marginVertical: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.border.secondary,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -316,11 +310,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   outfitName: {
-    ...Typography.heading.h5,
+    ...Typography.body.medium,
     color: Colors.text.primary,
-    fontWeight: '700',
+    fontWeight: '600',
     flex: 1,
     marginRight: Spacing.sm,
+    lineHeight: 20,
   },
   headerActions: {
     flexDirection: 'row',
@@ -336,16 +331,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   itemContainer: {
-    width: 45,
-    height: 45,
+    width: 50,
+    height: 50,
     borderRadius: Layout.borderRadius.md,
     overflow: 'hidden',
-    backgroundColor: Colors.surface.secondary,
-    borderWidth: 2,
-    borderColor: Colors.primary[200],
+    backgroundColor: Colors.neutral[50],
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
     ...Shadows.sm,
   },
   itemImage: {
@@ -353,35 +348,33 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   moreItemsCounter: {
-    width: 45,
-    height: 45,
+    width: 50,
+    height: 50,
     borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.primary[100],
+    backgroundColor: Colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.primary[300],
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
     ...Shadows.sm,
   },
   moreItemsText: {
     ...Typography.caption.small,
-    color: Colors.primary[700],
-    fontWeight: '700',
-    fontSize: 11,
+    color: Colors.primary[600],
+    fontWeight: '600',
+    fontSize: 12,
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  editButton: {
-    padding: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.primary[50],
+    gap: Spacing.sm,
   },
   saveButton: {
-    padding: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.surface.secondary,
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: Colors.border.secondary,
+    ...Shadows.sm,
   },
 });

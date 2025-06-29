@@ -1298,6 +1298,7 @@ const styles = StyleSheet.create({
   },
   outfitCardContainer: {
     marginHorizontal: -Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   outfitsSection: {
     marginBottom: Spacing.xs,
