@@ -26,6 +26,7 @@ import {
 } from 'recyclerlistview';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
+
 import { useWardrobePerformance } from '../../hooks/useWardrobePerformance';
 import { ClothingItem } from '../../types/wardrobe';
 import { WardrobeEmptyState } from './WardrobeEmptyState';
@@ -298,14 +299,17 @@ const OptimizedWardrobeList: React.FC<OptimizedWardrobeListProps> = ({
         onEndReachedThreshold={0.5}
         renderAheadOffset={1000}
         scrollViewProps={{
-          refreshControl: onRefresh ? (
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              colors={[Colors.primary[500]]}
-              tintColor={Colors.primary[500]}
-            />
-          ) : undefined,
+          refreshControl:
+            onRefresh && UI_CONFIG.ENABLE_PULL_TO_REFRESH ? (
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                colors={[Colors.primary[500]]}
+                tintColor={Colors.primary[500]}
+                progressViewOffset={UI_CONFIG.PULL_TO_REFRESH_OFFSET}
+                progressBackgroundColor="white"
+              />
+            ) : undefined,
           onScrollBeginDrag: handleScrollStart,
           onScrollEndDrag: handleScrollEnd,
           onScroll: handleScroll,

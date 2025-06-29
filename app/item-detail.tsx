@@ -3,10 +3,9 @@ import {
   ArrowLeft,
   CreditCard as Edit,
   Heart,
-  Tag,
   Trash2,
 } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -18,10 +17,12 @@ import {
 } from 'react-native';
 import { BodyMedium, BodySmall, Button, H1, H3 } from '../components/ui';
 import OptimizedImage from '../components/ui/OptimizedImage';
+import { AddItemModal } from '../components/wardrobe/AddItemModal';
 import { Colors } from '../constants/Colors';
 import { Layout, Spacing } from '../constants/Spacing';
 import { Typography } from '../constants/Typography';
 import { useWardrobe } from '../hooks/useWardrobe';
+import { ClothingItem } from '../types/wardrobe';
 import {
   formatCurrency,
   formatDate,
@@ -32,6 +33,7 @@ import {
 export default function ItemDetailScreen() {
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
   const { items, actions } = useWardrobe();
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const item = items.find(i => i.id === itemId);
 
@@ -41,11 +43,12 @@ export default function ItemDetailScreen() {
 
   const handleEdit = () => {
     if (!item) return;
+    setShowEditModal(true);
+  };
 
-    router.push({
-      pathname: '/(tabs)',
-      params: { editItemId: item.id },
-    });
+  const handleEditComplete = (updatedItem: ClothingItem) => {
+    setShowEditModal(false);
+    // The item will be automatically updated in the store via the modal's onAddItem
   };
 
   const handleDelete = () => {
@@ -239,53 +242,66 @@ export default function ItemDetailScreen() {
           </View>
 
           {/* Basic Info */}
-          <View style={styles.infoSection}>
+          <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <BodyMedium color="secondary">Category</BodyMedium>
-              <BodyMedium>{item.category.replace('_', ' ')}</BodyMedium>
+              <BodyMedium color="secondary" style={styles.infoLabel}>
+                Category
+              </BodyMedium>
+              <BodyMedium style={styles.infoValue}>
+                {item.category.replace('_', ' ')}
+              </BodyMedium>
             </View>
             {item.brand && (
               <View style={styles.infoRow}>
-                <BodyMedium color="secondary">Brand</BodyMedium>
-                <BodyMedium>{item.brand}</BodyMedium>
+                <BodyMedium color="secondary" style={styles.infoLabel}>
+                  Brand
+                </BodyMedium>
+                <BodyMedium style={styles.infoValue}>{item.brand}</BodyMedium>
               </View>
             )}
             {item.size && (
               <View style={styles.infoRow}>
-                <BodyMedium color="secondary">Size</BodyMedium>
-                <BodyMedium>{item.size}</BodyMedium>
+                <BodyMedium color="secondary" style={styles.infoLabel}>
+                  Size
+                </BodyMedium>
+                <BodyMedium style={styles.infoValue}>{item.size}</BodyMedium>
               </View>
             )}
             <View style={styles.infoRow}>
-              <BodyMedium color="secondary">Color</BodyMedium>
+              <BodyMedium color="secondary" style={styles.infoLabel}>
+                Color
+              </BodyMedium>
               <View style={styles.colorInfo}>
                 <View
                   style={[styles.colorDot, { backgroundColor: item.color }]}
                 />
-                <BodyMedium>{item.color}</BodyMedium>
+                <BodyMedium style={styles.infoValue}>{item.color}</BodyMedium>
               </View>
             </View>
             {item.price && (
-              <View style={styles.infoRow}>
-                <BodyMedium color="secondary">Price</BodyMedium>
-                <BodyMedium>{formatCurrency(item.price)}</BodyMedium>
+              <View style={[styles.infoRow, styles.lastInfoRow]}>
+                <BodyMedium color="secondary" style={styles.infoLabel}>
+                  Price
+                </BodyMedium>
+                <BodyMedium style={[styles.infoValue, styles.priceValue]}>
+                  {formatCurrency(item.price)}
+                </BodyMedium>
               </View>
             )}
           </View>
 
           {/* Tags Section */}
-          <View style={styles.section}>
+          <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <H3 style={styles.sectionTitle}>Tags</H3>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.editTagsButton}
                 onPress={handleEditTags}
               >
                 <Tag size={16} color={Colors.primary[700]} />
                 <Text style={styles.editTagsText}>Edit Tags</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
-
             <View style={styles.tagsContainer}>
               {item.tags.length > 0 ? (
                 item.tags.map(tag => (
@@ -301,7 +317,7 @@ export default function ItemDetailScreen() {
 
           {/* Seasons */}
           {item.season.length > 0 && (
-            <View style={styles.section}>
+            <View style={styles.sectionCard}>
               <H3 style={styles.sectionTitle}>Seasons</H3>
               <View style={styles.tagsContainer}>
                 {item.season.map(season => (
@@ -321,7 +337,7 @@ export default function ItemDetailScreen() {
 
           {/* Occasions */}
           {item.occasion.length > 0 && (
-            <View style={styles.section}>
+            <View style={styles.sectionCard}>
               <H3 style={styles.sectionTitle}>Occasions</H3>
               <View style={styles.tagsContainer}>
                 {item.occasion.map(occasion => (
@@ -340,7 +356,7 @@ export default function ItemDetailScreen() {
           )}
 
           {/* Stats */}
-          <View style={styles.section}>
+          <View style={styles.sectionCard}>
             <H3 style={styles.sectionTitle}>Statistics</H3>
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
@@ -366,9 +382,9 @@ export default function ItemDetailScreen() {
 
           {/* Notes */}
           {item.notes && (
-            <View style={styles.section}>
+            <View style={styles.sectionCard}>
               <H3 style={styles.sectionTitle}>Notes</H3>
-              <BodyMedium>{item.notes}</BodyMedium>
+              <BodyMedium style={styles.notesText}>{item.notes}</BodyMedium>
             </View>
           )}
 
@@ -379,7 +395,7 @@ export default function ItemDetailScreen() {
               onPress={handleEdit}
               style={styles.editButton}
               textStyle={styles.editButtonText}
-              leftIcon={<Edit size={20} color={Colors.primary[700]} />}
+              leftIcon={<Edit size={20} color={Colors.white} />}
             />
             <Button
               title="Delete Item"
@@ -387,11 +403,19 @@ export default function ItemDetailScreen() {
               variant="outline"
               style={styles.deleteButton}
               textStyle={styles.deleteButtonText}
-              leftIcon={<Trash2 size={20} color={Colors.error[500]} />}
+              leftIcon={<Trash2 size={20} color={Colors.error[600]} />}
             />
           </View>
         </View>
       </ScrollView>
+      {showEditModal && (
+        <AddItemModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onAddItem={handleEditComplete}
+          editItem={item}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -450,17 +474,39 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: 0,
   },
-  infoSection: {
-    paddingHorizontal: Spacing.lg,
+  infoCard: {
+    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
+  },
+  lastInfoRow: {
+    borderBottomWidth: 0,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  priceValue: {
+    color: Colors.primary[700],
+    fontWeight: '700',
   },
   colorInfo: {
     flexDirection: 'row',
@@ -477,6 +523,15 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
+  },
+  sectionCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -534,6 +589,10 @@ const styles = StyleSheet.create({
     color: Colors.text.tertiary,
     fontStyle: 'italic',
   },
+  notesText: {
+    lineHeight: 22,
+    color: Colors.text.secondary,
+  },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -551,23 +610,32 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
     gap: Spacing.md,
   },
   editButton: {
-    backgroundColor: Colors.primary[50],
-    borderColor: Colors.primary[200],
-    borderWidth: 1,
+    backgroundColor: Colors.primary[600],
+    borderWidth: 0,
+    borderRadius: Layout.borderRadius.lg,
+    minHeight: 52,
   },
   editButtonText: {
-    color: Colors.primary[700],
+    color: Colors.white,
+    fontWeight: '600',
+    fontSize: 16,
   },
   deleteButton: {
-    borderColor: Colors.error[200],
-    backgroundColor: Colors.error[50],
+    borderColor: Colors.error[300],
+    backgroundColor: Colors.surface.primary,
+    borderWidth: 2,
+    borderRadius: Layout.borderRadius.lg,
+    minHeight: 52,
   },
   deleteButtonText: {
-    color: Colors.error[500],
+    color: Colors.error[600],
+    fontWeight: '600',
+    fontSize: 16,
   },
   errorContainer: {
     flex: 1,

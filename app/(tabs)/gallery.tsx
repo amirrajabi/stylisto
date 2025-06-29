@@ -13,6 +13,7 @@ import { OutfitDetailModal } from '../../components/outfits/OutfitDetailModal';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
 import { FavoriteItemsGallery } from '../../components/wardrobe/FavoriteItemsGallery';
+import { UI_CONFIG } from '../../constants';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
@@ -325,12 +326,16 @@ export default function GalleryScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmptyOutfitsState}
             refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[colors.primary[600]]}
-                tintColor={colors.primary[600]}
-              />
+              UI_CONFIG.ENABLE_PULL_TO_REFRESH ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[colors.primary[600]]}
+                  tintColor={colors.primary[600]}
+                  progressViewOffset={UI_CONFIG.PULL_TO_REFRESH_OFFSET}
+                  progressBackgroundColor="white"
+                />
+              ) : undefined
             }
           />
         ) : (

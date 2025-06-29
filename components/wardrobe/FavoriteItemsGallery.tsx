@@ -7,6 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { UI_CONFIG } from '../../constants';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
@@ -126,12 +127,16 @@ export const FavoriteItemsGallery: React.FC<FavoriteItemsGalleryProps> = ({
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={renderEmptyState}
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[Colors.primary[600]]}
-          tintColor={Colors.primary[600]}
-        />
+        UI_CONFIG.ENABLE_PULL_TO_REFRESH ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary[600]]}
+            tintColor={Colors.primary[600]}
+            progressViewOffset={UI_CONFIG.PULL_TO_REFRESH_OFFSET}
+            progressBackgroundColor="white"
+          />
+        ) : undefined
       }
     />
   );
