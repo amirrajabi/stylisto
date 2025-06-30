@@ -6,7 +6,6 @@ import {
   ChevronRight,
   DollarSign,
   Download,
-  Heart,
   CircleHelp as HelpCircle,
   LogOut,
   Settings,
@@ -353,6 +352,7 @@ export default function ProfileScreen() {
     showArrow?: boolean;
     destructive?: boolean;
     rightElement?: React.ReactNode;
+    disabled?: boolean;
   }> = ({
     icon,
     title,
@@ -361,20 +361,32 @@ export default function ProfileScreen() {
     showArrow = true,
     destructive = false,
     rightElement,
+    disabled = false,
   }) => (
     <TouchableOpacity
-      style={[styles.menuItem, { borderBottomColor: colors.border.primary }]}
-      onPress={() => {
-        // Track menu item click
-        trackEvent('profile_menu_item_clicked', {
-          item: title.toLowerCase().replace(/\s+/g, '_'),
-        });
+      style={[
+        styles.menuItem,
+        {
+          borderBottomColor: colors.border.primary,
+          opacity: disabled ? 0.5 : 1,
+        },
+      ]}
+      onPress={
+        disabled
+          ? undefined
+          : () => {
+              // Track menu item click
+              trackEvent('profile_menu_item_clicked', {
+                item: title.toLowerCase().replace(/\s+/g, '_'),
+              });
 
-        onPress();
-      }}
+              onPress();
+            }
+      }
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={title}
-      accessibilityHint={subtitle}
+      accessibilityHint={disabled ? `${title} is not available` : subtitle}
     >
       <View style={styles.menuItemLeft}>
         <View
@@ -395,14 +407,27 @@ export default function ProfileScreen() {
             style={[
               styles.menuTitle,
               destructive && styles.destructiveText,
-              { color: destructive ? colors.error[600] : colors.text.primary },
+              {
+                color: disabled
+                  ? colors.text.tertiary
+                  : destructive
+                    ? colors.error[600]
+                    : colors.text.primary,
+              },
             ]}
           >
             {title}
           </Text>
           {subtitle && (
             <Text
-              style={[styles.menuSubtitle, { color: colors.text.secondary }]}
+              style={[
+                styles.menuSubtitle,
+                {
+                  color: disabled
+                    ? colors.text.tertiary
+                    : colors.text.secondary,
+                },
+              ]}
             >
               {subtitle}
             </Text>
@@ -489,16 +514,11 @@ export default function ProfileScreen() {
             onPress={() => router.push('/profile/wardrobe-analytics')}
           />
           <MenuItem
-            icon={<Heart size={20} color={colors.text.secondary} />}
-            title="Saved Outfits"
-            subtitle="Browse and manage your saved outfits"
-            onPress={() => console.log('Saved outfits feature not available')}
-          />
-          <MenuItem
-            icon={<DollarSign size={20} color={colors.text.secondary} />}
+            icon={<DollarSign size={20} color={colors.text.tertiary} />}
             title="Items for Sale"
             subtitle="Manage your items that are for sale"
-            onPress={() => router.push('/profile/selling')}
+            onPress={() => {}}
+            disabled={true}
           />
         </MenuSection>
 
