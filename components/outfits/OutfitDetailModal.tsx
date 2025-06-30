@@ -400,13 +400,25 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   };
 
   const handleSaveResult = async () => {
-    if (!user?.id || !outfit?.id) {
-      console.error('❌ Missing required data for saving');
+    // Detailed validation with user feedback
+    if (!user?.id) {
+      console.error('❌ Missing user ID for saving');
+      alert('Unable to save: Please make sure you are logged in.');
+      return;
+    }
+
+    if (!outfit?.id) {
+      console.error('❌ Missing outfit ID for saving');
+      alert('Unable to save: Outfit data is missing. Please try again.');
       return;
     }
 
     setIsSaving(true);
-    console.log('💾 Starting virtual try-on save process...');
+    console.log('💾 Starting virtual try-on save process...', {
+      userId: user.id,
+      outfitId: outfit.id,
+      outfitName: outfit.name,
+    });
 
     try {
       let imageUrlToSave: string | null = null;
@@ -419,6 +431,10 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
 
       if (!imageUrlToSave) {
         console.error('❌ No generated image URL found to save');
+        alert(
+          'Unable to save: No virtual try-on image found. Please generate a try-on result first.'
+        );
+        setIsSaving(false);
         return;
       }
 
@@ -494,6 +510,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       }
     } catch (error) {
       console.error('❌ Failed to save virtual try-on result:', error);
+      alert(
+        'Failed to save virtual try-on result. Please check your internet connection and try again.'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -525,10 +544,45 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     }
   };
 
-  const handleRetryTryOn = () => {
+  const handleRetryTryOn = async () => {
+    console.log('🔄 Retry Try-On button clicked - generating new result');
+
+    const actualUserImage = userFullBodyImageUrl || userImage;
+
+    if (!actualUserImage) {
+      console.log('❌ No user image available for virtual try-on');
+      alert(
+        'Virtual Try-On requires a full-body photo.\n\n' +
+          'Please go to Profile → Edit Profile → Upload Full Body Image to use this feature.'
+      );
+      return;
+    }
+
+    // Reset all previous results and states
     resetVirtualTryOn();
     setTryOnResult(null);
-    handleProveOutfit();
+    setHasExistingTryOn(false);
+
+    // Ensure outfit is synced to store
+    console.log('👔 Syncing outfit to store before retry try-on...');
+    updateCurrentOutfit(outfit.id, outfit.name, outfit.items);
+
+    // Give store a moment to update
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Start new try-on process with 2:3 aspect ratio
+    setModalViewState('processing');
+
+    try {
+      // Force new try-on (aspect ratio 2:3 handled by UI display)
+      await startVirtualTryOn(outfit.id, actualUserImage, outfit.items);
+      if (onProve) {
+        onProve(outfit.id);
+      }
+    } catch (error) {
+      console.error('Virtual try-on retry failed:', error);
+      setModalViewState('result');
+    }
   };
 
   const getProveButtonText = () => {
@@ -789,10 +843,19 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     const resultImageUrl =
       tryOnResult?.generatedImageUrl || lastGeneratedImageUrl;
 
+    // Check if save is possible
+    const canSave = !!(user?.id && outfit?.id && resultImageUrl);
+
     return (
       <View style={styles.resultContainer}>
         {/* Header */}
         <View style={styles.resultHeader}>
+          <TouchableOpacity
+            onPress={handleBackToOutfit}
+            style={styles.resultBackButton}
+          >
+            <ArrowLeft size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
           <Text style={styles.resultHeaderTitle}>AI Try-On Result</Text>
           <TouchableOpacity onPress={onClose} style={styles.resultCloseButton}>
             <X size={24} color={Colors.text.primary} />
@@ -830,17 +893,24 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
           <TouchableOpacity
             style={[
               styles.saveResultButton,
-              isSaving && styles.saveResultButtonDisabled,
+              (isSaving || !canSave) && styles.saveResultButtonDisabled,
             ]}
             onPress={handleSaveResult}
             activeOpacity={0.8}
-            disabled={isSaving}
+            disabled={isSaving || !canSave}
           >
             {isSaving ? (
               <>
                 <Sparkles size={20} color={Colors.text.secondary} />
                 <Text style={styles.saveResultButtonTextDisabled}>
                   Saving...
+                </Text>
+              </>
+            ) : !canSave ? (
+              <>
+                <Download size={20} color={Colors.text.secondary} />
+                <Text style={styles.saveResultButtonTextDisabled}>
+                  Cannot Save
                 </Text>
               </>
             ) : (
@@ -1187,7 +1257,12 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontWeight: '600',
     flex: 1,
-    textAlign: 'left',
+    textAlign: 'center',
+  },
+  resultBackButton: {
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.background.secondary,
   },
   resultCloseButton: {
     padding: Spacing.sm,
@@ -1203,8 +1278,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
   },
   resultImage: {
+    aspectRatio: 2 / 3,
     width: '100%',
-    height: '85%',
+    maxHeight: '85%',
     borderRadius: Layout.borderRadius.xl,
     backgroundColor: Colors.surface.primary,
     ...Shadows.lg,
