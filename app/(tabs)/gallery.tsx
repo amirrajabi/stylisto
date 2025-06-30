@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Archive, Filter, Heart, Search, Shirt } from 'lucide-react-native';
+import { Archive, Heart, Search, Shirt } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -55,7 +55,6 @@ export default function GalleryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState<{
     id: string;
     name: string;
@@ -598,16 +597,6 @@ export default function GalleryScreen() {
             placeholderTextColor="#9ca3af"
           />
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            showFilters && styles.activeFilterButton,
-          ]}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Filter size={20} color={showFilters ? '#ffffff' : '#6b7280'} />
-        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -783,29 +772,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1f2937',
     fontFamily: 'Inter-Regular',
-  },
-  filterButton: {
-    position: 'relative',
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    height: 44,
-    width: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  activeFilterButton: {
-    backgroundColor: '#A428FC',
   },
   modernTabContainer: {
     flexDirection: 'row',
