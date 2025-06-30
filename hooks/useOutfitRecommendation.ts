@@ -22,7 +22,11 @@ import {
   useOutfitGenerator,
   WeatherData,
 } from '../lib/outfitGenerator';
-import { GeneratedOutfitRecord, OutfitService } from '../lib/outfitService';
+import {
+  GeneratedOutfitRecord,
+  outfitFavoriteChanged,
+  OutfitService,
+} from '../lib/outfitService';
 import { Occasion, Outfit, Season } from '../types/wardrobe';
 import { generateOutfitName } from '../utils/outfitNaming';
 import { OutfitSimilarityDetector } from '../utils/outfitSimilarity';
@@ -196,6 +200,34 @@ export const useOutfitRecommendation = (
       hasInitialGeneration.current = true;
     }
   }, [screenReady]);
+
+  // Subscribe to outfit favorite changes to refresh AI-generated outfits when they are unfavorited
+  useEffect(() => {
+    console.log(
+      '🔗 useOutfitRecommendation: Subscribing to outfit favorite changes...'
+    );
+    const unsubscribe = outfitFavoriteChanged.subscribe(async () => {
+      console.log(
+        '🔔 useOutfitRecommendation: Outfit favorite status changed, refreshing AI outfits...'
+      );
+      // Refresh AI-generated outfits from database
+      try {
+        const aiOutfits = await OutfitService.loadAIGeneratedOutfits();
+        setState(prev => ({
+          ...prev,
+          aiGeneratedOutfits: aiOutfits,
+        }));
+        console.log('✅ AI-generated outfits refreshed after favorite change');
+      } catch (error) {
+        console.error(
+          '❌ Error refreshing AI outfits after favorite change:',
+          error
+        );
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const checkForExistingOutfits = useCallback(async () => {
     try {
