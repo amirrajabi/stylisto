@@ -464,7 +464,7 @@ export default function ProfileScreen() {
         style={[
           styles.header,
           {
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.background.primary,
             borderBottomColor: colors.border.secondary,
           },
         ]}
