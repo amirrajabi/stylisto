@@ -1,12 +1,12 @@
 import { Image } from 'expo-image';
-import { Clock, Share2, Star, Trash2, X } from 'lucide-react-native';
+import { Clock, Star, Trash2, X } from 'lucide-react-native';
 import React from 'react';
 import {
   Alert,
   Dimensions,
+  FlatList,
   Modal,
   ScrollView,
-  Share,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -14,7 +14,14 @@ import {
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { VirtualTryOnResult } from '../../services/virtualTryOnService';
+import {
+  ClothingCategory,
+  ClothingItem,
+  Occasion,
+  Season,
+} from '../../types/wardrobe';
 import { AccessibleText } from '../ui/AccessibleText';
+import { ClothingItemCard } from '../wardrobe/ClothingItemCard';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -51,17 +58,6 @@ export function VirtualTryOnModal({
     return `${(timeMs / 1000).toFixed(1)}s`;
   };
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out my virtual try-on result for "${result.outfit_name}"!`,
-        url: result.generated_image_url,
-      });
-    } catch (error) {
-      console.error('Error sharing virtual try-on result:', error);
-    }
-  };
-
   const handleDelete = () => {
     Alert.alert(
       'Delete Virtual Try-On',
@@ -80,6 +76,40 @@ export function VirtualTryOnModal({
     );
   };
 
+  const mockClothingItems: ClothingItem[] = result.items_used
+    ? result.items_used.map((item, index) => ({
+        id: `item-${index}`,
+        name: item,
+        category: ClothingCategory.TOPS,
+        subcategory: 'shirt',
+        color: '#000000',
+        size: 'M',
+        season: [Season.SPRING],
+        occasion: [Occasion.CASUAL],
+        tags: [],
+        imageUrl:
+          'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isFavorite: false,
+        timesWorn: 0,
+        lastWorn: undefined,
+        isForSale: false,
+      }))
+    : [];
+
+  const renderClothingItem = ({ item }: { item: ClothingItem }) => (
+    <View style={styles.clothingItemContainer}>
+      <ClothingItemCard
+        item={item}
+        onPress={() => {}}
+        onToggleFavorite={() => {}}
+        onMoreOptions={() => {}}
+        showStats={false}
+      />
+    </View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -88,36 +118,25 @@ export function VirtualTryOnModal({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Header */}
+        {/* Simplified Header - close button moved to right */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-
           <View style={styles.headerContent}>
             <AccessibleText style={styles.headerTitle} numberOfLines={1}>
               {result.outfit_name}
             </AccessibleText>
-            <View style={styles.headerMeta}>
-              <View style={styles.confidenceContainer}>
-                <Star size={14} color={Colors.warning[600]} />
-                <AccessibleText style={styles.confidenceText}>
-                  {Math.round(result.confidence_score * 100)}% confidence
-                </AccessibleText>
-              </View>
-            </View>
           </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-              <Share2 size={20} color={Colors.text.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDelete}
-              style={styles.actionButton}
-            >
-              <Trash2 size={20} color={Colors.error[500]} />
-            </TouchableOpacity>
+        {/* Confidence Score - moved below header */}
+        <View style={styles.confidenceSection}>
+          <View style={styles.confidenceContainer}>
+            <Star size={16} color={Colors.warning[600]} />
+            <AccessibleText style={styles.confidenceText}>
+              {Math.round(result.confidence_score * 100)}% confidence
+            </AccessibleText>
           </View>
         </View>
 
@@ -148,21 +167,21 @@ export function VirtualTryOnModal({
               </AccessibleText>
             </View>
 
-            {/* Items Used */}
+            {/* Items Used - with horizontal ClothingItemCard */}
             {result.items_used && result.items_used.length > 0 && (
               <View style={styles.section}>
                 <AccessibleText style={styles.sectionTitle}>
                   Items Used
                 </AccessibleText>
-                <View style={styles.itemsList}>
-                  {result.items_used.map((item, index) => (
-                    <View key={index} style={styles.itemTag}>
-                      <AccessibleText style={styles.itemText}>
-                        {item}
-                      </AccessibleText>
-                    </View>
-                  ))}
-                </View>
+                <FlatList
+                  data={mockClothingItems}
+                  renderItem={renderClothingItem}
+                  keyExtractor={item => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                  style={styles.itemsCarousel}
+                />
               </View>
             )}
 
@@ -189,6 +208,19 @@ export function VirtualTryOnModal({
                 </AccessibleText>
               </View>
             )}
+
+            {/* Delete Button - moved to end of information */}
+            <View style={styles.deleteSection}>
+              <TouchableOpacity
+                onPress={handleDelete}
+                style={styles.deleteButton}
+              >
+                <Trash2 size={20} color={Colors.error[500]} />
+                <AccessibleText style={styles.deleteButtonText}>
+                  Delete Virtual Try-On
+                </AccessibleText>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -220,35 +252,29 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
   },
-  headerMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  confidenceSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.primary,
   },
   confidenceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   confidenceText: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.text.secondary,
     fontWeight: '500',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  actionButton: {
-    padding: 8,
   },
   content: {
     flex: 1,
   },
   imageContainer: {
     width: '100%',
-    height: screenHeight * 0.6,
+    height: screenHeight * 0.5,
     backgroundColor: Colors.neutral[50],
   },
   image: {
@@ -284,21 +310,15 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
-  itemsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  itemsCarousel: {
+    marginHorizontal: -Spacing.lg,
   },
-  itemTag: {
-    backgroundColor: Colors.secondary[50],
-    borderRadius: 16,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+  horizontalList: {
+    paddingHorizontal: Spacing.lg,
+    paddingRight: Spacing.lg + 8,
   },
-  itemText: {
-    fontSize: 14,
-    color: Colors.secondary[700],
-    fontWeight: '500',
+  clothingItemContainer: {
+    marginRight: Spacing.sm,
   },
   instructionsText: {
     fontSize: 14,
@@ -310,5 +330,28 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     lineHeight: 18,
     fontStyle: 'italic',
+  },
+  deleteSection: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.error[200],
+    backgroundColor: Colors.error[50],
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    color: Colors.error[600],
+    fontWeight: '500',
   },
 });
