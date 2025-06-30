@@ -14,6 +14,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import { VirtualTryOnGallery } from '../../components/gallery/VirtualTryOnGallery';
+import { VirtualTryOnModal } from '../../components/gallery/VirtualTryOnModal';
 import { OutfitDetailModal } from '../../components/outfits';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
 import { OutfitEditModal } from '../../components/outfits/OutfitEditModal';
@@ -28,6 +30,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { useOutfitScoring } from '../../hooks/useOutfitScoring';
 import { OutfitService } from '../../lib/outfitService';
 import { supabase } from '../../lib/supabase';
+import {
+  VirtualTryOnResult,
+  VirtualTryOnService,
+} from '../../services/virtualTryOnService';
 import { ClothingItem } from '../../types/wardrobe';
 
 interface FavoriteOutfit {
@@ -77,6 +83,12 @@ export default function GalleryScreen() {
     notes?: string;
     source_type?: 'manual' | 'ai_generated';
   } | null>(null);
+
+  // Virtual Try-On Modal State
+  const [virtualTryOnModalVisible, setVirtualTryOnModalVisible] =
+    useState(false);
+  const [selectedVirtualTryOnResult, setSelectedVirtualTryOnResult] =
+    useState<VirtualTryOnResult | null>(null);
 
   const fetchFavoriteOutfits = async () => {
     if (!user) return;
@@ -347,10 +359,6 @@ export default function GalleryScreen() {
     console.log('Virtual try-on result saved:', result);
   };
 
-  const handleVirtualTryOnShare = (result: any) => {
-    console.log('Virtual try-on result shared:', result);
-  };
-
   const handleRemoveFromFavorites = async (outfitId: string) => {
     try {
       // First, check if this is an AI-generated outfit or manual outfit
@@ -595,6 +603,37 @@ export default function GalleryScreen() {
     </View>
   );
 
+  // Virtual Try-On Handlers
+  const handleVirtualTryOnImagePress = (result: VirtualTryOnResult) => {
+    setSelectedVirtualTryOnResult(result);
+    setVirtualTryOnModalVisible(true);
+  };
+
+  const handleVirtualTryOnModalClose = () => {
+    setVirtualTryOnModalVisible(false);
+    setSelectedVirtualTryOnResult(null);
+  };
+
+  const handleVirtualTryOnDelete = async (result: VirtualTryOnResult) => {
+    if (user) {
+      const success = await VirtualTryOnService.deleteResult(
+        user.id,
+        result.id
+      );
+      if (success) {
+        console.log('Virtual try-on result deleted successfully');
+      }
+    }
+  };
+
+  const handleVirtualTryOnShare = async (result: VirtualTryOnResult) => {
+    try {
+      console.log('Sharing virtual try-on result:', result.outfit_name);
+    } catch (error) {
+      console.error('Error sharing virtual try-on result:', error);
+    }
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background.primary }]}
@@ -681,26 +720,13 @@ export default function GalleryScreen() {
             }
           />
         ) : activeTab === 'tryon' ? (
-          <View style={styles.tryOnContainer}>
-            <Eye
-              size={64}
-              color={colors.text.secondary}
-              style={styles.emptyIcon}
-            />
-            <AccessibleText
-              style={[styles.emptyTitle, { color: colors.text.primary }]}
-            >
-              Virtual Try-On Studio
-            </AccessibleText>
-            <AccessibleText
-              style={[
-                styles.emptyDescription,
-                { color: colors.text.secondary },
-              ]}
-            >
-              Experience your outfits in virtual reality before wearing them
-            </AccessibleText>
-          </View>
+          <VirtualTryOnGallery
+            onImagePress={handleVirtualTryOnImagePress}
+            onShare={handleVirtualTryOnShare}
+            onDelete={handleVirtualTryOnDelete}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
         ) : activeTab === 'saved' ? (
           <FlatList
             data={getFilteredOutfits(savedOutfits)}
@@ -749,6 +775,14 @@ export default function GalleryScreen() {
         outfit={outfitToEdit}
         onClose={handleEditModalClose}
         onSave={handleOutfitUpdate}
+      />
+
+      {/* Virtual Try-On Modal */}
+      <VirtualTryOnModal
+        visible={virtualTryOnModalVisible}
+        result={selectedVirtualTryOnResult}
+        onClose={handleVirtualTryOnModalClose}
+        onDelete={handleVirtualTryOnDelete}
       />
     </SafeAreaView>
   );
