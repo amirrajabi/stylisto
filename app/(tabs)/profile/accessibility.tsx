@@ -1,94 +1,64 @@
 import React from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, Settings } from 'lucide-react-native';
-import { AccessibilitySettings } from '../../../components/ui/AccessibilitySettings';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { ProfileHeader } from '../../../components/profile/ProfileHeader';
 import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
+import { AccessibilitySettings } from '../../../components/ui/AccessibilitySettings';
 import { H1 } from '../../../components/ui/AccessibleText';
 import { ContrastChecker } from '../../../components/ui/ContrastChecker';
-import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
+import { Layout, Spacing } from '../../../constants/Spacing';
 
 export default function AccessibilityScreen() {
   const { colors } = useAccessibility();
-  
-  return (
-    <SafeAreaView 
-      style={[styles.container, { backgroundColor: colors.background.secondary }]}
-      accessibilityRole="none"
-    >
-      <View 
-        style={[
-          styles.header, 
-          { 
-            backgroundColor: colors.surface.primary,
-            borderBottomColor: colors.border.primary,
-          }
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-          accessibilityHint="Returns to the previous screen"
-          accessibilityRole="button"
-        >
-          <ArrowLeft size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <H1 accessibilityRole="header">Accessibility</H1>
-      </View>
 
-      <ScrollView 
-        style={styles.content} 
+  return (
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: colors.background.secondary },
+      ]}
+    >
+      <ProfileHeader title="Accessibility" />
+
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
-        accessibilityRole="scrollView"
-        id="main-content"
       >
         <AccessibilitySettings />
-        
-        <View 
+
+        <View
           style={[
-            styles.section, 
-            { 
+            styles.section,
+            {
               backgroundColor: colors.surface.primary,
               ...Shadows.sm,
-            }
+            },
           ]}
         >
-          <H1 
-            size="medium" 
-            accessibilityRole="header"
-            style={{ marginBottom: Spacing.md }}
-          >
+          <H1 size="medium" style={{ marginBottom: Spacing.md }}>
             Color Contrast Checker
           </H1>
-          
+
           <ContrastChecker
             foregroundColor={colors.text.primary}
             backgroundColor={colors.surface.primary}
             fontSize={16}
           />
-          
+
           <ContrastChecker
             foregroundColor={colors.text.secondary}
             backgroundColor={colors.surface.primary}
             fontSize={14}
           />
-          
+
           <ContrastChecker
             foregroundColor={colors.primary[700]}
             backgroundColor={colors.surface.primary}
             fontSize={16}
             isBold={true}
           />
-          
+
           <ContrastChecker
             foregroundColor="#FFFFFF"
             backgroundColor={colors.primary[700]}
@@ -103,18 +73,6 @@ export default function AccessibilityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    marginRight: Spacing.md,
-    padding: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
   },
   content: {
     flex: 1,

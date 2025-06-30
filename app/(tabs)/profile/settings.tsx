@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 import {
-  ArrowLeft,
   Globe,
   Moon,
   Save,
@@ -22,7 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { H1 } from '../../../components/ui';
+import { ProfileHeader } from '../../../components/profile/ProfileHeader';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -199,15 +197,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <H1>Settings</H1>
-      </View>
+      <ProfileHeader title="Settings" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -534,19 +524,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-    ...Shadows.sm,
-  },
-  backButton: {
-    marginRight: Spacing.md,
   },
   content: {
     flex: 1,

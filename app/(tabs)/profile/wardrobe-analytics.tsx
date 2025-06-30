@@ -1,11 +1,4 @@
-import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  BarChart3,
-  Heart,
-  Shirt,
-  TrendingUp,
-} from 'lucide-react-native';
+import { BarChart3, Heart, Shirt, TrendingUp } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import {
   Dimensions,
@@ -13,10 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { H1 } from '../../../components/ui';
+import { ProfileHeader } from '../../../components/profile/ProfileHeader';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -135,15 +127,7 @@ export default function WardrobeAnalyticsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <H1>Wardrobe Analytics</H1>
-      </View>
+      <ProfileHeader title="Wardrobe Analytics" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.statsGrid}>
@@ -221,20 +205,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-    ...Shadows.sm,
-  },
-  backButton: {
-    marginRight: Spacing.md,
-    padding: Spacing.xs,
   },
   content: {
     flex: 1,

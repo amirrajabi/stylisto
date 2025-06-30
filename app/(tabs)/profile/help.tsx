@@ -1,10 +1,9 @@
-import { router } from 'expo-router';
 import {
   ArrowLeft,
   BookOpen,
   ExternalLink,
   FileText,
-  CircleHelp as HelpCircle,
+  HelpCircle,
   Mail,
   MessageSquare,
 } from 'lucide-react-native';
@@ -19,7 +18,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { H1 } from '../../../components/ui';
+
+import { ProfileHeader } from '../../../components/profile/ProfileHeader';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -56,15 +56,7 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <H1>Help & Support</H1>
-      </View>
+      <ProfileHeader title="Help & Support" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -240,19 +232,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-    ...Shadows.sm,
-  },
-  backButton: {
-    marginRight: Spacing.md,
   },
   content: {
     flex: 1,

@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import {
-  ArrowLeft,
   BarChart,
   Eye,
   EyeOff,
@@ -22,7 +21,7 @@ import {
 } from 'react-native';
 
 import { PrivacyModal } from '../../../components/auth/PrivacyModal';
-import { H1 } from '../../../components/ui';
+import { ProfileHeader } from '../../../components/profile/ProfileHeader';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -125,15 +124,7 @@ export default function PrivacyScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <H1>Privacy & Security</H1>
-      </View>
+      <ProfileHeader title="Privacy & Security" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -327,19 +318,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-    ...Shadows.sm,
-  },
-  backButton: {
-    marginRight: Spacing.md,
   },
   content: {
     flex: 1,

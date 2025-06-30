@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  Switch,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, Bell, Calendar, Cloud, Sparkles, Megaphone, Save } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  Bell,
+  Calendar,
+  Cloud,
+  Megaphone,
+  Save,
+  Sparkles,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { ProfileHeader } from '../../../components/profile/ProfileHeader';
 import { Colors } from '../../../constants/Colors';
-import { Typography } from '../../../constants/Typography';
-import { Spacing, Layout } from '../../../constants/Spacing';
 import { Shadows } from '../../../constants/Shadows';
-import { H1 } from '../../../components/ui';
+import { Layout, Spacing } from '../../../constants/Spacing';
+import { Typography } from '../../../constants/Typography';
 
 interface NotificationSettings {
   outfitReminders: boolean;
@@ -38,7 +44,9 @@ export default function NotificationsScreen() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const storedSettings = await AsyncStorage.getItem('@notification_settings');
+        const storedSettings = await AsyncStorage.getItem(
+          '@notification_settings'
+        );
         if (storedSettings) {
           setSettings(JSON.parse(storedSettings));
         }
@@ -46,7 +54,7 @@ export default function NotificationsScreen() {
         console.error('Failed to load notification settings:', error);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -54,75 +62,75 @@ export default function NotificationsScreen() {
   useEffect(() => {
     const checkForChanges = async () => {
       try {
-        const storedSettings = await AsyncStorage.getItem('@notification_settings');
+        const storedSettings = await AsyncStorage.getItem(
+          '@notification_settings'
+        );
         if (storedSettings) {
           const parsedSettings = JSON.parse(storedSettings);
-          const changed = 
+          const changed =
             parsedSettings.outfitReminders !== settings.outfitReminders ||
             parsedSettings.weatherAlerts !== settings.weatherAlerts ||
             parsedSettings.styleTips !== settings.styleTips ||
             parsedSettings.newFeatures !== settings.newFeatures;
-          
+
           setHasChanges(changed);
         } else {
           // If no stored settings, check against defaults
-          const changed = 
+          const changed =
             settings.outfitReminders !== true ||
             settings.weatherAlerts !== true ||
             settings.styleTips !== true ||
             settings.newFeatures !== true;
-          
+
           setHasChanges(changed);
         }
       } catch (error) {
         console.error('Error checking for changes:', error);
       }
     };
-    
+
     checkForChanges();
   }, [settings]);
 
   const handleToggle = (key: keyof NotificationSettings) => {
     setSettings(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
   const handleSave = async () => {
     try {
-      await AsyncStorage.setItem('@notification_settings', JSON.stringify(settings));
-      
+      await AsyncStorage.setItem(
+        '@notification_settings',
+        JSON.stringify(settings)
+      );
+
       // In a real app, you would also update the server
       // await supabase.from('user_preferences').upsert({
       //   user_id: user.id,
       //   notification_settings: settings
       // });
-      
+
       Alert.alert(
         'Settings Saved',
         'Your notification preferences have been updated.',
         [{ text: 'OK' }]
       );
-      
+
       setHasChanges(false);
     } catch (error) {
       console.error('Error saving notification settings:', error);
-      Alert.alert('Error', 'Failed to save notification settings. Please try again.');
+      Alert.alert(
+        'Error',
+        'Failed to save notification settings. Please try again.'
+      );
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <H1>Notifications</H1>
-      </View>
+      <ProfileHeader title="Notifications" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -130,11 +138,12 @@ export default function NotificationsScreen() {
             <Bell size={20} color={Colors.text.primary} />
             <Text style={styles.sectionTitle}>Notification Preferences</Text>
           </View>
-          
+
           <Text style={styles.sectionDescription}>
-            Control which notifications you receive from Stylisto. These settings affect both push notifications and in-app alerts.
+            Control which notifications you receive from Stylisto. These
+            settings affect both push notifications and in-app alerts.
           </Text>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
@@ -142,17 +151,21 @@ export default function NotificationsScreen() {
                 <Text style={styles.settingTitle}>Outfit Reminders</Text>
               </View>
               <Text style={styles.settingDescription}>
-                Get reminders to plan your outfits for upcoming events and daily wear
+                Get reminders to plan your outfits for upcoming events and daily
+                wear
               </Text>
             </View>
             <Switch
               value={settings.outfitReminders}
               onValueChange={() => handleToggle('outfitReminders')}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
@@ -160,17 +173,21 @@ export default function NotificationsScreen() {
                 <Text style={styles.settingTitle}>Weather Alerts</Text>
               </View>
               <Text style={styles.settingDescription}>
-                Receive notifications about weather changes that might affect your outfit choices
+                Receive notifications about weather changes that might affect
+                your outfit choices
               </Text>
             </View>
             <Switch
               value={settings.weatherAlerts}
               onValueChange={() => handleToggle('weatherAlerts')}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
@@ -178,17 +195,21 @@ export default function NotificationsScreen() {
                 <Text style={styles.settingTitle}>Style Tips</Text>
               </View>
               <Text style={styles.settingDescription}>
-                Get personalized style recommendations and tips based on your wardrobe
+                Get personalized style recommendations and tips based on your
+                wardrobe
               </Text>
             </View>
             <Switch
               value={settings.styleTips}
               onValueChange={() => handleToggle('styleTips')}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={styles.settingTitleContainer}>
@@ -202,29 +223,32 @@ export default function NotificationsScreen() {
             <Switch
               value={settings.newFeatures}
               onValueChange={() => handleToggle('newFeatures')}
-              trackColor={{ false: Colors.neutral[300], true: Colors.primary[500] }}
+              trackColor={{
+                false: Colors.neutral[300],
+                true: Colors.primary[500],
+              }}
               thumbColor={Colors.white}
             />
           </View>
         </View>
-        
+
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>About Notifications</Text>
           <Text style={styles.infoText}>
-            Stylisto uses notifications to enhance your experience and help you get the most out of the app. You can change these settings at any time.
+            Stylisto uses notifications to enhance your experience and help you
+            get the most out of the app. You can change these settings at any
+            time.
           </Text>
           <Text style={styles.infoText}>
-            Some notifications, such as account security alerts, cannot be disabled as they are essential to the service.
+            Some notifications, such as account security alerts, cannot be
+            disabled as they are essential to the service.
           </Text>
         </View>
       </ScrollView>
-      
+
       {hasChanges && (
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-          >
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Save size={20} color={Colors.white} />
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>
