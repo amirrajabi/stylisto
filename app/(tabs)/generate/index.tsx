@@ -27,6 +27,7 @@ import { Typography } from '../../../constants/Typography';
 import { useAuth } from '../../../hooks/useAuth';
 import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { useWardrobe } from '../../../hooks/useWardrobe';
+import { supabase } from '../../../lib/supabase';
 import { generateOutfitName } from '../../../utils/outfitNaming';
 
 import { OutfitGenerationProgress } from '../../../components/outfits/OutfitGenerationProgress';
@@ -504,8 +505,101 @@ export default function StylistScreen() {
       console.log('💾 Saving outfit from card:', outfitId);
 
       try {
-        // Save outfit to favorites/gallery
-        await saveCurrentOutfit(outfitId);
+        // Find the outfit to save
+        let outfitToSave: any;
+
+        console.log('🔍 Looking for outfit:', outfitId);
+        console.log(
+          '🔍 Available aiGeneratedOutfits:',
+          aiGeneratedOutfits.map(o => o.id)
+        );
+        console.log(
+          '🔍 Available manualOutfitsFromDB:',
+          manualOutfitsFromDB.map(o => o.id)
+        );
+        console.log(
+          '🔍 Available outfits from current session:',
+          outfits.length
+        );
+
+        if (outfitId.startsWith('outfit-')) {
+          // AI-generated outfit from current session
+          const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+          console.log('🔍 Looking for AI outfit at index:', outfitIndex);
+
+          // Try to find in current session outfits first
+          if (outfits && outfits[outfitIndex]) {
+            outfitToSave = {
+              id: outfitId,
+              name: generateOutfitName(outfits[outfitIndex].items),
+              items: outfits[outfitIndex].items,
+              score: outfits[outfitIndex].score,
+            };
+            console.log('✅ Found outfit in current session');
+          } else {
+            // Fallback to aiGeneratedOutfits array
+            outfitToSave = aiGeneratedOutfits.find(
+              (outfit: any) => outfit.id === outfitId
+            );
+            console.log(
+              '🔍 Searched in aiGeneratedOutfits, found:',
+              !!outfitToSave
+            );
+          }
+        } else {
+          // Manual or previously saved outfit
+          console.log('🔍 Looking for manual/saved outfit');
+          outfitToSave =
+            manualOutfitsFromDB.find((outfit: any) => outfit.id === outfitId) ||
+            manualOutfitsFromDB.find(
+              (outfit: any) => `manual-db-${outfit.id}` === outfitId
+            ) ||
+            aiGeneratedOutfits.find((outfit: any) => outfit.id === outfitId);
+          console.log('🔍 Found in manual/saved outfits:', !!outfitToSave);
+        }
+
+        if (!outfitToSave) {
+          console.error('❌ Outfit not found with ID:', outfitId);
+          console.error('Available sources:', {
+            outfitsLength: outfits.length,
+            aiGeneratedOutfitsIds: aiGeneratedOutfits.map(o => o.id),
+            manualOutfitsIds: manualOutfitsFromDB.map(o => o.id),
+          });
+          throw new Error('Outfit not found');
+        }
+
+        console.log('✅ Found outfit to save:', outfitToSave.name);
+
+        // Check if outfit already exists in saved_outfits table
+        const { data: existingOutfit, error: checkError } = await supabase
+          .from('saved_outfits')
+          .select('id, is_favorite')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .or(`name.eq.${outfitToSave.name},notes.ilike.%${outfitId}%`)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
+
+        if (existingOutfit) {
+          // Update existing outfit to favorite
+          const { error: updateError } = await supabase
+            .from('saved_outfits')
+            .update({ is_favorite: true })
+            .eq('id', existingOutfit.id);
+
+          if (updateError) throw updateError;
+          console.log('✅ Updated existing outfit favorite status');
+        } else {
+          // Save new outfit to database
+          const result =
+            await OutfitService.saveSingleGeneratedOutfit(outfitToSave);
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          console.log('✅ New outfit saved to database');
+        }
 
         // Add to recently liked outfits to hide it temporarily
         setRecentlyLikedOutfits(prev => new Set(prev).add(outfitId));
@@ -520,8 +614,6 @@ export default function StylistScreen() {
         // Show toast notification
         setToastMessage('Outfit added to gallery');
         setToastVisible(true);
-
-        console.log('✅ Outfit saved to gallery');
 
         // Set timer for 120 seconds to make outfit likeable again
         setTimeout(() => {
@@ -543,7 +635,9 @@ export default function StylistScreen() {
       }
     },
     [
-      saveCurrentOutfit,
+      outfits,
+      aiGeneratedOutfits,
+      manualOutfitsFromDB,
       removeOutfitFromMemory,
       refreshOutfits,
       setRecentlyLikedOutfits,
@@ -697,7 +791,84 @@ export default function StylistScreen() {
 
       // Save outfit to favorites/gallery
       try {
-        await saveCurrentOutfit(outfitId);
+        // Find the outfit to save
+        let outfitToSave: any;
+
+        console.log('❤️ Looking for outfit to like:', outfitId);
+
+        if (outfitId.startsWith('outfit-')) {
+          // AI-generated outfit from current session
+          const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+          console.log('❤️ Looking for AI outfit at index:', outfitIndex);
+
+          // Try to find in current session outfits first
+          if (outfits && outfits[outfitIndex]) {
+            outfitToSave = {
+              id: outfitId,
+              name: generateOutfitName(outfits[outfitIndex].items),
+              items: outfits[outfitIndex].items,
+              score: outfits[outfitIndex].score,
+            };
+            console.log('✅ Found outfit in current session for modal');
+          } else {
+            // Fallback to aiGeneratedOutfits array
+            outfitToSave = aiGeneratedOutfits.find(
+              (outfit: any) => outfit.id === outfitId
+            );
+            console.log(
+              '❤️ Searched in aiGeneratedOutfits, found:',
+              !!outfitToSave
+            );
+          }
+        } else {
+          // Manual or previously saved outfit
+          console.log('❤️ Looking for manual/saved outfit');
+          outfitToSave =
+            manualOutfitsFromDB.find((outfit: any) => outfit.id === outfitId) ||
+            manualOutfitsFromDB.find(
+              (outfit: any) => `manual-db-${outfit.id}` === outfitId
+            ) ||
+            aiGeneratedOutfits.find((outfit: any) => outfit.id === outfitId);
+          console.log('❤️ Found in manual/saved outfits:', !!outfitToSave);
+        }
+
+        if (!outfitToSave) {
+          console.error('❌ Outfit not found in modal with ID:', outfitId);
+          throw new Error('Outfit not found');
+        }
+
+        console.log('✅ Found outfit to like:', outfitToSave.name);
+
+        // Check if outfit already exists in saved_outfits table
+        const { data: existingOutfit, error: checkError } = await supabase
+          .from('saved_outfits')
+          .select('id, is_favorite')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .or(`name.eq.${outfitToSave.name},notes.ilike.%${outfitId}%`)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
+
+        if (existingOutfit) {
+          // Update existing outfit to favorite
+          const { error: updateError } = await supabase
+            .from('saved_outfits')
+            .update({ is_favorite: true })
+            .eq('id', existingOutfit.id);
+
+          if (updateError) throw updateError;
+          console.log('✅ Updated existing outfit favorite status');
+        } else {
+          // Save new outfit to database
+          const result =
+            await OutfitService.saveSingleGeneratedOutfit(outfitToSave);
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          console.log('✅ New outfit saved to database');
+        }
 
         // Add to recently liked outfits to hide it temporarily
         setRecentlyLikedOutfits(prev => new Set(prev).add(outfitId));
@@ -718,8 +889,6 @@ export default function StylistScreen() {
           setToastMessage('Outfit added to gallery');
           setToastVisible(true);
         }, 100);
-
-        console.log('✅ Outfit saved to gallery');
 
         // Set timer for 120 seconds to make outfit likeable again
         setTimeout(() => {
@@ -748,7 +917,14 @@ export default function StylistScreen() {
         }, 100);
       }
     },
-    [saveCurrentOutfit, removeOutfitFromMemory, refreshOutfits]
+    [
+      outfits,
+      aiGeneratedOutfits,
+      manualOutfitsFromDB,
+      removeOutfitFromMemory,
+      refreshOutfits,
+      setRecentlyLikedOutfits,
+    ]
   );
 
   const handleManualOutfitBuilder = useCallback(() => {
