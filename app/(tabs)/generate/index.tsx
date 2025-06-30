@@ -218,12 +218,71 @@ export default function StylistScreen() {
     }
   }, [screenReady, refreshManualOutfits]);
 
-  // Refresh manual outfits when screen comes into focus
+  // Ref to track auto-generation attempts per focus
+  const autoGenerationAttempted = React.useRef(false);
+
+  // Refresh outfits and check for auto-generation when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       if (screenReady) {
-        console.log('🔄 Screen focused, refreshing manual outfits...');
+        console.log('🔄 Screen focused, checking outfit status...');
+
+        // Reset auto-generation flag on each focus
+        autoGenerationAttempted.current = false;
+
+        // Always refresh manual outfits to get latest from database
         refreshManualOutfits();
+
+        // Check if we need to auto-generate AI outfits
+        const checkAndGenerateOutfits = async () => {
+          // Prevent multiple generation attempts during the same focus cycle
+          if (autoGenerationAttempted.current) {
+            console.log(
+              '🚫 Auto-generation already attempted this focus cycle'
+            );
+            return;
+          }
+
+          // Get current AI-generated outfits count
+          const aiOutfitsCount = outfits.length;
+
+          console.log(
+            `🤖 Current AI-generated outfits count: ${aiOutfitsCount}`
+          );
+
+          // If no AI-generated outfits, trigger auto-generation
+          if (aiOutfitsCount === 0) {
+            console.log('🎯 No AI-generated outfits found, auto-generating...');
+            autoGenerationAttempted.current = true;
+
+            try {
+              // Use default generation options for auto-generation
+              await generateRecommendations({
+                occasion: undefined,
+                preferredColors: undefined,
+                stylePreference: {
+                  formality: 0.5,
+                  boldness: 0.5,
+                  layering: 0.5,
+                  colorfulness: 0.5,
+                },
+                maxResults: Math.min(12, Math.max(6, filteredItems.length)),
+                minScore: 0.6,
+              });
+
+              console.log('✅ Auto-generation completed successfully');
+            } catch (error) {
+              console.error('❌ Auto-generation failed:', error);
+            }
+          } else {
+            console.log(
+              '✅ AI-generated outfits already available, no auto-generation needed'
+            );
+          }
+        };
+
+        // Run auto-generation check after a short delay to ensure screen is fully ready
+        setTimeout(checkAndGenerateOutfits, 300);
       }
     }, [screenReady, refreshManualOutfits])
   );
@@ -1470,15 +1529,21 @@ export default function StylistScreen() {
                   }}
                   onCurrentIndexChange={setCurrentOutfitIndex}
                   currentIndex={0}
-                  onFavoriteToggled={(
+                  onFavoriteToggled={async (
                     outfitId: string,
                     isFavorite: boolean
                   ) => {
                     console.log(
-                      `✅ Manual outfit ${outfitId} favorite status changed to: ${isFavorite}`
+                      `✅ Stylist Screen: Manual outfit ${outfitId} favorite status changed to: ${isFavorite}`
                     );
                     // Refresh manual outfits to apply the new filter
-                    refreshManualOutfits();
+                    console.log(
+                      '🔄 Stylist Screen: Refreshing manual outfits after favorite toggle...'
+                    );
+                    await refreshManualOutfits();
+                    console.log(
+                      '✅ Stylist Screen: Manual outfits refreshed successfully'
+                    );
                   }}
                 />
               </View>

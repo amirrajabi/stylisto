@@ -57,16 +57,52 @@ export const useManualOutfits = () => {
 
   // Subscribe to outfit favorite changes
   useEffect(() => {
-    console.log('🔗 Subscribing to outfit favorite changes...');
-    const unsubscribe = outfitFavoriteChanged.subscribe(() => {
+    console.log(
+      '🔗 useManualOutfits: Subscribing to outfit favorite changes...'
+    );
+    const unsubscribe = outfitFavoriteChanged.subscribe(async () => {
       console.log(
-        '🔔 Outfit favorite status changed, refreshing manual outfits...'
+        '🔔 useManualOutfits: Outfit favorite status changed, refreshing manual outfits...'
       );
-      refreshManualOutfits();
+
+      // Add a small delay to ensure database transaction is complete
+      setTimeout(async () => {
+        try {
+          setState(prev => ({ ...prev, loading: true }));
+          console.log(
+            '🔄 useManualOutfits: Loading manual outfits after favorite change...'
+          );
+          const outfits = await OutfitService.loadManualOutfits();
+
+          setState(prev => ({
+            ...prev,
+            manualOutfits: outfits,
+            loading: false,
+            error: null,
+          }));
+
+          console.log(
+            `✅ useManualOutfits: Refreshed ${outfits.length} manual outfits after favorite change`
+          );
+        } catch (error) {
+          console.error(
+            '❌ useManualOutfits: Error refreshing manual outfits after favorite change:',
+            error
+          );
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to refresh manual outfits',
+          }));
+        }
+      }, 100); // 100ms delay to ensure database consistency
     });
 
     return unsubscribe;
-  }, [refreshManualOutfits]);
+  }, []);
 
   return {
     ...state,
