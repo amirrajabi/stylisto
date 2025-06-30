@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Filter, Plus, Search, Sparkles } from 'lucide-react-native';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -221,6 +221,131 @@ export default function StylistScreen() {
   // Ref to track auto-generation attempts per focus
   const autoGenerationAttempted = React.useRef(false);
 
+  // State for filtered outfits (only non-favorites)
+  const [filteredFreshAIOutfits, setFilteredFreshAIOutfits] = useState<any[]>(
+    []
+  );
+  const [filteredDatabaseAIOutfits, setFilteredDatabaseAIOutfits] = useState<
+    any[]
+  >([]);
+  const [filteredManualOutfits, setFilteredManualOutfits] = useState<any[]>([]);
+
+  // Ref to prevent multiple filtering calls
+  const isFilteringRef = useRef(false);
+  const filterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Function to filter outfits based on database favorite status
+  const filterNonFavoriteOutfits = useCallback(async () => {
+    if (!user?.id || isFilteringRef.current) return;
+
+    isFilteringRef.current = true;
+
+    try {
+      console.log(
+        '🔍 Filtering outfits - checking database for favorite status...'
+      );
+
+      // Get all saved outfits from database to check favorite status
+      const { data: savedOutfits, error } = await supabase
+        .from('saved_outfits')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('❌ Error fetching saved outfits:', error);
+        return;
+      }
+
+      console.log(
+        `💾 Found ${savedOutfits?.length || 0} saved outfits in database`
+      );
+
+      // Filter fresh AI-generated outfits (in memory) - show only those that are not favorited in database
+      const filteredFreshAI = outfits.filter(outfit => {
+        // Check if this fresh outfit is saved and favorited in database
+        const savedOutfit = savedOutfits?.find(
+          saved =>
+            saved.source_type === 'ai-generated' &&
+            JSON.stringify(saved.items) === JSON.stringify(outfit.items)
+        );
+
+        // Show if not in database (not saved yet) or if saved but not favorite
+        const shouldShow = !savedOutfit || !savedOutfit.is_favorite;
+
+        if (!shouldShow) {
+          console.log(
+            `🚫 Fresh AI outfit filtered out (favorited in database)`
+          );
+        }
+
+        return shouldShow;
+      });
+
+      // Filter database AI-generated outfits - show only non-favorites
+      const filteredDatabaseAI = aiGeneratedOutfits.filter(outfit => {
+        const savedOutfit = savedOutfits?.find(saved => saved.id === outfit.id);
+        const shouldShow = !savedOutfit || !savedOutfit.is_favorite;
+
+        if (!shouldShow) {
+          console.log(
+            `🚫 Database AI outfit filtered out (favorited in database)`
+          );
+        }
+
+        return shouldShow;
+      });
+
+      // Filter manual outfits from database - show only non-favorites
+      const filteredManual = manualOutfitsFromDB.filter(outfit => {
+        const savedOutfit = savedOutfits?.find(saved => saved.id === outfit.id);
+        const shouldShow = !savedOutfit || !savedOutfit.is_favorite;
+
+        if (!shouldShow) {
+          console.log(`🚫 Manual outfit filtered out (favorited in database)`);
+        }
+
+        return shouldShow;
+      });
+
+      setFilteredFreshAIOutfits(filteredFreshAI);
+      setFilteredDatabaseAIOutfits(filteredDatabaseAI);
+      setFilteredManualOutfits(filteredManual);
+
+      console.log(
+        `✅ Filtering complete: ${filteredFreshAI.length} fresh AI outfits, ${filteredDatabaseAI.length} database AI outfits, ${filteredManual.length} manual outfits (non-favorites only)`
+      );
+    } catch (error) {
+      console.error('❌ Error filtering non-favorite outfits:', error);
+    } finally {
+      isFilteringRef.current = false;
+    }
+  }, [user?.id]);
+
+  // Debounced filtering to prevent excessive calls
+  const debouncedFilterOutfits = useCallback(() => {
+    // Clear any pending timeout
+    if (filterTimeoutRef.current) {
+      clearTimeout(filterTimeoutRef.current);
+    }
+
+    // Set new timeout
+    filterTimeoutRef.current = setTimeout(() => {
+      if (user?.id && !isFilteringRef.current) {
+        filterNonFavoriteOutfits();
+      }
+    }, 300);
+  }, [user?.id]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
+        filterTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Refresh outfits and check for auto-generation when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -232,6 +357,9 @@ export default function StylistScreen() {
 
         // Always refresh manual outfits to get latest from database
         refreshManualOutfits();
+
+        // Filter outfits based on database favorite status
+        filterNonFavoriteOutfits();
 
         // Check if we need to auto-generate AI outfits
         const checkAndGenerateOutfits = async () => {
@@ -271,6 +399,9 @@ export default function StylistScreen() {
               });
 
               console.log('✅ Auto-generation completed successfully');
+
+              // Re-filter after generation
+              filterNonFavoriteOutfits();
             } catch (error) {
               console.error('❌ Auto-generation failed:', error);
             }
@@ -286,6 +417,28 @@ export default function StylistScreen() {
       }
     }, [screenReady, refreshManualOutfits])
   );
+
+  // Filter when any outfits data changes
+  useEffect(() => {
+    if (screenReady) {
+      const hasAnyOutfits =
+        outfits.length > 0 ||
+        aiGeneratedOutfits.length > 0 ||
+        manualOutfitsFromDB.length > 0;
+
+      if (hasAnyOutfits) {
+        console.log(
+          `🔄 Outfits data changed: fresh:${outfits.length}, db:${aiGeneratedOutfits.length}, manual:${manualOutfitsFromDB.length}`
+        );
+        debouncedFilterOutfits();
+      }
+    }
+  }, [
+    screenReady,
+    outfits.length,
+    aiGeneratedOutfits.length,
+    manualOutfitsFromDB.length,
+  ]);
 
   // Auto-generation is handled by useOutfitRecommendation hook with proper filtering
 
@@ -1187,11 +1340,12 @@ export default function StylistScreen() {
             progress={generationProgress}
             onComplete={() => {}}
           />
-        ) : outfits.filter(
-            (outfit, index) => !recentlyLikedOutfits.has(`outfit-${index}`)
+        ) : filteredFreshAIOutfits.filter(
+            (outfit: any, index: number) =>
+              !recentlyLikedOutfits.has(`outfit-${index}`)
           ).length > 0 ||
-          aiGeneratedOutfits.filter(
-            outfit => !outfit.isFavorite && !recentlyLikedOutfits.has(outfit.id)
+          filteredDatabaseAIOutfits.filter(
+            (outfit: any) => !recentlyLikedOutfits.has(outfit.id)
           ).length > 0 ? (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
@@ -1202,14 +1356,12 @@ export default function StylistScreen() {
                 </View>
                 <Text style={styles.outfitCount}>
                   (
-                  {outfits.filter(
-                    (outfit, index) =>
+                  {filteredFreshAIOutfits.filter(
+                    (outfit: any, index: number) =>
                       !recentlyLikedOutfits.has(`outfit-${index}`)
                   ).length +
-                    aiGeneratedOutfits.filter(
-                      outfit =>
-                        !outfit.isFavorite &&
-                        !recentlyLikedOutfits.has(outfit.id)
+                    filteredDatabaseAIOutfits.filter(
+                      (outfit: any) => !recentlyLikedOutfits.has(outfit.id)
                     ).length}
                   )
                 </Text>
@@ -1220,25 +1372,26 @@ export default function StylistScreen() {
               and wardrobe
             </Text>
 
-            {/* Fresh AI Outfits (in memory) */}
-            {outfits.filter(
-              (outfit, index) => !recentlyLikedOutfits.has(`outfit-${index}`)
+            {/* Fresh AI Outfits (in memory) - filtered for non-favorites */}
+            {filteredFreshAIOutfits.filter(
+              (outfit: any, index: number) =>
+                !recentlyLikedOutfits.has(`outfit-${index}`)
             ).length > 0 && (
               <View style={styles.outfitCardContainer}>
                 <OutfitCard
-                  outfits={outfits
+                  outfits={filteredFreshAIOutfits
                     .filter(
-                      (outfit, index) =>
+                      (outfit: any, index: number) =>
                         !recentlyLikedOutfits.has(`outfit-${index}`)
                     )
-                    .map((outfit, index) => {
+                    .map((outfit: any, index: number) => {
                       // Get existing outfit names to prevent duplicates
                       const existingNames = [
-                        ...outfits
+                        ...filteredFreshAIOutfits
                           .slice(0, index)
-                          .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
-                        ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
-                        ...aiGeneratedOutfits.map(o => o.name), // AI outfits from database
+                          .map((o: any) => generateOutfitName(o.items)), // Previous outfits in this batch
+                        ...filteredManualOutfits.map((o: any) => o.name), // Manual outfits
+                        ...filteredDatabaseAIOutfits.map((o: any) => o.name), // AI outfits from database
                       ];
 
                       return {
@@ -1281,19 +1434,16 @@ export default function StylistScreen() {
               </View>
             )}
 
-            {/* AI Outfits from Database (unfavorited) */}
-            {aiGeneratedOutfits.filter(
-              outfit =>
-                !outfit.isFavorite && !recentlyLikedOutfits.has(outfit.id)
+            {/* AI Outfits from Database (unfavorited) - filtered for non-favorites */}
+            {filteredDatabaseAIOutfits.filter(
+              (outfit: any) => !recentlyLikedOutfits.has(outfit.id)
             ).length > 0 && (
               <View style={styles.outfitCardContainer}>
                 <Text style={styles.subsectionTitle}>Previously Generated</Text>
                 <OutfitCard
-                  outfits={aiGeneratedOutfits
+                  outfits={filteredDatabaseAIOutfits
                     .filter(
-                      outfit =>
-                        !outfit.isFavorite &&
-                        !recentlyLikedOutfits.has(outfit.id)
+                      (outfit: any) => !recentlyLikedOutfits.has(outfit.id)
                     )
                     .map(outfit => ({
                       id: outfit.id,
@@ -1303,8 +1453,8 @@ export default function StylistScreen() {
                       isFavorite: outfit.isFavorite || false,
                     }))}
                   onOutfitPress={(outfitId: string) => {
-                    const outfit = aiGeneratedOutfits.find(
-                      o => o.id === outfitId
+                    const outfit = filteredDatabaseAIOutfits.find(
+                      (o: any) => o.id === outfitId
                     );
                     if (outfit) {
                       const outfitWithMetadata = {
@@ -1322,8 +1472,8 @@ export default function StylistScreen() {
                   onSaveOutfit={async (outfitId: string) => {
                     try {
                       // Handle saving/favoriting AI outfit from database
-                      const outfit = aiGeneratedOutfits.find(
-                        o => o.id === outfitId
+                      const outfit = filteredDatabaseAIOutfits.find(
+                        (o: any) => o.id === outfitId
                       );
                       if (outfit) {
                         const result = await OutfitService.toggleOutfitFavorite(
@@ -1397,7 +1547,10 @@ export default function StylistScreen() {
               Use the Generate AI Outfits button above to get started.
             </Text>
           </View>
-        ) : hasActiveFilters && !loading && outfits.length === 0 ? (
+        ) : hasActiveFilters &&
+          !loading &&
+          filteredFreshAIOutfits.length === 0 &&
+          filteredDatabaseAIOutfits.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>Preparing Your Outfits</Text>
             <Text style={styles.emptyStateDescription}>
@@ -1461,19 +1614,16 @@ export default function StylistScreen() {
                   <SkeletonCard key={item} index={item} />
                 ))}
               </ScrollView>
-            ) : manualOutfitsFromDB.filter(
-                outfit =>
-                  !outfit.isFavorite &&
-                  !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
+            ) : filteredManualOutfits.filter(
+                outfit => !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
               ).length > 0 ? (
               <View style={styles.outfitCardContainer}>
                 <OutfitCard
-                  outfits={manualOutfitsFromDB
+                  outfits={filteredManualOutfits
                     .filter(
                       outfit =>
-                        !outfit.isFavorite &&
                         !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
-                    ) // Filter out favorited and recently liked outfits
+                    ) // Filter out recently liked outfits (favorites already filtered)
                     .map(outfit => {
                       return {
                         id: `manual-db-${outfit.id}`,
@@ -1495,7 +1645,7 @@ export default function StylistScreen() {
                     })}
                   onOutfitPress={(outfitId: string) => {
                     const id = outfitId.replace('manual-db-', '');
-                    const outfit = manualOutfitsFromDB.find(o => o.id === id);
+                    const outfit = filteredManualOutfits.find(o => o.id === id);
                     if (outfit) {
                       setSelectedOutfit({
                         id: `manual-db-${outfit.id}`,
@@ -1516,7 +1666,7 @@ export default function StylistScreen() {
                   onSaveOutfit={handleOutfitSave}
                   onEditOutfit={(outfit: any) => {
                     const id = outfit.id.replace('manual-db-', '');
-                    const foundOutfit = manualOutfitsFromDB.find(
+                    const foundOutfit = filteredManualOutfits.find(
                       o => o.id === id
                     );
                     if (foundOutfit) {
