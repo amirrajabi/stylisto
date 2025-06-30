@@ -31,5 +31,4 @@ export { OutfitRecommendationCard } from './OutfitRecommendationCard';
 export { OutfitRecommendationCarousel } from './OutfitRecommendationCarousel';
 export { OutfitStatsDisplay } from './OutfitStatsDisplay';
 export { QuickFilters } from './QuickFilters';
-export { VirtualTryOnModal } from './VirtualTryOnModal';
 export { WeatherOutfitBanner } from './WeatherOutfitBanner';

@@ -33,12 +33,12 @@ import {
   Edit2,
   Heart,
   RotateCcw,
-  Share,
+  Sparkles,
   X,
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  Animated,
   Dimensions,
   Image,
   Modal,
@@ -139,6 +139,11 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     result: hookResult,
   } = useVirtualTryOn();
 
+  // Animation values for processing view
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const sparkleRotateAnim = useRef(new Animated.Value(0)).current;
+
   // Auto-sync outfit data with Redux store when outfit changes
   useEffect(() => {
     if (visible && outfit) {
@@ -175,6 +180,55 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       setModalViewState('processing');
     }
   }, [hookIsProcessing]);
+
+  // Processing view animations
+  useEffect(() => {
+    if (modalViewState === 'processing') {
+      // Fade in animation
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
+
+      // Continuous pulse animation
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+      // Continuous sparkle rotation
+      const sparkleAnimation = Animated.loop(
+        Animated.timing(sparkleRotateAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        })
+      );
+
+      pulseAnimation.start();
+      sparkleAnimation.start();
+
+      return () => {
+        pulseAnimation.stop();
+        sparkleAnimation.stop();
+      };
+    } else {
+      fadeAnim.setValue(0);
+      pulseAnim.setValue(1);
+      sparkleRotateAnim.setValue(0);
+    }
+  }, [modalViewState, fadeAnim, pulseAnim, sparkleRotateAnim]);
 
   // Handle existing results from store
   useEffect(() => {
@@ -265,22 +319,61 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     setModalViewState('outfit');
   };
 
-  const handleSaveResult = () => {
-    if (tryOnResult) {
-      onVirtualTryOnSave?.(tryOnResult);
-    } else if (lastGeneratedImageUrl) {
-      const storeResult: VirtualTryOnResult = {
-        generatedImageUrl: lastGeneratedImageUrl,
-        processingTime: 30000,
-        confidence: 0.85,
-        metadata: {
-          prompt: lastGeneratedPrompt || `Virtual try-on of ${outfit.name}`,
-          styleInstructions: 'natural fit, professional photography',
-          itemsUsed: outfit.items.map(item => item.name),
-          timestamp: new Date().toISOString(),
-        },
-      };
-      onVirtualTryOnSave?.(storeResult);
+  const handleSaveResult = async () => {
+    console.log('💾 Saving AI Try-On result...');
+
+    try {
+      if (tryOnResult) {
+        // Save the complete result data including image
+        const resultData = {
+          ...tryOnResult,
+          savedAt: new Date().toISOString(),
+          outfitId: outfit.id,
+          outfitName: outfit.name,
+        };
+
+        console.log('✅ Saving try-on result with complete data:', {
+          hasImage: !!tryOnResult.generatedImageUrl,
+          imageUrl: tryOnResult.generatedImageUrl?.substring(0, 50) + '...',
+          outfitId: outfit.id,
+        });
+
+        onVirtualTryOnSave?.(resultData);
+      } else if (lastGeneratedImageUrl) {
+        // Create result from store data
+        const storeResult: VirtualTryOnResult = {
+          generatedImageUrl: lastGeneratedImageUrl,
+          processingTime: 30000,
+          confidence: 0.85,
+          metadata: {
+            prompt: lastGeneratedPrompt || `Virtual try-on of ${outfit.name}`,
+            styleInstructions: 'natural fit, professional photography',
+            itemsUsed: outfit.items.map(item => item.name),
+            timestamp: new Date().toISOString(),
+          },
+        };
+
+        // Add additional save metadata
+        const enhancedResult = {
+          ...storeResult,
+          savedAt: new Date().toISOString(),
+          outfitId: outfit.id,
+          outfitName: outfit.name,
+        };
+
+        console.log('✅ Saving store result with image data:', {
+          hasImage: !!lastGeneratedImageUrl,
+          imageUrl: lastGeneratedImageUrl?.substring(0, 50) + '...',
+          outfitId: outfit.id,
+        });
+
+        onVirtualTryOnSave?.(enhancedResult);
+      }
+
+      // Visual feedback
+      console.log('🎉 Try-on result saved successfully!');
+    } catch (error) {
+      console.error('❌ Failed to save try-on result:', error);
     }
   };
 
@@ -474,26 +567,94 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   );
 
   const renderProcessingView = () => (
-    <View style={styles.processingContainer}>
+    <Animated.View style={[styles.processingContainer, { opacity: fadeAnim }]}>
       <TouchableOpacity onPress={onClose} style={styles.processingBackButton}>
         <ArrowLeft size={24} color={Colors.text.primary} />
       </TouchableOpacity>
 
       <View style={styles.processingContent}>
-        <ActivityIndicator size="large" color={Colors.primary[500]} />
+        {/* Animated Sparkle Icon */}
+        <Animated.View
+          style={[
+            styles.processingIconContainer,
+            {
+              transform: [
+                { scale: pulseAnim },
+                {
+                  rotate: sparkleRotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.processingIconBackground}>
+            <Sparkles size={48} color={Colors.primary[500]} />
+          </View>
+        </Animated.View>
+
+        {/* Main Title */}
         <Text style={styles.processingTitle}>Generating Your AI Try-On</Text>
-        <Text style={styles.processingMessage}>
+
+        {/* Subtitle */}
+        <Text style={styles.processingSubtitle}>
           {processingMessage || 'Creating AI-powered virtual try-on...'}
         </Text>
-        <View style={styles.progressContainer}>
-          <ProgressBar
-            progress={(hookProgress || processingProgress) / 100}
-            label="Progress"
-            color={Colors.primary[500]}
-          />
+
+        {/* Enhanced Progress Section */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressLabelContainer}>
+            <Text style={styles.progressLabel}>Progress</Text>
+            <Text style={styles.progressPercentage}>
+              {Math.round(hookProgress || processingProgress || 0)}%
+            </Text>
+          </View>
+
+          <View style={styles.enhancedProgressContainer}>
+            <ProgressBar
+              progress={(hookProgress || processingProgress) / 100}
+              label=""
+              showPercentage={false}
+              color={Colors.primary[500]}
+            />
+          </View>
+        </View>
+
+        {/* Processing Steps Indicator */}
+        <View style={styles.stepsContainer}>
+          <View style={styles.stepIndicator}>
+            <View style={[styles.stepDot, styles.stepActive]} />
+            <Text style={styles.stepText}>Analyzing</Text>
+          </View>
+          <View style={styles.stepConnector} />
+          <View style={styles.stepIndicator}>
+            <View
+              style={[
+                styles.stepDot,
+                (hookProgress || processingProgress) > 30
+                  ? styles.stepActive
+                  : styles.stepInactive,
+              ]}
+            />
+            <Text style={styles.stepText}>AI Processing</Text>
+          </View>
+          <View style={styles.stepConnector} />
+          <View style={styles.stepIndicator}>
+            <View
+              style={[
+                styles.stepDot,
+                (hookProgress || processingProgress) > 60
+                  ? styles.stepActive
+                  : styles.stepInactive,
+              ]}
+            />
+            <Text style={styles.stepText}>Generating</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 
   const renderResultView = () => {
@@ -504,12 +665,6 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       <View style={styles.resultContainer}>
         {/* Header */}
         <View style={styles.resultHeader}>
-          <TouchableOpacity
-            onPress={handleBackToOutfit}
-            style={styles.resultBackButton}
-          >
-            <RotateCcw size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
           <Text style={styles.resultHeaderTitle}>AI Try-On Result</Text>
           <TouchableOpacity onPress={onClose} style={styles.resultCloseButton}>
             <X size={24} color={Colors.text.primary} />
@@ -540,7 +695,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
             onPress={handleRetryTryOn}
             activeOpacity={0.8}
           >
-            <RotateCcw size={20} color={Colors.surface.primary} />
+            <RotateCcw size={20} color={Colors.text.primary} />
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
 
@@ -551,15 +706,6 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
           >
             <Download size={20} color={Colors.surface.primary} />
             <Text style={styles.saveResultButtonText}>Save</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.shareResultButton}
-            onPress={handleShareResult}
-            activeOpacity={0.8}
-          >
-            <Share size={20} color={Colors.primary[500]} />
-            <Text style={styles.shareResultButtonText}>Share</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -778,10 +924,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    position: 'relative',
   },
   processingContent: {
     alignItems: 'center',
-    width: '80%',
+    width: '85%',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    backgroundColor: Colors.surface.primary,
+    borderRadius: Layout.borderRadius.xl,
+    ...Shadows.lg,
   },
   processingTitle: {
     ...Typography.heading.h2,
@@ -791,64 +944,112 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     textAlign: 'center',
   },
-  processingMessage: {
+  processingSubtitle: {
     ...Typography.body.medium,
     color: Colors.text.secondary,
     marginBottom: Spacing.xl,
     textAlign: 'center',
   },
-  progressContainer: {
+  progressSection: {
     width: '100%',
     marginBottom: Spacing.xl,
+  },
+  progressLabelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  progressLabel: {
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    fontWeight: '600',
+  },
+  progressPercentage: {
+    ...Typography.body.medium,
+    color: Colors.text.primary,
+    fontWeight: '600',
+  },
+  enhancedProgressContainer: {
+    width: '100%',
+  },
+  stepsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  stepIndicator: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginBottom: Spacing.xs,
+  },
+  stepActive: {
+    backgroundColor: Colors.primary[500],
+    ...Shadows.sm,
+  },
+  stepInactive: {
+    backgroundColor: Colors.background.secondary,
+  },
+  stepText: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  stepConnector: {
+    flex: 1,
+    height: 2,
+    backgroundColor: Colors.background.secondary,
+    marginHorizontal: Spacing.xs,
   },
   resultContainer: {
     flex: 1,
     position: 'relative',
-  },
-  tryOnErrorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  tryOnErrorText: {
-    ...Typography.body.medium,
-    color: Colors.error[700],
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
+    backgroundColor: Colors.background.primary,
   },
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.lg,
-  },
-  resultBackButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.primary,
   },
   resultHeaderTitle: {
-    ...Typography.heading.h3,
+    ...Typography.heading.h2,
     color: Colors.text.primary,
     fontWeight: '600',
+    flex: 1,
+    textAlign: 'left',
   },
   resultCloseButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.background.secondary,
   },
   resultImageContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    backgroundColor: Colors.background.primary,
+  },
+  resultImage: {
+    width: '100%',
+    height: '85%',
+    borderRadius: Layout.borderRadius.xl,
+    backgroundColor: Colors.surface.primary,
+    ...Shadows.lg,
   },
   resultPlaceholder: {
     flex: 1,
@@ -862,83 +1063,73 @@ const styles = StyleSheet.create({
   },
   processingBackButton: {
     position: 'absolute',
-    top: 30,
-    left: 30,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surface.secondary,
+    top: 50,
+    left: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.surface.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: Colors.border.secondary,
   },
   resultActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     backgroundColor: Colors.surface.primary,
     borderTopWidth: 1,
     borderTopColor: Colors.border.primary,
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   retryButton: {
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.background.secondary,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: Layout.borderRadius.md,
     flexDirection: 'row',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.primary[500],
+    alignItems: 'center',
+    gap: Spacing.sm,
     flex: 1,
-    ...Shadows.sm,
+    justifyContent: 'center',
   },
   retryButtonText: {
     ...Typography.body.medium,
-    color: Colors.primary[500],
-    fontWeight: '600',
+    color: Colors.text.primary,
+    fontWeight: '500',
   },
   saveResultButton: {
     backgroundColor: Colors.primary[500],
-    borderRadius: Layout.borderRadius.lg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: Layout.borderRadius.md,
     flexDirection: 'row',
-    gap: Spacing.xs,
+    alignItems: 'center',
+    gap: Spacing.sm,
     flex: 1,
-    ...Shadows.sm,
+    justifyContent: 'center',
   },
   saveResultButtonText: {
     ...Typography.body.medium,
     color: Colors.surface.primary,
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  shareResultButton: {
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
+  processingIconContainer: {
+    marginBottom: Spacing.xl,
+  },
+  processingIconBackground: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.primary[50],
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.primary[500],
-    flex: 1,
-  },
-  shareResultButtonText: {
-    ...Typography.body.medium,
-    color: Colors.primary[500],
-    fontWeight: '600',
-  },
-  resultImage: {
-    width: '90%',
-    height: '90%',
-    borderRadius: Layout.borderRadius.lg,
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: Colors.primary[100],
+    ...Shadows.lg,
   },
 });
