@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Archive, Heart, Search, Shirt } from 'lucide-react-native';
+import { Archive, Eye, Heart, Search, Shirt } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -41,7 +41,7 @@ interface FavoriteOutfit {
   is_favorite?: boolean;
 }
 
-type TabType = 'outfits' | 'items' | 'saved';
+type TabType = 'outfits' | 'items' | 'saved' | 'tryon';
 
 export default function GalleryScreen() {
   const { user } = useAuth();
@@ -490,8 +490,16 @@ export default function GalleryScreen() {
         activeTab === tabType && styles.activeModernTabButton,
       ]}
       onPress={() => setActiveTab(tabType)}
+      activeOpacity={0.7}
     >
-      {icon}
+      <View
+        style={[
+          styles.tabIconContainer,
+          activeTab === tabType && styles.activeTabIconContainer,
+        ]}
+      >
+        {icon}
+      </View>
       <AccessibleText
         style={[
           styles.modernTabButtonText,
@@ -557,12 +565,12 @@ export default function GalleryScreen() {
       <AccessibleText
         style={[styles.emptyTitle, { color: colors.text.primary }]}
       >
-        No Favorite Outfits
+        No Loved Outfits Yet
       </AccessibleText>
       <AccessibleText
         style={[styles.emptyDescription, { color: colors.text.secondary }]}
       >
-        Mark outfits as favorites to see them here
+        Mark your favorite outfits with love to see them here
       </AccessibleText>
     </View>
   );
@@ -577,12 +585,12 @@ export default function GalleryScreen() {
       <AccessibleText
         style={[styles.emptyTitle, { color: colors.text.primary }]}
       >
-        No Saved Outfits
+        No Collections Found
       </AccessibleText>
       <AccessibleText
         style={[styles.emptyDescription, { color: colors.text.secondary }]}
       >
-        Create and save outfits to see them here
+        Create and save stylish outfit collections to see them here
       </AccessibleText>
     </View>
   );
@@ -616,26 +624,35 @@ export default function GalleryScreen() {
       <View style={styles.modernTabContainer}>
         {renderTabButton(
           'outfits',
-          'Favorites',
+          'Outfits',
           <Heart
-            size={20}
-            color={activeTab === 'outfits' ? colors.primary[600] : '#6b7280'}
+            size={22}
+            color={activeTab === 'outfits' ? colors.primary[600] : '#64748b'}
+            fill={activeTab === 'outfits' ? colors.primary[600] : 'transparent'}
+          />
+        )}
+        {renderTabButton(
+          'tryon',
+          'Try-On',
+          <Eye
+            size={22}
+            color={activeTab === 'tryon' ? colors.primary[600] : '#64748b'}
           />
         )}
         {renderTabButton(
           'saved',
-          'All Saved',
+          'Collections',
           <Archive
-            size={20}
-            color={activeTab === 'saved' ? colors.primary[600] : '#6b7280'}
+            size={22}
+            color={activeTab === 'saved' ? colors.primary[600] : '#64748b'}
           />
         )}
         {renderTabButton(
           'items',
           'Items',
           <Shirt
-            size={20}
-            color={activeTab === 'items' ? colors.primary[600] : '#6b7280'}
+            size={22}
+            color={activeTab === 'items' ? colors.primary[600] : '#64748b'}
           />
         )}
       </View>
@@ -663,6 +680,27 @@ export default function GalleryScreen() {
               ) : undefined
             }
           />
+        ) : activeTab === 'tryon' ? (
+          <View style={styles.tryOnContainer}>
+            <Eye
+              size={64}
+              color={colors.text.secondary}
+              style={styles.emptyIcon}
+            />
+            <AccessibleText
+              style={[styles.emptyTitle, { color: colors.text.primary }]}
+            >
+              Virtual Try-On Studio
+            </AccessibleText>
+            <AccessibleText
+              style={[
+                styles.emptyDescription,
+                { color: colors.text.secondary },
+              ]}
+            >
+              Experience your outfits in virtual reality before wearing them
+            </AccessibleText>
+          </View>
         ) : activeTab === 'saved' ? (
           <FlatList
             data={getFilteredOutfits(savedOutfits)}
@@ -776,45 +814,67 @@ const styles = StyleSheet.create({
   modernTabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    gap: 8,
+    gap: 12,
   },
   modernTabButton: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     backgroundColor: '#ffffff',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#f1f5f9',
     gap: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    minHeight: 80,
   },
   activeModernTabButton: {
     backgroundColor: Colors.primary[50],
+    borderColor: Colors.primary[300],
+    shadowColor: Colors.primary[600],
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    transform: [{ scale: 1.02 }],
+  },
+  tabIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  activeTabIconContainer: {
+    backgroundColor: Colors.primary[100],
     borderColor: Colors.primary[200],
   },
   modernTabButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#6b7280',
     fontFamily: 'Inter-Medium',
+    textAlign: 'center',
+    marginTop: 2,
   },
   activeModernTabButtonText: {
-    color: Colors.primary[600],
+    color: Colors.primary[700],
     fontWeight: '600',
   },
   content: {
@@ -849,5 +909,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  tryOnContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
   },
 });
