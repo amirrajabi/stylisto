@@ -2,8 +2,6 @@ import { Image } from 'expo-image';
 import { Heart, Sparkles, User } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { Spacing } from '../../constants/Spacing';
-import { Typography } from '../../constants/Typography';
 import { ClothingItem } from '../../types/wardrobe';
 import { useAccessibility } from '../ui/AccessibilityProvider';
 import { AccessibleText } from '../ui/AccessibleText';
@@ -36,38 +34,23 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
 
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.surface.primary,
-          borderColor: colors.border.primary,
-        },
-        style,
-      ]}
+      style={[styles.modernCard, style]}
       onPress={() => onPress(outfit)}
-      activeOpacity={0.8}
+      activeOpacity={0.95}
       accessibilityRole="button"
       accessibilityLabel={`View outfit ${outfit.name}`}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
+      {/* Header with Title and Favorite */}
+      <View style={styles.modernHeader}>
+        <View style={styles.titleRow}>
           {outfit.source_type === 'ai_generated' && (
-            <Sparkles
-              size={14}
-              color={colors.primary[500]}
-              style={styles.sourceIcon}
-            />
+            <Sparkles size={12} color="#a855f7" style={styles.sourceIcon} />
           )}
           {outfit.source_type === 'manual' && (
-            <User
-              size={14}
-              color={colors.secondary[500]}
-              style={styles.sourceIcon}
-            />
+            <User size={12} color="#a855f7" style={styles.sourceIcon} />
           )}
           <AccessibleText
-            style={[styles.outfitName, { color: colors.text.primary }]}
+            style={styles.modernOutfitName}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
@@ -76,60 +59,76 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
         </View>
         <TouchableOpacity
           onPress={() => onToggleFavorite(outfit.id)}
-          style={styles.favoriteButton}
+          style={styles.modernFavoriteButton}
           accessibilityRole="button"
           accessibilityLabel="Remove from favorites"
         >
-          <Heart
-            size={20}
-            color={colors.error[500]}
-            fill={colors.error[500]}
-            strokeWidth={2}
-          />
+          <Heart size={16} color="#ef4444" fill="#ef4444" strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
 
-      {/* Items Grid */}
-      <View style={styles.itemsGrid}>
-        {displayItems.map((item, index) => (
-          <View key={item.id || index} style={styles.itemContainer}>
+      {/* Modern Items Grid */}
+      <View style={styles.modernItemsGrid}>
+        {displayItems.length >= 2 ? (
+          <>
+            {/* Main item (larger) */}
+            <View style={styles.mainItemContainer}>
+              <Image
+                source={{ uri: displayItems[0]?.imageUrl }}
+                style={styles.mainItemImage}
+                contentFit="cover"
+                placeholder="Loading..."
+              />
+            </View>
+
+            {/* Secondary items */}
+            <View style={styles.secondaryItemsContainer}>
+              {displayItems.slice(1, 4).map((item, index) => (
+                <View
+                  key={item.id || index}
+                  style={styles.secondaryItemContainer}
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.secondaryItemImage}
+                    contentFit="cover"
+                    placeholder="Loading..."
+                  />
+                </View>
+              ))}
+
+              {/* Fill remaining slots if needed */}
+              {Array.from({
+                length: Math.max(0, 3 - displayItems.slice(1).length),
+              }).map((_, index) => (
+                <View
+                  key={`empty-${index}`}
+                  style={[styles.secondaryItemContainer, styles.emptySlot]}
+                />
+              ))}
+            </View>
+          </>
+        ) : displayItems.length === 1 ? (
+          <View style={styles.singleItemContainer}>
             <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.itemImage}
+              source={{ uri: displayItems[0]?.imageUrl }}
+              style={styles.singleItemImage}
               contentFit="cover"
               placeholder="Loading..."
             />
           </View>
-        ))}
-
-        {/* Empty slots for consistent grid */}
-        {Array.from({ length: Math.max(0, 4 - displayItems.length) }).map(
-          (_, index) => (
-            <View
-              key={`empty-${index}`}
-              style={[
-                styles.itemContainer,
-                styles.emptySlot,
-                { backgroundColor: colors.surface.secondary },
-              ]}
-            />
-          )
+        ) : (
+          <View style={styles.emptyOutfitContainer}>
+            <AccessibleText style={styles.emptyOutfitText}>
+              No Items
+            </AccessibleText>
+          </View>
         )}
       </View>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        {outfit.occasion && (
-          <AccessibleText
-            style={[styles.occasionText, { color: colors.text.secondary }]}
-            numberOfLines={1}
-          >
-            {outfit.occasion}
-          </AccessibleText>
-        )}
-        <AccessibleText
-          style={[styles.dateText, { color: colors.text.tertiary }]}
-        >
+      <View style={styles.modernFooter}>
+        <AccessibleText style={styles.modernDateText}>
           {new Date(outfit.created_at).toLocaleDateString('en-AU', {
             day: 'numeric',
             month: 'short',
@@ -141,68 +140,115 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  card: {
+  modernCard: {
+    backgroundColor: '#ffffff',
     borderRadius: 16,
+    padding: 12,
+    margin: 6,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
     borderWidth: 1,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    borderColor: '#f1f5f9',
   },
-  header: {
+  modernHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
-  titleContainer: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   sourceIcon: {
-    marginRight: Spacing.xs,
+    marginRight: 4,
   },
-  outfitName: {
-    fontSize: Typography.body.medium.fontSize,
-    fontWeight: Typography.body.medium.fontWeight,
-    fontFamily: Typography.body.medium.fontFamily,
+  modernOutfitName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    fontFamily: 'Inter-SemiBold',
     flex: 1,
-    marginRight: Spacing.sm,
   },
-  favoriteButton: {
-    padding: Spacing.xs,
+  modernFavoriteButton: {
+    padding: 4,
   },
-  itemsGrid: {
+  modernItemsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    gap: 4,
+    marginBottom: 8,
+    minHeight: 100,
   },
-  itemContainer: {
-    width: '48%',
-    aspectRatio: 1,
+  mainItemContainer: {
+    flex: 2,
     borderRadius: 8,
-    marginBottom: Spacing.xs,
     overflow: 'hidden',
+    backgroundColor: '#f8fafc',
   },
-  itemImage: {
+  mainItemImage: {
+    width: '100%',
+    height: 100,
+  },
+  secondaryItemsContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  secondaryItemContainer: {
+    flex: 1,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
+    minHeight: 30,
+  },
+  secondaryItemImage: {
     width: '100%',
     height: '100%',
   },
-  emptySlot: {
+  singleItemContainer: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
+  },
+  singleItemImage: {
+    width: '100%',
+    height: 100,
+  },
+  emptyOutfitContainer: {
+    flex: 1,
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
+    borderColor: '#e2e8f0',
     borderStyle: 'dashed',
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  emptyOutfitText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontFamily: 'Inter-Regular',
   },
-  occasionText: {
-    fontSize: Typography.caption.medium.fontSize,
-    fontFamily: Typography.caption.medium.fontFamily,
-    flex: 1,
+  emptySlot: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
   },
-  dateText: {
-    fontSize: Typography.caption.small.fontSize,
-    fontFamily: Typography.caption.small.fontFamily,
+  modernFooter: {
+    alignItems: 'flex-end',
+  },
+  modernDateText: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontFamily: 'Inter-Regular',
   },
 });

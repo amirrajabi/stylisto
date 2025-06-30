@@ -10,7 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { OutfitDetailModal } from '../../components/outfits';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
 import { OutfitEditModal } from '../../components/outfits/OutfitEditModal';
@@ -45,6 +48,7 @@ export default function GalleryScreen() {
   const { user } = useAuth();
   const { colors } = useAccessibility();
   const { calculateDetailedScore, formatScoreForDatabase } = useOutfitScoring();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('outfits');
   const [favoriteOutfits, setFavoriteOutfits] = useState<FavoriteOutfit[]>([]);
   const [savedOutfits, setSavedOutfits] = useState<FavoriteOutfit[]>([]);
@@ -575,16 +579,14 @@ export default function GalleryScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background.primary }]}
     >
-      {/* Modern Header */}
-      <View style={styles.modernHeader}>
-        <AccessibleText
-          style={[styles.modernTitle, { color: colors.text.primary }]}
-        >
+      {/* Header with consistent spacing like other pages */}
+      <View style={styles.header}>
+        <AccessibleText style={[styles.title, { color: colors.text.primary }]}>
           Outfit Gallery
         </AccessibleText>
       </View>
 
-      {/* Search and Filter Container */}
+      {/* Search and Filter */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Search size={20} color="#6b7280" />
@@ -608,7 +610,7 @@ export default function GalleryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Modern Tabs Container */}
+      {/* Tabs */}
       <View style={styles.modernTabContainer}>
         {renderTabButton(
           'outfits',
@@ -715,7 +717,11 @@ export default function GalleryScreen() {
         iconSize={36}
         gradientColors={['#ffffff', '#ffffff']}
         icon="app-icon"
-        style={styles.floatingButton}
+        style={{
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 110 : 90,
+          right: 20,
+        }}
       />
     </SafeAreaView>
   );
@@ -725,21 +731,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  modernHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: Colors.surface.primary,
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border.secondary,
   },
-  modernTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1f2937',
-    fontFamily: 'Inter-Bold',
+  title: {
+    ...Typography.heading.h2,
+    fontWeight: 'bold',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -812,9 +812,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.surface.primary,
-    gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    gap: 8,
   },
   modernTabButton: {
     flex: 1,
@@ -851,46 +851,6 @@ const styles = StyleSheet.create({
     color: Colors.primary[600],
     fontWeight: '600',
   },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.secondary,
-  },
-  title: {
-    ...Typography.heading.h2,
-    fontWeight: 'bold',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.background.secondary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.secondary,
-  },
-  tabButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 8,
-    marginHorizontal: Spacing.xs,
-  },
-  activeTabButton: {
-    backgroundColor: Colors.primary[50],
-  },
-  tabButtonText: {
-    ...Typography.body.medium,
-    color: Colors.text.tertiary,
-    marginLeft: Spacing.xs,
-  },
-  activeTabButtonText: {
-    color: Colors.primary[600],
-    fontWeight: '600',
-  },
   content: {
     flex: 1,
   },
@@ -923,10 +883,5 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
     lineHeight: 20,
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 110 : 90,
-    right: 20,
   },
 });
