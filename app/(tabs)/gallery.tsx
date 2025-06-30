@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Archive, Heart, Search, Shirt } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,7 +17,6 @@ import {
 import { OutfitDetailModal } from '../../components/outfits';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
 import { OutfitEditModal } from '../../components/outfits/OutfitEditModal';
-import { FloatingActionButton } from '../../components/ui';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
 import { FavoriteItemsGallery } from '../../components/wardrobe/FavoriteItemsGallery';
@@ -698,19 +697,6 @@ export default function GalleryScreen() {
         outfit={outfitToEdit}
         onClose={handleEditModalClose}
         onSave={handleOutfitUpdate}
-      />
-
-      <FloatingActionButton
-        onPress={() => router.push('/generate')}
-        size={56}
-        iconSize={36}
-        gradientColors={['#ffffff', '#ffffff']}
-        icon="app-icon"
-        style={{
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 110 : 90,
-          right: 20,
-        }}
       />
     </SafeAreaView>
   );
