@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Archive, Heart, Search, Shirt } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -398,6 +398,10 @@ export default function GalleryScreen() {
 
   const handleItemPress = (item: ClothingItem) => {
     console.log('Item pressed:', item.name);
+    router.push({
+      pathname: '/item-detail',
+      params: { itemId: item.id },
+    });
   };
 
   const handleEditOutfit = async (outfitId: string) => {
