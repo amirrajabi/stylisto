@@ -3,6 +3,7 @@ import { Save, Shirt, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
+  Dimensions,
   FlatList,
   SafeAreaView,
   ScrollView,
@@ -11,8 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { MinimalAddItemCard } from '../components/outfits/MinimalAddItemCard';
+import { MinimalOutfitItemCard } from '../components/outfits/MinimalOutfitItemCard';
 import { BodyMedium, Button, Input } from '../components/ui';
-import { ClothingItemCard } from '../components/wardrobe/ClothingItemCard';
 import { Colors } from '../constants/Colors';
 import { Shadows } from '../constants/Shadows';
 import { Layout, Spacing } from '../constants/Spacing';
@@ -20,6 +22,9 @@ import { useManualOutfits } from '../hooks/useManualOutfits';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { OutfitService } from '../lib/outfitService';
 import { ClothingItem } from '../types/wardrobe';
+
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 56) / 2;
 
 export default function OutfitBuilderScreen() {
   const { editOutfitId } = useLocalSearchParams<{ editOutfitId?: string }>();
@@ -47,6 +52,18 @@ export default function OutfitBuilderScreen() {
 
   const handleRemoveItem = (itemId: string) => {
     setOutfitItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleToggleItem = (item: ClothingItem) => {
+    const isInOutfit = outfitItems.some(
+      outfitItem => outfitItem.id === item.id
+    );
+
+    if (isInOutfit) {
+      handleRemoveItem(item.id);
+    } else {
+      handleAddItem(item);
+    }
   };
 
   const handleSave = async () => {
@@ -115,19 +132,11 @@ export default function OutfitBuilderScreen() {
         index < outfitItems.length - 1 && { marginRight: Spacing.lg },
       ]}
     >
-      <ClothingItemCard
+      <MinimalOutfitItemCard
         item={item}
         index={index}
-        onPress={() => {}}
-        onToggleFavorite={() => actions.toggleFavorite(item.id)}
-        onMoreOptions={() => handleRemoveItem(item.id)}
+        onRemove={() => handleToggleItem(item)}
       />
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => handleRemoveItem(item.id)}
-      >
-        <X size={16} color={Colors.white} />
-      </TouchableOpacity>
     </View>
   );
 
@@ -138,12 +147,10 @@ export default function OutfitBuilderScreen() {
     item: ClothingItem;
     index: number;
   }) => (
-    <ClothingItemCard
+    <MinimalAddItemCard
       item={item}
       index={index}
-      onPress={() => handleAddItem(item)}
-      onToggleFavorite={() => actions.toggleFavorite(item.id)}
-      onMoreOptions={() => {}}
+      onAdd={() => handleToggleItem(item)}
     />
   );
 
@@ -245,6 +252,7 @@ export default function OutfitBuilderScreen() {
               numColumns={2}
               scrollEnabled={false}
               contentContainerStyle={styles.availableItemsList}
+              columnWrapperStyle={styles.gridRow}
             />
           ) : (
             <View style={styles.emptyAvailable}>
@@ -296,10 +304,11 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: Colors.surface.primary,
     marginBottom: Spacing.md,
-    padding: Spacing.lg,
   },
   sectionTitle: {
     marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
   outfitItemsList: {
     paddingHorizontal: Spacing.lg,
@@ -310,24 +319,15 @@ const styles = StyleSheet.create({
   },
   outfitItemContainer: {
     position: 'relative',
-    width: 130,
-  },
-  removeButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 24,
-    height: 24,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.error[500],
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: cardWidth,
   },
   availableItemsList: {
-    gap: Spacing.md,
+    padding: 16,
+    paddingBottom: 100,
   },
   emptyOutfit: {
     padding: Spacing.lg,
+    marginHorizontal: Spacing.lg,
     alignItems: 'center',
     backgroundColor: Colors.surface.secondary,
     borderRadius: Layout.borderRadius.lg,
@@ -337,6 +337,7 @@ const styles = StyleSheet.create({
   },
   emptyAvailable: {
     padding: Spacing.lg,
+    marginHorizontal: Spacing.lg,
     alignItems: 'center',
   },
   saveSection: {
@@ -347,6 +348,7 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
   label: {
     fontSize: 14,
@@ -360,5 +362,33 @@ const styles = StyleSheet.create({
   textArea: {
     fontSize: 16,
     textAlignVertical: 'top',
+  },
+  gridRow: {
+    justifyContent: 'space-between',
+  },
+  listContainer: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+    fontFamily: 'Inter-SemiBold',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    fontFamily: 'Inter-Regular',
   },
 });
