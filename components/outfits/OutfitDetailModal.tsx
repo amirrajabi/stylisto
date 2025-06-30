@@ -1,11 +1,12 @@
 /*
- * OutfitDetailModal Component
+ * OutfitGalleryModal Component
  *
  * Features:
  * - Displays outfit collage in full-height header
  * - Shows outfit name and horizontal scrolling items below
  * - Clean and minimal design focused on visual presentation
  * - Integrates Virtual Try-On functionality with FLUX API
+ * - Used in gallery/collection views
  *
  * Props:
  * - onTry: Callback function when Try button is pressed
@@ -14,7 +15,7 @@
  * - userImage: User's photo for virtual try-on
  *
  * Usage:
- * <OutfitDetailModal
+ * <OutfitGalleryModal
  *   visible={showModal}
  *   onClose={() => setShowModal(false)}
  *   outfit={{ ...outfitData, isFavorite: true }}
@@ -49,7 +50,7 @@ import { ClothingItem } from '../../types/wardrobe';
 import { NativeCollageView } from '../ui/NativeCollageView';
 import { VirtualTryOnModal } from './VirtualTryOnModal';
 
-interface OutfitDetailModalProps {
+export interface OutfitGalleryModalProps {
   visible: boolean;
   onClose: () => void;
   outfit: {
@@ -76,7 +77,7 @@ interface OutfitDetailModalProps {
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
+export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   visible,
   onClose,
   outfit,
@@ -580,3 +581,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
 });
+
+// Backward compatibility export
+export const OutfitDetailModal = OutfitGalleryModal;
+export type OutfitDetailModalProps = OutfitGalleryModalProps;

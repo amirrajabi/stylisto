@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { OutfitDetailModal } from '../../../components/outfits';
 import { OutfitCard } from '../../../components/outfits/OutfitCard';
-import { OutfitDetailModal } from '../../../components/outfits/OutfitDetailModal';
 import { OutfitEditModal } from '../../../components/outfits/OutfitEditModal';
 import {
   OutfitFilters,
@@ -1207,7 +1207,6 @@ export default function StylistScreen() {
         outfit={selectedOutfit}
         userImage={user?.full_body_image_url || undefined}
         onSave={handleOutfitSave}
-        onShare={handleShareOutfit}
         onProve={handleProveOutfit}
         onTry={handleTryOutfit}
         onVirtualTryOnComplete={handleVirtualTryOnComplete}

@@ -10,8 +10,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { OutfitDetailModal } from '../../components/outfits';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
-import { OutfitDetailModal } from '../../components/outfits/OutfitDetailModal';
 import { FloatingActionButton } from '../../components/ui';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
@@ -389,7 +389,6 @@ export default function GalleryScreen() {
           onClose={handleCloseModal}
           userImage={user?.full_body_image_url || undefined}
           onSave={handleSaveOutfit}
-          onShare={handleShareOutfit}
           onProve={handleProveOutfit}
           onVirtualTryOnComplete={handleVirtualTryOnComplete}
           onVirtualTryOnSave={handleVirtualTryOnSave}
