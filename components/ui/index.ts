@@ -37,6 +37,8 @@ export { FocusTrap } from './FocusTrap';
 export { Toast } from './Toast';
 export type { ToastProps } from './Toast';
 
+export { ZoomableImage } from './ZoomableImage';
+
 // Typography components
 export {
   BodyLarge,

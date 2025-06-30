@@ -40,7 +40,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
-  Image,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -60,6 +59,7 @@ import { VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
 import { NativeCollageView } from '../ui/NativeCollageView';
 import { ProgressBar } from '../ui/ProgressBar';
+import { ZoomableImage } from '../ui/ZoomableImage';
 import { ClothingItemCard } from '../wardrobe/ClothingItemCard';
 
 export interface OutfitGalleryModalProps {
@@ -674,7 +674,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
         {/* Result Image */}
         <View style={styles.resultImageContainer}>
           {resultImageUrl ? (
-            <Image
+            <ZoomableImage
               source={{ uri: resultImageUrl }}
               style={styles.resultImage}
               resizeMode="contain"
