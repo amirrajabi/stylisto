@@ -420,9 +420,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       outfitName: outfit.name,
     });
 
-    try {
-      let imageUrlToSave: string | null = null;
+    let imageUrlToSave: string | null = null;
 
+    try {
       if (tryOnResult?.generatedImageUrl) {
         imageUrlToSave = tryOnResult.generatedImageUrl;
       } else if (lastGeneratedImageUrl) {
@@ -438,13 +438,72 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
         return;
       }
 
-      console.log('📸 Saving virtual try-on result:', {
+      console.log('📸 Checking virtual try-on image URL:', {
         outfitId: outfit.id,
         outfitName: outfit.name,
         userId: user.id,
         hasImage: !!imageUrlToSave,
+        imageType: imageUrlToSave.startsWith('data:')
+          ? 'Data URI'
+          : imageUrlToSave.startsWith('http')
+            ? 'HTTP URL'
+            : imageUrlToSave.startsWith('file:')
+              ? 'File URL'
+              : 'Unknown',
+        imageUrlPreview: imageUrlToSave.substring(0, 100),
       });
 
+      // Check if the image is already saved to Supabase storage
+      const isSupabaseUrl = imageUrlToSave.includes(
+        'supabase.co/storage/v1/object/public/virtual-try-on-results'
+      );
+
+      if (isSupabaseUrl) {
+        console.log(
+          '✅ Image already saved to Supabase storage, skipping duplicate save'
+        );
+
+        // Show success toast
+        setShowSuccessToast(true);
+
+        // Mark as having existing try-on
+        setHasExistingTryOn(true);
+
+        // Just notify callbacks without re-saving
+        if (tryOnResult) {
+          const enhancedResult = {
+            ...tryOnResult,
+            savedAt: new Date().toISOString(),
+            outfitId: outfit.id,
+            outfitName: outfit.name,
+          };
+          onVirtualTryOnSave?.(enhancedResult);
+        } else if (lastGeneratedImageUrl) {
+          const storeResult: VirtualTryOnResult = {
+            generatedImageUrl: lastGeneratedImageUrl,
+            processingTime: 30000,
+            confidence: 0.85,
+            metadata: {
+              prompt: lastGeneratedPrompt || `Virtual try-on of ${outfit.name}`,
+              styleInstructions: 'natural fit, professional photography',
+              itemsUsed: outfit.items.map(item => item.name),
+              timestamp: new Date().toISOString(),
+            },
+          };
+
+          const enhancedResult = {
+            ...storeResult,
+            savedAt: new Date().toISOString(),
+            outfitId: outfit.id,
+            outfitName: outfit.name,
+          };
+          onVirtualTryOnSave?.(enhancedResult);
+        }
+
+        return;
+      }
+
+      // Only save if it's not already in Supabase storage
       const result = await storageService.saveVirtualTryOnResult(
         imageUrlToSave,
         user.id,
@@ -510,9 +569,60 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       }
     } catch (error) {
       console.error('❌ Failed to save virtual try-on result:', error);
-      alert(
-        'Failed to save virtual try-on result. Please check your internet connection and try again.'
-      );
+
+      // Provide specific error messages based on error type
+      let userMessage = 'Failed to save virtual try-on result. ';
+
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+
+        if (
+          errorMessage.includes('network') ||
+          errorMessage.includes('connection')
+        ) {
+          userMessage += 'Please check your internet connection and try again.';
+        } else if (
+          errorMessage.includes('authentication') ||
+          errorMessage.includes('login')
+        ) {
+          userMessage += 'Please log out and log back in, then try again.';
+        } else if (
+          errorMessage.includes('too large') ||
+          errorMessage.includes('size')
+        ) {
+          userMessage +=
+            'The image is too large. Please try generating a new try-on result.';
+        } else if (
+          errorMessage.includes('invalid') ||
+          errorMessage.includes('format')
+        ) {
+          userMessage +=
+            'The image format is not supported. Please try generating a new try-on result.';
+        } else if (
+          errorMessage.includes('download') ||
+          errorMessage.includes('url')
+        ) {
+          userMessage +=
+            'Unable to process the image. Please try generating a new try-on result.';
+        } else {
+          userMessage +=
+            'An unexpected error occurred. Please try again or generate a new try-on result.';
+        }
+
+        // Log detailed error for debugging
+        console.error('💥 Detailed error information:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          imageUrl: imageUrlToSave?.substring(0, 100),
+          userId: user.id,
+          outfitId: outfit.id,
+        });
+      } else {
+        userMessage += 'An unexpected error occurred. Please try again.';
+      }
+
+      alert(userMessage);
     } finally {
       setIsSaving(false);
     }

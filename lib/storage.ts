@@ -7,6 +7,26 @@ import {
 } from '../utils/imageProcessing';
 import { supabase } from './supabase';
 
+// Polyfill for atob in React Native environments
+const safeAtob = (base64: string): string => {
+  if (typeof atob !== 'undefined') {
+    return atob(base64);
+  }
+
+  // React Native polyfill using base64-arraybuffer
+  try {
+    const buffer = decode(base64);
+    const uint8Array = new Uint8Array(buffer);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    return binaryString;
+  } catch (error) {
+    throw new Error(`Failed to decode base64 string: ${error}`);
+  }
+};
+
 export interface UploadOptions {
   bucket: string;
   path: string;
@@ -75,6 +95,13 @@ class StorageService {
   ): Promise<UploadResult> {
     try {
       console.log('🚀 Starting Virtual Try-On save process...');
+      console.log('📸 Image URL type:', {
+        isDataUri: generatedImageUrl.startsWith('data:'),
+        isHttpUrl: generatedImageUrl.startsWith('http'),
+        isFileUrl: generatedImageUrl.startsWith('file:'),
+        urlLength: generatedImageUrl.length,
+        urlPreview: generatedImageUrl.substring(0, 100),
+      });
 
       // Step 1: Verify authentication
       const {
@@ -93,43 +120,191 @@ class StorageService {
 
       console.log('✅ Auth verified:', { userId, email: session.user.email });
 
-      // Step 2: Download the generated image
+      // Step 2: Handle different image URL types and get file data
       let fileData: ArrayBuffer;
 
-      if (Platform.OS === 'web') {
-        // Web: Use standard fetch and arrayBuffer
-        const response = await fetch(generatedImageUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to download image: ${response.status}`);
-        }
-        fileData = await response.arrayBuffer();
-      } else {
-        // React Native: Download to temporary file and read as base64
-        const tempTimestamp = Date.now();
-        const tempPath = `${FileSystem.documentDirectory}temp_virtual_tryon_${tempTimestamp}.jpg`;
-
-        console.log('📱 Downloading virtual try-on to temporary file...');
-        const downloadResult = await FileSystem.downloadAsync(
-          generatedImageUrl,
-          tempPath
-        );
-
-        if (downloadResult.status !== 200) {
-          throw new Error(`Failed to download image: ${downloadResult.status}`);
+      if (generatedImageUrl.startsWith('data:')) {
+        // Handle Data URI (base64 encoded image)
+        console.log('📦 Processing Data URI...');
+        const [mimeInfo, base64Data] = generatedImageUrl.split(',');
+        if (!base64Data) {
+          throw new Error('Invalid data URI format');
         }
 
-        console.log('📖 Reading file as base64...');
-        const base64 = await FileSystem.readAsStringAsync(tempPath, {
+        // Decode base64 to ArrayBuffer using safe polyfill
+        const binaryString = safeAtob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        fileData = bytes.buffer;
+
+        console.log('✅ Data URI processed successfully:', {
+          mimeType: mimeInfo,
+          sizeBytes: fileData.byteLength,
+        });
+      } else if (generatedImageUrl.startsWith('http')) {
+        // Handle HTTP(S) URLs with retry logic
+        console.log('🌐 Downloading from HTTP URL...');
+
+        // Validate URL format before attempting download
+        try {
+          new URL(generatedImageUrl);
+        } catch (urlError) {
+          throw new Error(`Invalid URL format: ${generatedImageUrl}`);
+        }
+
+        // Check if URL looks like an incomplete Supabase storage URL
+        if (
+          generatedImageUrl.includes(
+            'supabase.co/storage/v1/object/public/virtual-try-on-results'
+          )
+        ) {
+          const urlParts = generatedImageUrl.split('/');
+          const fileName = urlParts[urlParts.length - 1];
+
+          // Check if filename looks incomplete (too short or missing extension)
+          if (
+            !fileName ||
+            fileName.length < 10 ||
+            (!fileName.includes('.') && fileName.length < 36)
+          ) {
+            throw new Error(
+              `URL appears to be incomplete or corrupted: ${generatedImageUrl}`
+            );
+          }
+        }
+
+        const maxRetries = 3;
+        const retryDelay = 1000; // 1 second
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`📥 Download attempt ${attempt}/${maxRetries}`);
+
+            if (Platform.OS === 'web') {
+              // Web: Use standard fetch
+              const response = await fetch(generatedImageUrl, {
+                method: 'GET',
+                headers: {
+                  Accept: 'image/*',
+                  'User-Agent': 'Stylisto-App/1.0',
+                },
+              });
+
+              if (!response.ok) {
+                throw new Error(
+                  `HTTP ${response.status}: ${response.statusText}`
+                );
+              }
+
+              const contentType = response.headers.get('content-type');
+              console.log('📄 Content type:', contentType);
+
+              fileData = await response.arrayBuffer();
+              console.log('✅ Web download successful:', {
+                sizeBytes: fileData.byteLength,
+                contentType,
+              });
+              break;
+            } else {
+              // React Native: Download to temporary file
+              const tempTimestamp = Date.now();
+              const tempPath = `${FileSystem.documentDirectory}temp_virtual_tryon_${tempTimestamp}_${attempt}.jpg`;
+
+              console.log('📱 Downloading to temporary file:', tempPath);
+
+              const downloadResult = await FileSystem.downloadAsync(
+                generatedImageUrl,
+                tempPath,
+                {
+                  headers: {
+                    Accept: 'image/*',
+                    'User-Agent': 'Stylisto-App/1.0',
+                  },
+                }
+              );
+
+              if (downloadResult.status !== 200) {
+                throw new Error(
+                  `Download failed with status: ${downloadResult.status}`
+                );
+              }
+
+              console.log('📖 Reading file as base64...');
+              const base64 = await FileSystem.readAsStringAsync(tempPath, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+
+              // Convert base64 to ArrayBuffer
+              fileData = decode(base64);
+
+              // Clean up temporary file
+              console.log('🧹 Cleaning up temporary file...');
+              await FileSystem.deleteAsync(tempPath, { idempotent: true });
+
+              console.log('✅ Mobile download successful:', {
+                sizeBytes: fileData.byteLength,
+                tempPath,
+              });
+              break;
+            }
+          } catch (error) {
+            lastError = error as Error;
+            console.warn(`❌ Download attempt ${attempt} failed:`, error);
+
+            if (attempt < maxRetries) {
+              console.log(`⏳ Retrying in ${retryDelay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+          }
+        }
+
+        if (!fileData!) {
+          throw new Error(
+            `Failed to download image after ${maxRetries} attempts. Last error: ${lastError?.message}`
+          );
+        }
+      } else if (generatedImageUrl.startsWith('file://')) {
+        // Handle local file URLs
+        console.log('📁 Processing local file...');
+
+        const fileInfo = await FileSystem.getInfoAsync(generatedImageUrl);
+        if (!fileInfo.exists) {
+          throw new Error(`Local file not found: ${generatedImageUrl}`);
+        }
+
+        const base64 = await FileSystem.readAsStringAsync(generatedImageUrl, {
           encoding: FileSystem.EncodingType.Base64,
         });
-
-        // Convert base64 to ArrayBuffer
         fileData = decode(base64);
 
-        // Clean up temporary file
-        console.log('🧹 Cleaning up temporary file...');
-        await FileSystem.deleteAsync(tempPath, { idempotent: true });
+        console.log('✅ Local file processed successfully:', {
+          sizeBytes: fileData.byteLength,
+        });
+      } else {
+        throw new Error(
+          `Unsupported URL format: ${generatedImageUrl.substring(0, 50)}...`
+        );
       }
+
+      // Validate file data
+      if (!fileData || fileData.byteLength === 0) {
+        throw new Error('Image file is empty or invalid');
+      }
+
+      if (fileData.byteLength > 50 * 1024 * 1024) {
+        // 50MB limit
+        throw new Error(
+          `Image file too large: ${fileData.byteLength} bytes (max 50MB)`
+        );
+      }
+
+      console.log('✅ Image data validated:', {
+        sizeBytes: fileData.byteLength,
+        sizeMB: (fileData.byteLength / (1024 * 1024)).toFixed(2),
+      });
 
       // Step 3: Create storage path
       const timestamp = Date.now();
@@ -138,21 +313,75 @@ class StorageService {
 
       console.log('📁 Storage path:', storagePath);
 
-      // Step 4: Upload to storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('virtual-try-on-results')
-        .upload(storagePath, fileData, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: false,
-        });
+      // Step 4: Upload to storage with retry logic
+      const maxUploadRetries = 2;
+      let uploadError: Error | null = null;
+      let uploadData: any = null;
 
-      if (uploadError) {
-        console.error('❌ Storage upload failed:', uploadError);
-        throw uploadError;
+      for (let attempt = 1; attempt <= maxUploadRetries; attempt++) {
+        try {
+          console.log(`📤 Upload attempt ${attempt}/${maxUploadRetries}`);
+
+          // Check if bucket exists and is accessible
+          try {
+            const { data: bucketData, error: bucketError } =
+              await supabase.storage
+                .from('virtual-try-on-results')
+                .list('', { limit: 1 });
+
+            if (bucketError) {
+              console.warn(
+                '⚠️ Bucket accessibility check failed:',
+                bucketError
+              );
+            } else {
+              console.log('✅ Bucket is accessible');
+            }
+          } catch (bucketCheckError) {
+            console.warn(
+              '⚠️ Could not verify bucket access:',
+              bucketCheckError
+            );
+          }
+
+          const { data, error } = await supabase.storage
+            .from('virtual-try-on-results')
+            .upload(storagePath, fileData, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (error) {
+            console.error('❌ Storage upload error details:', {
+              message: error.message,
+              name: error.name,
+              status: (error as any)?.status,
+              statusCode: (error as any)?.statusCode,
+              details: (error as any)?.details,
+            });
+            throw error;
+          }
+
+          uploadData = data;
+          console.log('✅ File uploaded successfully');
+          break;
+        } catch (error) {
+          uploadError = error as Error;
+          console.warn(`❌ Upload attempt ${attempt} failed:`, error);
+
+          if (attempt < maxUploadRetries) {
+            console.log('⏳ Retrying upload...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
       }
 
-      console.log('✅ File uploaded successfully');
+      if (!uploadData) {
+        throw new Error(
+          `Upload failed after ${maxUploadRetries} attempts: ${uploadError?.message}`
+        );
+      }
 
       // Step 5: Get public URL
       const { data: urlData } = supabase.storage
@@ -901,58 +1130,50 @@ class StorageService {
   }
 
   /**
-   * Test Virtual Try-On storage upload directly
+   * Test Virtual Try-On upload functionality
    */
   async testVirtualTryOnUpload(userId: string): Promise<void> {
     try {
-      console.log('🧪 Testing Virtual Try-On storage upload...');
+      console.log('🧪 Testing Virtual Try-On upload functionality...');
 
-      // Check authentication first
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      // Test with a small data URI
+      const testDataUri =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
 
-      if (sessionError || !session) {
-        console.error('❌ No active session:', sessionError);
-        throw new Error('Not authenticated');
+      const result = await this.saveVirtualTryOnResult(
+        testDataUri,
+        userId,
+        'test-outfit',
+        'Test Outfit',
+        {
+          processingTime: 1000,
+          confidence: 0.9,
+          prompt: 'Test virtual try-on',
+          styleInstructions: 'Test style',
+          itemsUsed: ['test-item'],
+        }
+      );
+
+      if (result.error) {
+        console.error('❌ Virtual Try-On test failed:', result.error);
+        throw result.error;
       }
 
-      console.log('✅ Session found:', {
-        userId: session.user.id,
-        email: session.user.email,
-        role: session.user.role,
-        expiresAt: session.expires_at,
-      });
-
-      // Create test data
-      const testData = new TextEncoder().encode('Test virtual try-on upload');
-      const testPath = `${userId}/outfit-collages/trying-clothes/test_${Date.now()}.txt`;
-
-      console.log('📤 Attempting upload with path:', testPath);
-      console.log('📁 Path components:', testPath.split('/'));
-
-      // Try upload
-      const { data, error } = await supabase.storage
-        .from('virtual-try-on-results')
-        .upload(testPath, testData, {
-          contentType: 'text/plain',
-          cacheControl: '3600',
-        });
-
-      if (error) {
-        console.error('❌ Upload failed:', error);
-        throw error;
-      }
-
-      console.log('✅ Upload successful:', data);
+      console.log('✅ Virtual Try-On test successful:', result.data);
 
       // Clean up test file
-      await supabase.storage.from('virtual-try-on-results').remove([testPath]);
-
-      console.log('🧹 Test file cleaned up');
+      if (result.data?.path) {
+        try {
+          await supabase.storage
+            .from('virtual-try-on-results')
+            .remove([result.data.path]);
+          console.log('🧹 Test file cleaned up');
+        } catch (cleanupError) {
+          console.warn('⚠️ Could not clean up test file:', cleanupError);
+        }
+      }
     } catch (error) {
-      console.error('💥 Test failed:', error);
+      console.error('💥 Virtual Try-On test error:', error);
       throw error;
     }
   }
