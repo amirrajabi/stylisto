@@ -1,28 +1,28 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Eye, ChevronRight } from 'lucide-react-native';
+import { ChevronRight, Eye } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Shadows } from '../../constants/Shadows';
+import { Layout, Spacing } from '../../constants/Spacing';
 import { useAccessibility } from '../ui/AccessibilityProvider';
 import { Body } from '../ui/AccessibleText';
-import { Spacing, Layout } from '../../constants/Spacing';
-import { Shadows } from '../../constants/Shadows';
 
 export const AccessibilitySettingsCard: React.FC = () => {
   const { colors, isHighContrastEnabled, fontScale } = useAccessibility();
-  
+
   const handlePress = () => {
     router.push('/profile/accessibility');
   };
-  
+
   return (
     <TouchableOpacity
       style={[
         styles.container,
-        { 
-          backgroundColor: colors.surface.primary,
+        {
+          backgroundColor: '#ffffff',
           borderColor: colors.border.primary,
           ...Shadows.sm,
-        }
+        },
       ]}
       onPress={handlePress}
       accessibilityRole="button"
@@ -30,53 +30,50 @@ export const AccessibilitySettingsCard: React.FC = () => {
       accessibilityHint="Navigate to accessibility settings screen"
     >
       <View style={styles.iconContainer}>
-        <View style={[
-          styles.iconBackground,
-          { backgroundColor: colors.primary[50] }
-        ]}>
+        <View
+          style={[
+            styles.iconBackground,
+            { backgroundColor: colors.primary[50] },
+          ]}
+        >
           <Eye size={24} color={colors.primary[700]} />
         </View>
       </View>
-      
+
       <View style={styles.content}>
-        <Body 
-          weight="semibold" 
-          style={{ color: colors.text.primary }}
-        >
+        <Body weight="semibold" style={{ color: colors.text.primary }}>
           Accessibility Settings
         </Body>
-        
+
         <View style={styles.settingsPreview}>
           {isHighContrastEnabled && (
-            <View style={[
-              styles.settingBadge,
-              { backgroundColor: colors.primary[100] }
-            ]}>
-              <Body 
-                size="small" 
-                style={{ color: colors.primary[700] }}
-              >
+            <View
+              style={[
+                styles.settingBadge,
+                { backgroundColor: colors.primary[100] },
+              ]}
+            >
+              <Body size="small" style={{ color: colors.primary[700] }}>
                 High Contrast
               </Body>
             </View>
           )}
-          
+
           {fontScale !== 1 && (
-            <View style={[
-              styles.settingBadge,
-              { backgroundColor: colors.primary[100] }
-            ]}>
-              <Body 
-                size="small" 
-                style={{ color: colors.primary[700] }}
-              >
+            <View
+              style={[
+                styles.settingBadge,
+                { backgroundColor: colors.primary[100] },
+              ]}
+            >
+              <Body size="small" style={{ color: colors.primary[700] }}>
                 Text Size: {Math.round(fontScale * 100)}%
               </Body>
             </View>
           )}
         </View>
       </View>
-      
+
       <ChevronRight size={20} color={colors.text.tertiary} />
     </TouchableOpacity>
   );

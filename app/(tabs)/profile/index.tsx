@@ -31,11 +31,7 @@ import { AccessibilitySettingsCard } from '../../../components/profile/Accessibi
 import { AvatarUploader } from '../../../components/profile/AvatarUploader';
 import { FullBodyImageUploader } from '../../../components/profile/FullBodyImageUploader';
 import { useAccessibility } from '../../../components/ui/AccessibilityProvider';
-import {
-  BodyMedium,
-  BodySmall,
-  H1,
-} from '../../../components/ui/AccessibleText';
+import { BodyMedium, BodySmall } from '../../../components/ui/AccessibleText';
 import { Colors } from '../../../constants/Colors';
 import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
@@ -341,7 +337,7 @@ export default function ProfileScreen() {
     title: string;
     children: React.ReactNode;
   }> = ({ title, children }) => (
-    <View style={[styles.section, { backgroundColor: colors.surface.primary }]}>
+    <View style={[styles.section, { backgroundColor: '#ffffff' }]}>
       <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
         {title}
       </Text>
@@ -443,12 +439,14 @@ export default function ProfileScreen() {
         style={[
           styles.header,
           {
-            backgroundColor: colors.surface.primary,
-            borderBottomColor: colors.border.primary,
+            backgroundColor: '#ffffff',
+            borderBottomColor: colors.border.secondary,
           },
         ]}
       >
-        <H1>Profile</H1>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          Profile
+        </Text>
       </View>
 
       <ScrollView
@@ -457,12 +455,7 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: Spacing['2xl'] }}
       >
         {/* User Section */}
-        <View
-          style={[
-            styles.userSection,
-            { backgroundColor: colors.surface.primary },
-          ]}
-        >
+        <View style={[styles.userSection, { backgroundColor: '#ffffff' }]}>
           <AvatarUploader
             key={`avatar-${avatarRefreshKey}`}
             avatarUrl={user?.avatar_url}
@@ -582,9 +575,7 @@ export default function ProfileScreen() {
         </MenuSection>
 
         {/* App Info */}
-        <View
-          style={[styles.appInfo, { backgroundColor: colors.surface.primary }]}
-        >
+        <View style={[styles.appInfo, { backgroundColor: '#ffffff' }]}>
           <BodySmall color="tertiary">Stylisto v1.0.0</BodySmall>
           <BodySmall color="tertiary" style={styles.appDescription}>
             Your personal AI-powered wardrobe assistant
@@ -600,10 +591,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     ...Shadows.sm,
+  },
+  title: {
+    ...Typography.heading.h2,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,

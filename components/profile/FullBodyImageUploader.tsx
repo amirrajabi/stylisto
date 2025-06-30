@@ -231,9 +231,7 @@ export const FullBodyImageUploader: React.FC<FullBodyImageUploaderProps> = ({
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: colors.surface.primary }]}
-    >
+    <View style={[styles.container, { backgroundColor: '#ffffff' }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
           Full Body Image
