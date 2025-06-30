@@ -553,7 +553,10 @@ export class OutfitService {
         return [];
       }
 
-      console.log('📥 Loading AI-generated outfits for user:', user.id);
+      console.log(
+        '📥 Loading non-favorited AI-generated outfits for user:',
+        user.id
+      );
 
       const { data, error } = await supabase
         .from('saved_outfits')
@@ -596,6 +599,7 @@ export class OutfitService {
         )
         .eq('user_id', user.id)
         .eq('source_type', 'ai_generated')
+        .eq('is_favorite', false)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
@@ -605,7 +609,7 @@ export class OutfitService {
       }
 
       if (!data || data.length === 0) {
-        console.log('📝 No AI-generated outfits found for user');
+        console.log('📝 No non-favorited AI-generated outfits found for user');
         return [];
       }
 
@@ -650,7 +654,7 @@ export class OutfitService {
       });
 
       console.log(
-        `✅ Loaded ${outfits.length} AI-generated outfits from database`
+        `✅ Loaded ${outfits.length} non-favorited AI-generated outfits from database`
       );
       return outfits;
     } catch (error) {
@@ -792,13 +796,17 @@ export class OutfitService {
         return false;
       }
 
-      console.log('🔍 Checking for existing manual outfits for user:', user.id);
+      console.log(
+        '🔍 Checking for existing non-favorited manual outfits for user:',
+        user.id
+      );
 
       const { data, error } = await supabase
         .from('saved_outfits')
         .select('id')
         .eq('user_id', user.id)
         .eq('source_type', 'manual')
+        .eq('is_favorite', false)
         .limit(1);
 
       if (error) {
@@ -807,7 +815,7 @@ export class OutfitService {
       }
 
       const hasOutfits = data.length > 0;
-      console.log('✅ User has manual outfits:', hasOutfits);
+      console.log('✅ User has non-favorited manual outfits:', hasOutfits);
       return hasOutfits;
     } catch (error) {
       console.error('❌ Error checking for manual outfits:', error);
@@ -828,7 +836,7 @@ export class OutfitService {
       }
 
       console.log(
-        '🔍 Checking for existing AI-generated outfits for user:',
+        '🔍 Checking for existing non-favorited AI-generated outfits for user:',
         user.id
       );
 
@@ -837,6 +845,7 @@ export class OutfitService {
         .select('id')
         .eq('user_id', user.id)
         .eq('source_type', 'ai_generated')
+        .eq('is_favorite', false)
         .limit(1);
 
       if (error) {
@@ -845,7 +854,10 @@ export class OutfitService {
       }
 
       const hasOutfits = data.length > 0;
-      console.log('✅ User has AI-generated outfits:', hasOutfits);
+      console.log(
+        '✅ User has non-favorited AI-generated outfits:',
+        hasOutfits
+      );
       return hasOutfits;
     } catch (error) {
       console.error('❌ Error checking for AI-generated outfits:', error);

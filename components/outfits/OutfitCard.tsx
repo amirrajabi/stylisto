@@ -75,6 +75,27 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     setFavoriteLoading(prev => ({ ...prev, [outfitId]: true }));
 
     try {
+      // Use onSaveOutfit if available (this will show toast notifications)
+      if (onSaveOutfit) {
+        await onSaveOutfit(outfitId);
+
+        // Update local favorite state
+        setFavorites(prev => ({ ...prev, [outfitId]: true }));
+
+        if (onFavoriteToggled) {
+          onFavoriteToggled(outfitId, true);
+        }
+
+        // For AI generated outfits, trigger the callback to remove from memory
+        if (outfitId.startsWith('outfit-') && onAIOutfitFavorited) {
+          const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+          onAIOutfitFavorited(outfitIndex);
+        }
+
+        return;
+      }
+
+      // Fallback to direct OutfitService call if onSaveOutfit is not available
       let realOutfitId = outfitId;
 
       // Handle AI generated outfits - need to save them first

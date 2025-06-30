@@ -251,9 +251,9 @@ export const useOutfitRecommendation = (
         console.log(
           '✅ Loaded from database:',
           manualOutfits.length,
-          'manual outfits,',
+          'non-favorited manual outfits,',
           aiGeneratedOutfits.length,
-          'AI-generated outfits'
+          'non-favorited AI-generated outfits'
         );
       }
 
@@ -313,9 +313,9 @@ export const useOutfitRecommendation = (
         console.log(
           '✅ Refreshed outfits:',
           manualOutfits.length,
-          'manual outfits,',
+          'non-favorited manual outfits,',
           aiGeneratedOutfits.length,
-          'AI-generated outfits'
+          'non-favorited AI-generated outfits'
         );
       } else {
         setState(prev => ({

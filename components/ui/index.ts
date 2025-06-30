@@ -34,6 +34,9 @@ export { SplashLoader } from './SplashLoader';
 
 export { FocusTrap } from './FocusTrap';
 
+export { Toast } from './Toast';
+export type { ToastProps } from './Toast';
+
 // Typography components
 export {
   BodyLarge,

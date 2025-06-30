@@ -36,6 +36,7 @@ import { OutfitService } from '../../../lib/outfitService';
 import { Occasion } from '../../../types/wardrobe';
 
 import { OutfitStylistModal } from '../../../components/outfits/OutfitStylistModal';
+import { Toast } from '../../../components/ui/Toast';
 
 const getOccasionLabel = (occasion: Occasion): string => {
   switch (occasion) {
@@ -132,6 +133,11 @@ export default function StylistScreen() {
   const [filtersModalVisible, setFiltersModalVisible] = useState(false);
   const [showQuickFilters, setShowQuickFilters] = useState(true);
   const [currentOutfitIndex, setCurrentOutfitIndex] = useState(0);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [recentlyLikedOutfits, setRecentlyLikedOutfits] = useState<Set<string>>(
+    new Set()
+  );
 
   const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({
     occasion: null,
@@ -495,68 +501,53 @@ export default function StylistScreen() {
 
   const handleOutfitSave = useCallback(
     async (outfitId: string) => {
-      console.log('🔍 Generate screen - saving outfit:', outfitId);
+      console.log('💾 Saving outfit from card:', outfitId);
 
-      if (outfitId.startsWith('outfit-')) {
-        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
-        const outfit = outfits[outfitIndex];
+      try {
+        // Save outfit to favorites/gallery
+        await saveCurrentOutfit(outfitId);
 
-        if (!outfit) {
-          console.error('Outfit not found at index:', outfitIndex);
-          return;
+        // Add to recently liked outfits to hide it temporarily
+        setRecentlyLikedOutfits(prev => new Set(prev).add(outfitId));
+
+        // Remove outfit from memory/list if it's an on-the-fly generated outfit
+        if (outfitId.startsWith('outfit-')) {
+          const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+          removeOutfitFromMemory(outfitIndex);
+          console.log('🗑️ Outfit removed from stylist list');
         }
 
-        // Get existing outfit names to prevent duplicates
-        const existingNames = [
-          ...outfits
-            .slice(0, outfitIndex)
-            .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
-          ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
-        ];
+        // Show toast notification
+        setToastMessage('Outfit added to gallery');
+        setToastVisible(true);
 
-        const outfitWithMetadata = {
-          id: outfitId,
-          name: generateOutfitName(outfit.items, existingNames),
-          items: outfit.items,
-          score: {
-            total: outfit.score.total,
-            color: outfit.score.breakdown.colorHarmony,
-            style: outfit.score.breakdown.styleMatching,
-            season: outfit.score.breakdown.seasonSuitability,
-            occasion: outfit.score.breakdown.occasionSuitability,
-          },
-          source_type: 'ai_generated' as const,
-        };
+        console.log('✅ Outfit saved to gallery');
 
-        console.log(
-          '🔍 Generate screen - outfit metadata:',
-          outfitWithMetadata
-        );
-
-        setSelectedOutfit(outfitWithMetadata);
-        setModalVisible(true);
-      } else if (outfitId.startsWith('manual-db-')) {
-        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
-        if (!isNaN(outfitIndex) && outfits[outfitIndex]) {
-          // Get existing outfit names to prevent duplicates
-          const existingNames = [
-            ...outfits
-              .slice(0, outfitIndex)
-              .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
-            ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
-          ];
-
-          const savedOutfitId = saveCurrentOutfit(
-            generateOutfitName(outfits[outfitIndex].items, existingNames)
-          );
-          if (savedOutfitId) {
-            // Refresh saved outfits from database after saving
-            await refreshManualOutfits();
+        // Set timer for 120 seconds to make outfit likeable again
+        setTimeout(() => {
+          console.log('⏰ 120 seconds passed - outfit can be liked again');
+          setRecentlyLikedOutfits(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(outfitId);
+            return newSet;
+          });
+          // Refresh outfits to show the outfit again
+          if (!outfitId.startsWith('outfit-')) {
+            refreshOutfits();
           }
-        }
+        }, 120000); // 120 seconds = 120,000 milliseconds
+      } catch (error) {
+        console.error('❌ Error saving outfit:', error);
+        setToastMessage('Failed to save outfit');
+        setToastVisible(true);
       }
     },
-    [outfits, saveCurrentOutfit, refreshManualOutfits, manualOutfitsFromDB]
+    [
+      saveCurrentOutfit,
+      removeOutfitFromMemory,
+      refreshOutfits,
+      setRecentlyLikedOutfits,
+    ]
   );
 
   const handleOutfitPress = useCallback(
@@ -700,10 +691,65 @@ export default function StylistScreen() {
     [removeOutfitFromMemory, refreshOutfits, refreshManualOutfits]
   );
 
-  const handleOutfitLike = useCallback(async (outfitId: string) => {
-    console.log('❤️ Like outfit function called for outfit:', outfitId);
-    alert(`Like outfit functionality triggered for outfit: ${outfitId}`);
-  }, []);
+  const handleOutfitLike = useCallback(
+    async (outfitId: string) => {
+      console.log('❤️ Like outfit function called for outfit:', outfitId);
+
+      // Save outfit to favorites/gallery
+      try {
+        await saveCurrentOutfit(outfitId);
+
+        // Add to recently liked outfits to hide it temporarily
+        setRecentlyLikedOutfits(prev => new Set(prev).add(outfitId));
+
+        // Remove outfit from memory/list if it's an on-the-fly generated outfit
+        if (outfitId.startsWith('outfit-')) {
+          const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+          removeOutfitFromMemory(outfitIndex);
+          console.log('🗑️ Outfit removed from stylist list');
+        }
+
+        // Close modal first
+        setModalVisible(false);
+        setSelectedOutfit(null);
+
+        // Show toast notification after a short delay to ensure modal is closed
+        setTimeout(() => {
+          setToastMessage('Outfit added to gallery');
+          setToastVisible(true);
+        }, 100);
+
+        console.log('✅ Outfit saved to gallery');
+
+        // Set timer for 120 seconds to make outfit likeable again
+        setTimeout(() => {
+          console.log('⏰ 120 seconds passed - outfit can be liked again');
+          setRecentlyLikedOutfits(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(outfitId);
+            return newSet;
+          });
+          // Refresh outfits to show the outfit again
+          if (!outfitId.startsWith('outfit-')) {
+            refreshOutfits();
+          }
+        }, 120000); // 120 seconds = 120,000 milliseconds
+      } catch (error) {
+        console.error('❌ Error saving outfit:', error);
+
+        // Close modal even on error
+        setModalVisible(false);
+        setSelectedOutfit(null);
+
+        // Show error toast
+        setTimeout(() => {
+          setToastMessage('Failed to save outfit');
+          setToastVisible(true);
+        }, 100);
+      }
+    },
+    [saveCurrentOutfit, removeOutfitFromMemory, refreshOutfits]
+  );
 
   const handleManualOutfitBuilder = useCallback(() => {
     router.push('/outfit-builder');
@@ -906,8 +952,12 @@ export default function StylistScreen() {
             progress={generationProgress}
             onComplete={() => {}}
           />
-        ) : outfits.length > 0 ||
-          aiGeneratedOutfits.filter(outfit => !outfit.isFavorite).length > 0 ? (
+        ) : outfits.filter(
+            (outfit, index) => !recentlyLikedOutfits.has(`outfit-${index}`)
+          ).length > 0 ||
+          aiGeneratedOutfits.filter(
+            outfit => !outfit.isFavorite && !recentlyLikedOutfits.has(outfit.id)
+          ).length > 0 ? (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
@@ -917,9 +967,15 @@ export default function StylistScreen() {
                 </View>
                 <Text style={styles.outfitCount}>
                   (
-                  {outfits.length +
-                    aiGeneratedOutfits.filter(outfit => !outfit.isFavorite)
-                      .length}
+                  {outfits.filter(
+                    (outfit, index) =>
+                      !recentlyLikedOutfits.has(`outfit-${index}`)
+                  ).length +
+                    aiGeneratedOutfits.filter(
+                      outfit =>
+                        !outfit.isFavorite &&
+                        !recentlyLikedOutfits.has(outfit.id)
+                    ).length}
                   )
                 </Text>
               </View>
@@ -930,33 +986,40 @@ export default function StylistScreen() {
             </Text>
 
             {/* Fresh AI Outfits (in memory) */}
-            {outfits.length > 0 && (
+            {outfits.filter(
+              (outfit, index) => !recentlyLikedOutfits.has(`outfit-${index}`)
+            ).length > 0 && (
               <View style={styles.outfitCardContainer}>
                 <OutfitCard
-                  outfits={outfits.map((outfit, index) => {
-                    // Get existing outfit names to prevent duplicates
-                    const existingNames = [
-                      ...outfits
-                        .slice(0, index)
-                        .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
-                      ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
-                      ...aiGeneratedOutfits.map(o => o.name), // AI outfits from database
-                    ];
+                  outfits={outfits
+                    .filter(
+                      (outfit, index) =>
+                        !recentlyLikedOutfits.has(`outfit-${index}`)
+                    )
+                    .map((outfit, index) => {
+                      // Get existing outfit names to prevent duplicates
+                      const existingNames = [
+                        ...outfits
+                          .slice(0, index)
+                          .map(o => generateOutfitName(o.items)), // Previous outfits in this batch
+                        ...manualOutfitsFromDB.map(o => o.name), // Manual outfits
+                        ...aiGeneratedOutfits.map(o => o.name), // AI outfits from database
+                      ];
 
-                    return {
-                      id: `outfit-${index}`,
-                      name: generateOutfitName(outfit.items, existingNames),
-                      items: outfit.items,
-                      score: {
-                        total: outfit.score.total,
-                        color: outfit.score.breakdown.colorHarmony,
-                        style: outfit.score.breakdown.styleMatching,
-                        season: outfit.score.breakdown.seasonSuitability,
-                        occasion: outfit.score.breakdown.occasionSuitability,
-                      },
-                      isFavorite: favoriteStatus[`outfit-${index}`] || false,
-                    };
-                  })}
+                      return {
+                        id: `outfit-${index}`,
+                        name: generateOutfitName(outfit.items, existingNames),
+                        items: outfit.items,
+                        score: {
+                          total: outfit.score.total,
+                          color: outfit.score.breakdown.colorHarmony,
+                          style: outfit.score.breakdown.styleMatching,
+                          season: outfit.score.breakdown.seasonSuitability,
+                          occasion: outfit.score.breakdown.occasionSuitability,
+                        },
+                        isFavorite: favoriteStatus[`outfit-${index}`] || false,
+                      };
+                    })}
                   onOutfitPress={(outfitId: string) => {
                     const index = parseInt(outfitId.replace('outfit-', ''), 10);
                     handleOutfitPress(index);
@@ -984,13 +1047,19 @@ export default function StylistScreen() {
             )}
 
             {/* AI Outfits from Database (unfavorited) */}
-            {aiGeneratedOutfits.filter(outfit => !outfit.isFavorite).length >
-              0 && (
+            {aiGeneratedOutfits.filter(
+              outfit =>
+                !outfit.isFavorite && !recentlyLikedOutfits.has(outfit.id)
+            ).length > 0 && (
               <View style={styles.outfitCardContainer}>
                 <Text style={styles.subsectionTitle}>Previously Generated</Text>
                 <OutfitCard
                   outfits={aiGeneratedOutfits
-                    .filter(outfit => !outfit.isFavorite)
+                    .filter(
+                      outfit =>
+                        !outfit.isFavorite &&
+                        !recentlyLikedOutfits.has(outfit.id)
+                    )
                     .map(outfit => ({
                       id: outfit.id,
                       name: outfit.name,
@@ -1016,18 +1085,53 @@ export default function StylistScreen() {
                     }
                   }}
                   onSaveOutfit={async (outfitId: string) => {
-                    // Handle saving/favoriting AI outfit from database
-                    const outfit = aiGeneratedOutfits.find(
-                      o => o.id === outfitId
-                    );
-                    if (outfit) {
-                      const result = await OutfitService.toggleOutfitFavorite(
-                        outfit.id
+                    try {
+                      // Handle saving/favoriting AI outfit from database
+                      const outfit = aiGeneratedOutfits.find(
+                        o => o.id === outfitId
                       );
-                      if (!result.error) {
-                        // Refresh outfits to update UI
-                        await refreshOutfits();
+                      if (outfit) {
+                        const result = await OutfitService.toggleOutfitFavorite(
+                          outfit.id
+                        );
+                        if (!result.error) {
+                          // Add to recently liked outfits to hide it temporarily
+                          setRecentlyLikedOutfits(prev =>
+                            new Set(prev).add(outfitId)
+                          );
+
+                          // Show toast notification
+                          setToastMessage('Outfit added to gallery');
+                          setToastVisible(true);
+
+                          // Refresh outfits to update UI
+                          await refreshOutfits();
+
+                          // Set timer for 120 seconds to make outfit likeable again
+                          setTimeout(() => {
+                            console.log(
+                              '⏰ 120 seconds passed - outfit can be liked again'
+                            );
+                            setRecentlyLikedOutfits(prev => {
+                              const newSet = new Set(prev);
+                              newSet.delete(outfitId);
+                              return newSet;
+                            });
+                            refreshOutfits();
+                          }, 120000);
+
+                          console.log('✅ Database AI outfit saved to gallery');
+                        } else {
+                          throw new Error(result.error);
+                        }
                       }
+                    } catch (error) {
+                      console.error(
+                        '❌ Error saving database AI outfit:',
+                        error
+                      );
+                      setToastMessage('Failed to save outfit');
+                      setToastVisible(true);
                     }
                   }}
                   onEditOutfit={handleOutfitEdit}
@@ -1085,8 +1189,11 @@ export default function StylistScreen() {
         )}
 
         {/* Manual Outfits Section */}
-        {manualOutfitsFromDB.filter(outfit => !outfit.isFavorite).length >
-          0 && (
+        {manualOutfitsFromDB.filter(
+          outfit =>
+            !outfit.isFavorite &&
+            !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
+        ).length > 0 && (
           <View style={styles.outfitsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
@@ -1094,8 +1201,11 @@ export default function StylistScreen() {
                 <Text style={styles.outfitCount}>
                   (
                   {
-                    manualOutfitsFromDB.filter(outfit => !outfit.isFavorite)
-                      .length
+                    manualOutfitsFromDB.filter(
+                      outfit =>
+                        !outfit.isFavorite &&
+                        !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
+                    ).length
                   }
                   )
                 </Text>
@@ -1116,12 +1226,19 @@ export default function StylistScreen() {
                   <SkeletonCard key={item} index={item} />
                 ))}
               </ScrollView>
-            ) : manualOutfitsFromDB.filter(outfit => !outfit.isFavorite)
-                .length > 0 ? (
+            ) : manualOutfitsFromDB.filter(
+                outfit =>
+                  !outfit.isFavorite &&
+                  !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
+              ).length > 0 ? (
               <View style={styles.outfitCardContainer}>
                 <OutfitCard
                   outfits={manualOutfitsFromDB
-                    .filter(outfit => !outfit.isFavorite) // Only show non-favorited manual outfits
+                    .filter(
+                      outfit =>
+                        !outfit.isFavorite &&
+                        !recentlyLikedOutfits.has(`manual-db-${outfit.id}`)
+                    ) // Filter out favorited and recently liked outfits
                     .map(outfit => {
                       return {
                         id: `manual-db-${outfit.id}`,
@@ -1249,6 +1366,15 @@ export default function StylistScreen() {
         onClose={handleEditModalClose}
         outfit={outfitToEdit}
         onSave={handleOutfitUpdate}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        type="success"
+        duration={3000}
+        onHide={() => setToastVisible(false)}
       />
     </SafeAreaView>
   );
