@@ -27,7 +27,7 @@
  */
 
 import { Image } from 'expo-image';
-import { ArrowLeft, CheckCircle, Edit2, Heart } from 'lucide-react-native';
+import { ArrowLeft, Brain, Edit2, Heart } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -274,15 +274,41 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
             >
-              {/* Outfit Name */}
-              <Text style={styles.outfitName}>{outfit.name}</Text>
-
-              {/* Source Type Indicator */}
-              {outfit.source_type === 'ai_generated' && (
-                <View style={styles.sourceTypeContainer}>
-                  <Text style={styles.sourceTypeText}>AI Generated</Text>
-                </View>
-              )}
+              {/* Outfit Name and AI Proven Button */}
+              <View style={styles.titleContainer}>
+                <Text style={styles.outfitName}>{outfit.name}</Text>
+                {onProve && (
+                  <TouchableOpacity
+                    style={[
+                      styles.aiProvenButton,
+                      isProcessing && styles.aiProvenButtonProcessing,
+                      !isReadyForTryOn && styles.aiProvenButtonDisabled,
+                    ]}
+                    onPress={handleProveOutfit}
+                    activeOpacity={0.8}
+                    disabled={isProcessing}
+                  >
+                    <Brain
+                      size={14}
+                      color={
+                        isProcessing
+                          ? Colors.text.secondary
+                          : Colors.surface.primary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.aiProvenButtonText,
+                        isProcessing && styles.aiProvenButtonTextProcessing,
+                      ]}
+                    >
+                      {isProcessing
+                        ? (processingPhase || 'Processing') + '...'
+                        : 'AI Try-On'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               {/* Action Buttons */}
               <View style={styles.actionButtonsContainer}>
@@ -305,38 +331,6 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                     <View style={styles.editButtonContent}>
                       <Edit2 size={20} color={Colors.primary[500]} />
                       <Text style={styles.editButtonText}>Edit</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-
-                {onProve && (
-                  <TouchableOpacity
-                    style={[
-                      styles.proveButton,
-                      isProcessing && styles.proveButtonProcessing,
-                      !isReadyForTryOn && styles.proveButtonDisabled,
-                    ]}
-                    onPress={handleProveOutfit}
-                    activeOpacity={0.8}
-                    disabled={isProcessing}
-                  >
-                    <View style={styles.proveButtonContent}>
-                      <CheckCircle
-                        size={20}
-                        color={
-                          isProcessing
-                            ? Colors.text.secondary
-                            : Colors.surface.primary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.proveButtonText,
-                          isProcessing && styles.proveButtonTextProcessing,
-                        ]}
-                      >
-                        {getProveButtonText()}
-                      </Text>
                     </View>
                   </TouchableOpacity>
                 )}
@@ -487,12 +481,43 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: Spacing.xl * 2,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
   outfitName: {
     ...Typography.heading.h1,
     color: Colors.text.primary,
     fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
+    flex: 1,
+    textAlign: 'left',
+  },
+  aiProvenButton: {
+    backgroundColor: Colors.primary[500],
+    borderRadius: Layout.borderRadius.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginLeft: Spacing.md,
+    ...Shadows.sm,
+  },
+  aiProvenButtonProcessing: {
+    backgroundColor: Colors.surface.secondary,
+  },
+  aiProvenButtonDisabled: {
+    backgroundColor: Colors.surface.disabled,
+  },
+  aiProvenButtonText: {
+    ...Typography.caption.medium,
+    color: Colors.surface.primary,
+    fontWeight: '600',
+  },
+  aiProvenButtonTextProcessing: {
+    color: Colors.text.secondary,
   },
   actionButtonsContainer: {
     gap: Spacing.md,
@@ -533,34 +558,6 @@ const styles = StyleSheet.create({
     ...Typography.body.large,
     color: Colors.surface.primary,
     fontWeight: '600',
-  },
-  proveButton: {
-    backgroundColor: Colors.success[500],
-    borderRadius: Layout.borderRadius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    ...Shadows.md,
-    elevation: 4,
-  },
-  proveButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-  },
-  proveButtonText: {
-    ...Typography.body.large,
-    color: Colors.surface.primary,
-    fontWeight: '600',
-  },
-  proveButtonProcessing: {
-    backgroundColor: Colors.warning[500],
-  },
-  proveButtonDisabled: {
-    backgroundColor: Colors.text.disabled,
-  },
-  proveButtonTextProcessing: {
-    color: Colors.text.secondary,
   },
   errorContainer: {
     backgroundColor: Colors.error[50],
@@ -639,19 +636,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textTransform: 'capitalize',
   },
-  sourceTypeContainer: {
-    alignSelf: 'center',
-    backgroundColor: Colors.primary[100],
-    borderRadius: Layout.borderRadius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    marginBottom: Spacing.lg,
-  },
-  sourceTypeText: {
-    ...Typography.caption.medium,
-    color: Colors.primary[700],
-    fontWeight: '600',
-  },
+
   itemsTitleSubtext: {
     ...Typography.heading.h4,
     color: Colors.text.secondary,

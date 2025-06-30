@@ -45,8 +45,8 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
   const leftWidth = width * 0.45;
   const rightWidth = width * 0.55 - padding * 2;
 
-  // Calculate item size based on available space
-  const maxItemsToShow = Math.min(clothingImages.length, 5); // Show max 5 items
+  // Calculate item size based on available space - show ALL items
+  const maxItemsToShow = clothingImages.length; // Show all items
   const availableHeight = height - padding * 2;
   const itemHeight =
     (availableHeight - itemGap * (maxItemsToShow - 1)) / maxItemsToShow;
@@ -56,7 +56,7 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
   const finalItemHeight = itemSize;
   const totalItemsHeight =
     finalItemHeight * maxItemsToShow + itemGap * (maxItemsToShow - 1);
-  const topOffset = (height - totalItemsHeight) / 2;
+  const topOffset = Math.max(0, (height - totalItemsHeight) / 2);
 
   return (
     <ViewShot
@@ -70,7 +70,7 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
 
       {/* Left side - Clothing items in single column */}
       <View style={[styles.leftColumn, { width: leftWidth, height }]}>
-        {clothingImages.slice(0, maxItemsToShow).map((image, index) => (
+        {clothingImages.map((image, index) => (
           <Image
             key={index}
             source={{ uri: image }}
@@ -100,11 +100,11 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
           style={[
             styles.fullBodyImage,
             {
-              width: rightWidth - padding,
-              height: height - padding * 2,
+              width: rightWidth,
+              height: height,
             },
           ]}
-          resizeMode="contain"
+          resizeMode="cover"
         />
       </View>
     </ViewShot>
@@ -113,7 +113,7 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#ffffff',
     flexDirection: 'row',
   },
   background: {
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#ffffff',
   },
   leftColumn: {
     position: 'absolute',
@@ -134,7 +134,6 @@ const styles = StyleSheet.create({
     top: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
   },
   clothingItem: {
     position: 'absolute',
