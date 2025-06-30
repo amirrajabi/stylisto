@@ -247,7 +247,7 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
         {isOwner && (onEdit || onDelete) && (
           <View style={styles.footer}>
             <View style={styles.footerButtons}>
-              {onEdit && outfit.source_type !== 'ai_generated' && (
+              {false && (
                 <TouchableOpacity
                   style={[styles.footerButton, styles.editButton]}
                   onPress={handleEdit}
