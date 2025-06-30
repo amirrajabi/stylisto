@@ -525,6 +525,7 @@ export default function StylistScreen() {
             season: outfit.score.breakdown.seasonSuitability,
             occasion: outfit.score.breakdown.occasionSuitability,
           },
+          source_type: 'ai_generated' as const,
         };
 
         console.log(
@@ -575,6 +576,7 @@ export default function StylistScreen() {
             occasion: outfit.score.breakdown.occasionSuitability,
           },
           isFavorite: favoriteStatus[outfitId] || false,
+          source_type: 'ai_generated' as const,
         };
         setSelectedOutfit(outfitWithMetadata);
         setModalVisible(true);
@@ -675,13 +677,27 @@ export default function StylistScreen() {
   const handleOutfitDelete = useCallback(
     async (outfitId: string) => {
       console.log('🗑️ Delete outfit function called for outfit:', outfitId);
+
       if (outfitId.startsWith('outfit-')) {
+        // On-the-fly generated outfits - remove from memory only
         const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
         removeOutfitFromMemory(outfitIndex);
         console.log('✅ Outfit removed from memory');
+      } else {
+        // Saved outfits in database - delete permanently
+        const result = await OutfitService.deleteOutfit(outfitId);
+        if (!result.error) {
+          console.log('✅ Outfit permanently deleted from database');
+          // Refresh both manual and AI-generated outfits lists
+          await refreshOutfits();
+          await refreshManualOutfits();
+        } else {
+          console.error('❌ Failed to delete outfit:', result.error);
+          alert(`Failed to delete outfit: ${result.error}`);
+        }
       }
     },
-    [removeOutfitFromMemory]
+    [removeOutfitFromMemory, refreshOutfits, refreshManualOutfits]
   );
 
   const handleOutfitLike = useCallback(async (outfitId: string) => {
@@ -993,6 +1009,7 @@ export default function StylistScreen() {
                         items: outfit.items,
                         score: outfit.score,
                         isFavorite: outfit.isFavorite,
+                        source_type: 'ai_generated' as const,
                       };
                       setSelectedOutfit(outfitWithMetadata);
                       setModalVisible(true);
@@ -1139,6 +1156,7 @@ export default function StylistScreen() {
                           season: outfit.score?.season || 0.8,
                           occasion: outfit.score?.occasion || 0.8,
                         },
+                        source_type: 'manual' as const,
                       });
                       setModalVisible(true);
                     }

@@ -64,6 +64,7 @@ export interface OutfitStylistModalProps {
     isFavorite?: boolean;
     createdBy?: string;
     createdAt?: string;
+    source_type?: 'manual' | 'ai_generated';
   } | null;
   isOwner?: boolean;
   onDelete?: (outfitId: string) => void;
@@ -87,6 +88,15 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
   if (!outfit) {
     return null;
   }
+
+  // Check if outfit is saved in database (not on-the-fly generated)
+  const isSavedOutfit = () => {
+    // On-the-fly outfits have IDs like "outfit-0", "outfit-1", etc.
+    // Saved outfits have database UUIDs or IDs like "manual-db-xxx"
+    return (
+      !outfit.id.startsWith('outfit-') || outfit.id.startsWith('manual-db-')
+    );
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -198,6 +208,7 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
             <Text style={styles.itemCount}>
               {outfit.items.length}{' '}
               {outfit.items.length === 1 ? 'item' : 'items'}
+              {outfit.source_type === 'ai_generated' && ' • AI Generated'}
             </Text>
           </View>
 
@@ -236,7 +247,7 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
         {isOwner && (onEdit || onDelete) && (
           <View style={styles.footer}>
             <View style={styles.footerButtons}>
-              {onEdit && (
+              {onEdit && outfit.source_type !== 'ai_generated' && (
                 <TouchableOpacity
                   style={[styles.footerButton, styles.editButton]}
                   onPress={handleEdit}
@@ -250,7 +261,7 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
                 </TouchableOpacity>
               )}
 
-              {onDelete && (
+              {onDelete && isSavedOutfit() && (
                 <TouchableOpacity
                   style={[styles.footerButton, styles.deleteButton]}
                   onPress={handleDelete}

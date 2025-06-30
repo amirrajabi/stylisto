@@ -65,6 +65,7 @@ export interface OutfitGalleryModalProps {
       occasion: number;
     };
     isFavorite?: boolean;
+    source_type?: 'manual' | 'ai_generated';
   } | null;
   userImage?: string;
   onSave?: (outfitId: string) => void;
@@ -267,6 +268,13 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
               {/* Outfit Name */}
               <Text style={styles.outfitName}>{outfit.name}</Text>
 
+              {/* Source Type Indicator */}
+              {outfit.source_type === 'ai_generated' && (
+                <View style={styles.sourceTypeContainer}>
+                  <Text style={styles.sourceTypeText}>AI Generated</Text>
+                </View>
+              )}
+
               {/* Action Buttons */}
               <View style={styles.actionButtonsContainer}>
                 {onTry && (
@@ -324,7 +332,15 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
 
               {/* Horizontal Items Scroll */}
               <View style={styles.itemsContainer}>
-                <Text style={styles.itemsTitle}>Items in this Outfit</Text>
+                <Text style={styles.itemsTitle}>
+                  Items in this Outfit
+                  {outfit.source_type === 'ai_generated' && (
+                    <Text style={styles.itemsTitleSubtext}>
+                      {' '}
+                      • AI Generated
+                    </Text>
+                  )}
+                </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -579,6 +595,24 @@ const styles = StyleSheet.create({
     ...Typography.caption.small,
     color: Colors.text.secondary,
     textTransform: 'capitalize',
+  },
+  sourceTypeContainer: {
+    alignSelf: 'center',
+    backgroundColor: Colors.primary[100],
+    borderRadius: Layout.borderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.lg,
+  },
+  sourceTypeText: {
+    ...Typography.caption.medium,
+    color: Colors.primary[700],
+    fontWeight: '600',
+  },
+  itemsTitleSubtext: {
+    ...Typography.heading.h4,
+    color: Colors.text.secondary,
+    fontWeight: '400',
   },
 });
 

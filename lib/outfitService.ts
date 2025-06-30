@@ -659,6 +659,59 @@ export class OutfitService {
     }
   }
 
+  static async deleteOutfit(
+    outfitId: string
+  ): Promise<{ error: string | null }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { error: 'User not authenticated' };
+      }
+
+      console.log('🗑️ Deleting outfit:', outfitId);
+
+      // First check if outfit belongs to user
+      const { data: outfit, error: fetchError } = await supabase
+        .from('saved_outfits')
+        .select('user_id, source_type')
+        .eq('id', outfitId)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Error fetching outfit:', fetchError);
+        return { error: fetchError.message };
+      }
+
+      if (!outfit || outfit.user_id !== user.id) {
+        return { error: 'Outfit not found or unauthorized' };
+      }
+
+      // Delete outfit (cascade delete will handle outfit_items)
+      const { error: deleteError } = await supabase
+        .from('saved_outfits')
+        .delete()
+        .eq('id', outfitId)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('❌ Database error deleting outfit:', deleteError);
+        return { error: deleteError.message };
+      }
+
+      console.log(
+        `✅ Outfit ${outfitId} (${outfit.source_type}) deleted from database`
+      );
+      return { error: null };
+    } catch (error) {
+      console.error('❌ Error deleting outfit:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
   static async clearGeneratedOutfits(): Promise<void> {
     try {
       const {

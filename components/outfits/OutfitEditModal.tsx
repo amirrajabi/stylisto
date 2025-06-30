@@ -43,6 +43,7 @@ interface OutfitEditModalProps {
       season: number;
       occasion: number;
     };
+    source_type?: 'manual' | 'ai_generated';
   } | null;
   onSave: (updatedOutfit: any) => void;
 }
@@ -300,6 +301,11 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
   };
 
   if (!outfit) return null;
+
+  // Don't allow editing AI-generated outfits
+  if (outfit.source_type === 'ai_generated') {
+    return null;
+  }
 
   const totalScore = updatedScore ? Math.round(updatedScore.total * 100) : 0;
 

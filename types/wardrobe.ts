@@ -52,6 +52,7 @@ export interface Outfit {
   lastWorn?: string;
   notes?: string;
   score?: OutfitScore;
+  source_type?: 'manual' | 'ai_generated';
   createdAt: string;
   updatedAt: string;
 }

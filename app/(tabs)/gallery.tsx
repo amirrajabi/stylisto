@@ -57,6 +57,7 @@ export default function GalleryScreen() {
       occasion: number;
     };
     isFavorite?: boolean;
+    source_type?: 'ai_generated' | 'manual';
   } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -177,6 +178,7 @@ export default function GalleryScreen() {
       items: outfit.items,
       score: dbScore,
       isFavorite: true, // Since we're in Gallery, all outfits are favorites
+      source_type: outfit.source_type,
     });
     setModalVisible(true);
   };
