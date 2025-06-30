@@ -1,7 +1,9 @@
+import { router } from 'expo-router';
 import { Heart, Shirt } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
@@ -10,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
 import { OutfitDetailModal } from '../../components/outfits/OutfitDetailModal';
+import { FloatingActionButton } from '../../components/ui';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
 import { FavoriteItemsGallery } from '../../components/wardrobe/FavoriteItemsGallery';
@@ -393,6 +396,15 @@ export default function GalleryScreen() {
           onVirtualTryOnShare={handleVirtualTryOnShare}
         />
       )}
+
+      <FloatingActionButton
+        onPress={() => router.push('/generate')}
+        size={56}
+        iconSize={36}
+        gradientColors={['#ffffff', '#ffffff']}
+        icon="app-icon"
+        style={styles.floatingButton}
+      />
     </SafeAreaView>
   );
 }
@@ -446,6 +458,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: Spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
     flexGrow: 1,
   },
   outfitCard: {
@@ -472,5 +485,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 110 : 90,
+    right: 20,
   },
 });

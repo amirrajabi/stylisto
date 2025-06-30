@@ -3,6 +3,7 @@ import { Filter, Plus, Search, Sparkles } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   Animated,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -807,7 +808,11 @@ export default function StylistScreen() {
         </ScrollView>
       )}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Generate AI Outfits Button - Always Available */}
         <View style={styles.generateButtonContainer}>
           <TouchableOpacity
@@ -1225,7 +1230,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
-    marginBottom: 70,
   },
   header: {
     flexDirection: 'row',
@@ -1360,6 +1364,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
+  },
+  scrollContent: {
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
   },
   outfitCardContainer: {
     marginHorizontal: -Spacing.md,
@@ -1519,8 +1526,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Spacing.xl,
-    right: Spacing.lg,
+    bottom: Platform.OS === 'ios' ? 110 : 90,
+    right: 20,
   },
   subsectionTitle: {
     ...Typography.heading.h4,
