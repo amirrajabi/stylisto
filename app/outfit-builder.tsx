@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Save, X } from 'lucide-react-native';
+import { Save, Shirt, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -7,12 +7,14 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BodyMedium, Button, H1, H3, Input } from '../components/ui';
+import { BodyMedium, Button, Input } from '../components/ui';
 import { ClothingItemCard } from '../components/wardrobe/ClothingItemCard';
 import { Colors } from '../constants/Colors';
+import { Shadows } from '../constants/Shadows';
 import { Layout, Spacing } from '../constants/Spacing';
 import { useManualOutfits } from '../hooks/useManualOutfits';
 import { useWardrobe } from '../hooks/useWardrobe';
@@ -33,6 +35,7 @@ export default function OutfitBuilderScreen() {
   );
   const [outfitName, setOutfitName] = useState(editOutfit?.name || '');
   const [notes, setNotes] = useState(editOutfit?.notes || '');
+  const [isSaving, setIsSaving] = useState(false);
 
   const availableItems = items.filter(
     item => !outfitItems.some(outfitItem => outfitItem.id === item.id)
@@ -57,22 +60,21 @@ export default function OutfitBuilderScreen() {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       if (editOutfit) {
-        // Update existing outfit
         console.log('Editing outfit not yet implemented');
         Alert.alert('Info', 'Outfit editing feature will be available soon.');
       } else {
-        // Save new manual outfit using OutfitService
         await OutfitService.saveManualOutfit(
           outfitName.trim(),
           outfitItems,
-          [], // occasions
-          [], // seasons
+          [],
+          [],
           notes.trim()
         );
 
-        // Refresh manual outfits in the Stylist screen
         await refreshManualOutfits();
 
         Alert.alert(
@@ -87,7 +89,6 @@ export default function OutfitBuilderScreen() {
         );
       }
 
-      // Clear selection
       actions.clearSelection();
 
       if (editOutfit) {
@@ -96,6 +97,8 @@ export default function OutfitBuilderScreen() {
     } catch (error) {
       console.error('Error saving manual outfit:', error);
       Alert.alert('Error', 'Failed to save outfit. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -106,7 +109,12 @@ export default function OutfitBuilderScreen() {
     item: ClothingItem;
     index: number;
   }) => (
-    <View style={styles.outfitItemContainer}>
+    <View
+      style={[
+        styles.outfitItemContainer,
+        index < outfitItems.length - 1 && { marginRight: Spacing.lg },
+      ]}
+    >
       <ClothingItemCard
         item={item}
         index={index}
@@ -144,48 +152,50 @@ export default function OutfitBuilderScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <H1>{editOutfit ? 'Edit Outfit' : 'Create Outfit'}</H1>
-          <Button
-            title="Save"
-            onPress={handleSave}
-            leftIcon={<Save size={20} color={Colors.white} />}
-          />
-        </View>
-
-        {/* AI Training Description */}
-        {!editOutfit && (
-          <View style={styles.aiTrainingSection}>
-            <BodyMedium style={styles.aiTrainingText}>
-              Your manual outfit creations help train our AI to understand your
-              style preferences and create better recommendations in the future!
-            </BodyMedium>
+          <View style={styles.headerLeft}>
+            <Shirt size={24} color="#A428FC" />
+            <Text style={styles.headerTitle}>
+              {editOutfit ? 'Edit Outfit' : 'Create Outfit'}
+            </Text>
           </View>
-        )}
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.closeButton}
+          >
+            <X size={24} color={Colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
 
         {/* Outfit Details */}
         <View style={styles.section}>
-          <Input
-            label="Outfit Name"
-            placeholder="Enter outfit name"
-            value={outfitName}
-            onChangeText={setOutfitName}
-            required
-          />
-          <Input
-            label="Notes"
-            placeholder="Add notes about this outfit"
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={3}
-          />
+          <Text style={styles.sectionTitle}>Outfit Details</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Outfit Name *</Text>
+            <Input
+              placeholder="Enter outfit name"
+              value={outfitName}
+              onChangeText={setOutfitName}
+              inputStyle={styles.input}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Notes</Text>
+            <Input
+              placeholder="Add notes about this outfit"
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={3}
+              inputStyle={styles.textArea}
+            />
+          </View>
         </View>
 
         {/* Current Outfit Items */}
         <View style={styles.section}>
-          <H3 style={styles.sectionTitle}>
+          <Text style={styles.sectionTitle}>
             Outfit Items ({outfitItems.length})
-          </H3>
+          </Text>
           {outfitItems.length > 0 ? (
             <FlatList
               data={outfitItems}
@@ -194,6 +204,9 @@ export default function OutfitBuilderScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.outfitItemsList}
+              style={styles.outfitScrollView}
+              decelerationRate="fast"
+              snapToAlignment="center"
             />
           ) : (
             <View style={styles.emptyOutfit}>
@@ -205,9 +218,25 @@ export default function OutfitBuilderScreen() {
           )}
         </View>
 
+        {/* Save Button */}
+        <View style={styles.saveSection}>
+          <Button
+            title={isSaving ? 'Saving...' : 'Save Outfit'}
+            onPress={handleSave}
+            disabled={
+              isSaving || !outfitName.trim() || outfitItems.length === 0
+            }
+            loading={isSaving}
+            leftIcon={<Save size={20} color={Colors.white} />}
+            variant="primary"
+            size="medium"
+            fullWidth
+          />
+        </View>
+
         {/* Available Items */}
         <View style={styles.section}>
-          <H3 style={styles.sectionTitle}>Add Items</H3>
+          <Text style={styles.sectionTitle}>Add Items</Text>
           {availableItems.length > 0 ? (
             <FlatList
               data={availableItems}
@@ -243,10 +272,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     backgroundColor: Colors.surface.primary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
+    ...Shadows.sm,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginLeft: Spacing.sm,
+  },
+  closeButton: {
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.surface.secondary,
   },
   section: {
     backgroundColor: Colors.surface.primary,
@@ -257,12 +302,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   outfitItemsList: {
-    paddingRight: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  outfitScrollView: {
+    flexGrow: 0,
   },
   outfitItemContainer: {
     position: 'relative',
-    marginRight: Spacing.md,
-    width: 150,
+    width: 130,
   },
   removeButton: {
     position: 'absolute',
@@ -291,13 +339,26 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     alignItems: 'center',
   },
-  aiTrainingSection: {
+  saveSection: {
     padding: Spacing.lg,
     backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
   },
-  aiTrainingText: {
-    textAlign: 'center',
+  inputGroup: {
+    marginBottom: Spacing.md,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: Spacing.sm,
+    color: Colors.text.primary,
+  },
+  input: {
+    fontSize: 16,
+  },
+  textArea: {
+    fontSize: 16,
+    textAlignVertical: 'top',
   },
 });
