@@ -1,5 +1,5 @@
 import { store } from '../store/store';
-import { addOutfit } from '../store/wardrobeSlice';
+import { addOutfit, updateOutfit } from '../store/wardrobeSlice';
 import { ClothingItem, Outfit } from '../types/wardrobe';
 import { generateOutfitName } from '../utils/outfitNaming';
 import { supabase } from './supabase';
@@ -936,6 +936,79 @@ export class OutfitService {
     } catch (error) {
       console.error('Error toggling outfit favorite:', error);
       return { error: 'Failed to toggle favorite status' };
+    }
+  }
+
+  static async updateOutfit(
+    outfitId: string,
+    name: string,
+    items: ClothingItem[],
+    occasions: string[] = [],
+    seasons: string[] = [],
+    notes: string = ''
+  ): Promise<string> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const updatedOutfitData = {
+        name: name,
+        occasions: occasions,
+        seasons: seasons,
+        notes: notes || `Updated outfit with ${items.length} items`,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: updatedOutfit, error: outfitError } = await supabase
+        .from('saved_outfits')
+        .update(updatedOutfitData)
+        .eq('id', outfitId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (outfitError) throw outfitError;
+
+      await supabase.from('outfit_items').delete().eq('outfit_id', outfitId);
+
+      const outfitItems = items.map((item: ClothingItem) => ({
+        outfit_id: outfitId,
+        clothing_item_id: item.id,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('outfit_items')
+        .insert(outfitItems);
+
+      if (itemsError) throw itemsError;
+
+      const outfitForRedux: Outfit = {
+        id: updatedOutfit.id,
+        name: updatedOutfit.name,
+        items: items,
+        occasion: occasions as any[],
+        season: seasons as any[],
+        tags: updatedOutfit.tags || [],
+        isFavorite: updatedOutfit.is_favorite || false,
+        timesWorn: 0,
+        lastWorn: undefined,
+        notes: updatedOutfit.notes || '',
+        createdAt: updatedOutfit.created_at || new Date().toISOString(),
+        updatedAt: updatedOutfit.updated_at || new Date().toISOString(),
+      };
+
+      store.dispatch(updateOutfit(outfitForRedux));
+
+      console.log(
+        '✅ Outfit updated in database and Redux store:',
+        updatedOutfit.id
+      );
+      return updatedOutfit.id;
+    } catch (error) {
+      console.error('❌ Error updating outfit:', error);
+      throw error;
     }
   }
 }

@@ -25,7 +25,6 @@ import { Shadows } from '../../../constants/Shadows';
 import { Layout, Spacing } from '../../../constants/Spacing';
 import { Typography } from '../../../constants/Typography';
 import { useAuth } from '../../../hooks/useAuth';
-import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 import { useWardrobe } from '../../../hooks/useWardrobe';
 import { supabase } from '../../../lib/supabase';
 import { generateOutfitName } from '../../../utils/outfitNaming';
@@ -38,6 +37,8 @@ import { Occasion } from '../../../types/wardrobe';
 
 import { OutfitStylistModal } from '../../../components/outfits/OutfitStylistModal';
 import { Toast } from '../../../components/ui/Toast';
+
+import { useOutfitRecommendation } from '../../../hooks/useOutfitRecommendation';
 
 const getOccasionLabel = (occasion: Occasion): string => {
   switch (occasion) {
@@ -127,6 +128,17 @@ export default function StylistScreen() {
     refreshOutfits,
   } = useOutfitRecommendation(undefined, screenReady);
 
+  // Use refs to prevent dependency issues
+  const refreshManualOutfitsRef = useRef(refreshManualOutfits);
+  refreshManualOutfitsRef.current = refreshManualOutfits;
+
+  const generateRecommendationsRef = useRef(generateRecommendations);
+  generateRecommendationsRef.current = generateRecommendations;
+
+  const filterNonFavoriteOutfitsRef = useRef<(() => Promise<void>) | undefined>(
+    undefined
+  );
+
   const [selectedOutfit, setSelectedOutfit] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -208,15 +220,13 @@ export default function StylistScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Refresh manual outfits when outfit favorite status changes
+  // Refresh manual outfits when screen becomes ready
   React.useEffect(() => {
     if (screenReady) {
-      console.log(
-        '🔄 Redux outfit state changed, refreshing manual outfits...'
-      );
-      refreshManualOutfits();
+      console.log('🔄 Screen ready, refreshing manual outfits...');
+      refreshManualOutfitsRef.current();
     }
-  }, [screenReady, refreshManualOutfits]);
+  }, [screenReady]);
 
   // Ref to track auto-generation attempts per focus
   const autoGenerationAttempted = React.useRef(false);
@@ -233,6 +243,24 @@ export default function StylistScreen() {
   // Ref to prevent multiple filtering calls
   const isFilteringRef = useRef(false);
   const filterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Stable refs to avoid dependency issues
+  const outfitsRef = useRef(outfits);
+  const aiGeneratedOutfitsRef = useRef(aiGeneratedOutfits);
+  const manualOutfitsFromDBRef = useRef(manualOutfitsFromDB);
+
+  // Update refs when data changes
+  useEffect(() => {
+    outfitsRef.current = outfits;
+  }, [outfits]);
+
+  useEffect(() => {
+    aiGeneratedOutfitsRef.current = aiGeneratedOutfits;
+  }, [aiGeneratedOutfits]);
+
+  useEffect(() => {
+    manualOutfitsFromDBRef.current = manualOutfitsFromDB;
+  }, [manualOutfitsFromDB]);
 
   // Function to filter outfits based on database favorite status
   const filterNonFavoriteOutfits = useCallback(async () => {
@@ -260,8 +288,13 @@ export default function StylistScreen() {
         `💾 Found ${savedOutfits?.length || 0} saved outfits in database`
       );
 
+      // Get current data from refs to avoid dependency issues
+      const currentOutfits = outfitsRef.current;
+      const currentAIOutfits = aiGeneratedOutfitsRef.current;
+      const currentManualOutfits = manualOutfitsFromDBRef.current;
+
       // Filter fresh AI-generated outfits (in memory) - show only those that are not favorited in database
-      const filteredFreshAI = outfits.filter(outfit => {
+      const filteredFreshAI = currentOutfits.filter(outfit => {
         // Check if this fresh outfit is saved and favorited in database
         const savedOutfit = savedOutfits?.find(
           saved =>
@@ -282,7 +315,7 @@ export default function StylistScreen() {
       });
 
       // Filter database AI-generated outfits - show only non-favorites
-      const filteredDatabaseAI = aiGeneratedOutfits.filter(outfit => {
+      const filteredDatabaseAI = currentAIOutfits.filter(outfit => {
         const savedOutfit = savedOutfits?.find(saved => saved.id === outfit.id);
         const shouldShow = !savedOutfit || !savedOutfit.is_favorite;
 
@@ -296,7 +329,7 @@ export default function StylistScreen() {
       });
 
       // Filter manual outfits from database - show only non-favorites
-      const filteredManual = manualOutfitsFromDB.filter(outfit => {
+      const filteredManual = currentManualOutfits.filter(outfit => {
         const savedOutfit = savedOutfits?.find(saved => saved.id === outfit.id);
         const shouldShow = !savedOutfit || !savedOutfit.is_favorite;
 
@@ -321,6 +354,11 @@ export default function StylistScreen() {
     }
   }, [user?.id]);
 
+  // Store function in ref to avoid dependencies
+  React.useEffect(() => {
+    filterNonFavoriteOutfitsRef.current = filterNonFavoriteOutfits;
+  });
+
   // Debounced filtering to prevent excessive calls
   const debouncedFilterOutfits = useCallback(() => {
     // Clear any pending timeout
@@ -330,11 +368,11 @@ export default function StylistScreen() {
 
     // Set new timeout
     filterTimeoutRef.current = setTimeout(() => {
-      if (user?.id && !isFilteringRef.current) {
+      if (user?.id && !isFilteringRef.current && filterNonFavoriteOutfits) {
         filterNonFavoriteOutfits();
       }
     }, 300);
-  }, [user?.id]);
+  }, [user?.id, filterNonFavoriteOutfits]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -346,76 +384,95 @@ export default function StylistScreen() {
     };
   }, []);
 
+  // Filter outfits whenever the data changes
+  useEffect(() => {
+    if (
+      user?.id &&
+      (outfits.length > 0 ||
+        aiGeneratedOutfits.length > 0 ||
+        manualOutfitsFromDB.length > 0)
+    ) {
+      console.log('📊 Outfit data changed, re-filtering...');
+      debouncedFilterOutfits();
+    }
+  }, [
+    user?.id,
+    outfits.length,
+    aiGeneratedOutfits.length,
+    manualOutfitsFromDB.length,
+    debouncedFilterOutfits,
+  ]);
+
   // Refresh outfits and check for auto-generation when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      if (screenReady) {
-        console.log('🔄 Screen focused, checking outfit status...');
+      if (!screenReady) return;
 
-        // Reset auto-generation flag on each focus
-        autoGenerationAttempted.current = false;
+      console.log('🔄 Screen focused, checking outfit status...');
 
-        // Always refresh manual outfits to get latest from database
-        refreshManualOutfits();
+      // Reset auto-generation flag on each focus
+      autoGenerationAttempted.current = false;
 
-        // Filter outfits based on database favorite status
+      // Always refresh manual outfits to get latest from database
+      refreshManualOutfitsRef.current();
+
+      // Filter outfits based on database favorite status
+      if (filterNonFavoriteOutfits) {
         filterNonFavoriteOutfits();
-
-        // Check if we need to auto-generate AI outfits
-        const checkAndGenerateOutfits = async () => {
-          // Prevent multiple generation attempts during the same focus cycle
-          if (autoGenerationAttempted.current) {
-            console.log(
-              '🚫 Auto-generation already attempted this focus cycle'
-            );
-            return;
-          }
-
-          // Get current AI-generated outfits count
-          const aiOutfitsCount = outfits.length;
-
-          console.log(
-            `🤖 Current AI-generated outfits count: ${aiOutfitsCount}`
-          );
-
-          // If no AI-generated outfits, trigger auto-generation
-          if (aiOutfitsCount === 0) {
-            console.log('🎯 No AI-generated outfits found, auto-generating...');
-            autoGenerationAttempted.current = true;
-
-            try {
-              // Use default generation options for auto-generation
-              await generateRecommendations({
-                occasion: undefined,
-                preferredColors: undefined,
-                stylePreference: {
-                  formality: 0.5,
-                  boldness: 0.5,
-                  layering: 0.5,
-                  colorfulness: 0.5,
-                },
-                maxResults: Math.min(12, Math.max(6, filteredItems.length)),
-                minScore: 0.6,
-              });
-
-              console.log('✅ Auto-generation completed successfully');
-
-              // Re-filter after generation
-              filterNonFavoriteOutfits();
-            } catch (error) {
-              console.error('❌ Auto-generation failed:', error);
-            }
-          } else {
-            console.log(
-              '✅ AI-generated outfits already available, no auto-generation needed'
-            );
-          }
-        };
-
-        // Run auto-generation check after a short delay to ensure screen is fully ready
-        setTimeout(checkAndGenerateOutfits, 300);
       }
-    }, [screenReady, refreshManualOutfits])
+
+      // Check if we need to auto-generate AI outfits
+      const checkAndGenerateOutfits = async () => {
+        // Prevent multiple generation attempts during the same focus cycle
+        if (autoGenerationAttempted.current) {
+          console.log('🚫 Auto-generation already attempted this focus cycle');
+          return;
+        }
+
+        // Get current AI-generated outfits count from ref
+        const aiOutfitsCount = outfitsRef.current.length;
+
+        console.log(`🤖 Current AI-generated outfits count: ${aiOutfitsCount}`);
+
+        // If no AI-generated outfits, trigger auto-generation
+        if (aiOutfitsCount === 0) {
+          console.log('🎯 No AI-generated outfits found, auto-generating...');
+          autoGenerationAttempted.current = true;
+
+          try {
+            // Use default generation options for auto-generation
+            await generateRecommendationsRef.current({
+              occasion: undefined,
+              preferredColors: undefined,
+              stylePreference: {
+                formality: 0.5,
+                boldness: 0.5,
+                layering: 0.5,
+                colorfulness: 0.5,
+              },
+              maxResults: Math.min(12, Math.max(6, filteredItems.length)),
+              minScore: 0.6,
+            });
+
+            console.log('✅ Auto-generation completed successfully');
+
+            // Re-filter after generation
+            if (filterNonFavoriteOutfits) {
+              filterNonFavoriteOutfits();
+            }
+          } catch (error) {
+            console.error('❌ Auto-generation failed:', error);
+          }
+        } else {
+          console.log(
+            '✅ AI-generated outfits already available, no auto-generation needed'
+          );
+        }
+      };
+
+      // Run auto-generation check after a short delay to ensure screen is fully ready
+      setTimeout(checkAndGenerateOutfits, 300);
+    }, [screenReady, filteredItems.length, filterNonFavoriteOutfits])
   );
 
   // Filter when any outfits data changes
@@ -438,6 +495,7 @@ export default function StylistScreen() {
     outfits.length,
     aiGeneratedOutfits.length,
     manualOutfitsFromDB.length,
+    debouncedFilterOutfits,
   ]);
 
   // Auto-generation is handled by useOutfitRecommendation hook with proper filtering
@@ -565,7 +623,7 @@ export default function StylistScreen() {
           await getOccasionBasedRecommendation(filters.occasion);
         } else {
           // Generate outfit with all applied filters
-          await generateRecommendations(generationOptions);
+          await generateRecommendationsRef.current(generationOptions);
         }
       } catch (error) {
         console.error('Error generating outfits after filter apply:', error);
@@ -574,7 +632,7 @@ export default function StylistScreen() {
     [
       getWeatherBasedRecommendation,
       getOccasionBasedRecommendation,
-      generateRecommendations,
+      generateRecommendationsRef,
       filteredItems.length,
     ]
   );
@@ -697,7 +755,7 @@ export default function StylistScreen() {
 
     // Auto-generate default outfits after clearing filters
     try {
-      await generateRecommendations({
+      await generateRecommendationsRef.current({
         maxResults: Math.min(30, Math.max(8, filteredItems.length)), // Realistic based on item count
         minScore: 0.65, // Require quality outfits
         stylePreference: {
@@ -710,7 +768,7 @@ export default function StylistScreen() {
     } catch (error) {
       console.error('Error generating outfits after clearing filters:', error);
     }
-  }, [generateRecommendations, filteredItems.length]);
+  }, [generateRecommendationsRef, filteredItems.length]);
 
   const handleOutfitSave = useCallback(
     async (outfitId: string) => {
@@ -982,7 +1040,14 @@ export default function StylistScreen() {
         console.log('✅ Outfit removed from memory');
       } else {
         // Saved outfits in database - delete permanently
-        const result = await OutfitService.deleteOutfit(outfitId);
+        // Strip the manual-db- prefix if present to get the actual UUID
+        let actualOutfitId = outfitId;
+        if (outfitId.startsWith('manual-db-')) {
+          actualOutfitId = outfitId.replace('manual-db-', '');
+          console.log('🔧 Stripped prefix - actual ID:', actualOutfitId);
+        }
+
+        const result = await OutfitService.deleteOutfit(actualOutfitId);
         if (!result.error) {
           console.log('✅ Outfit permanently deleted from database');
           // Refresh both manual and AI-generated outfits lists
@@ -1281,7 +1346,7 @@ export default function StylistScreen() {
           <TouchableOpacity
             style={styles.generateButton}
             onPress={() =>
-              generateRecommendations({
+              generateRecommendationsRef.current({
                 maxResults: Math.min(30, Math.max(8, filteredItems.length)),
                 minScore: 0.45,
                 useAllItems: true,

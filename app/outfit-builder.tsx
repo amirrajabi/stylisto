@@ -81,8 +81,23 @@ export default function OutfitBuilderScreen() {
 
     try {
       if (editOutfit) {
-        console.log('Editing outfit not yet implemented');
-        Alert.alert('Info', 'Outfit editing feature will be available soon.');
+        await OutfitService.updateOutfit(
+          editOutfit.id,
+          outfitName.trim(),
+          outfitItems,
+          [],
+          [],
+          notes.trim()
+        );
+
+        await refreshManualOutfits();
+
+        Alert.alert('Success', 'Your outfit has been updated successfully!', [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]);
       } else {
         await OutfitService.saveManualOutfit(
           outfitName.trim(),

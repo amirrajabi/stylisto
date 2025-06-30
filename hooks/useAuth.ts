@@ -21,7 +21,7 @@ export const useAuth = () => {
     isAuthenticated: false,
   });
 
-  // Get user profile from users table
+  // Get user profile from users table (for external use)
   const getUserProfile = useCallback(async (): Promise<User | null> => {
     try {
       return await authService.getUserProfile();
@@ -44,7 +44,12 @@ export const useAuth = () => {
 
           if (session?.user) {
             // Try to get full user profile from users table
-            userProfile = await getUserProfile();
+            try {
+              userProfile = await authService.getUserProfile();
+            } catch (error) {
+              console.error('Error getting user profile during init:', error);
+              userProfile = null;
+            }
 
             // If no profile exists, create one (for existing users)
             if (!userProfile && session.user) {
@@ -93,7 +98,15 @@ export const useAuth = () => {
 
       if (session?.user) {
         // Try to get full user profile from users table
-        userProfile = await getUserProfile();
+        try {
+          userProfile = await authService.getUserProfile();
+        } catch (error) {
+          console.error(
+            'Error getting user profile during auth change:',
+            error
+          );
+          userProfile = null;
+        }
       }
 
       setAuthState(prev => ({
@@ -130,7 +143,7 @@ export const useAuth = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [getUserProfile]);
+  }, []);
 
   // Update profile using new comprehensive method
   const updateUserProfile = useCallback(
@@ -161,37 +174,34 @@ export const useAuth = () => {
   );
 
   // Update profile (legacy method for backward compatibility)
-  const updateProfile = useCallback(
-    async (updates: Partial<AuthUser>) => {
-      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+  const updateProfile = useCallback(async (updates: Partial<AuthUser>) => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
-      try {
-        await authService.updateProfile(updates);
+    try {
+      await authService.updateProfile(updates);
 
-        // Refresh user profile from database
-        const userProfile = await getUserProfile();
+      // Refresh user profile from database
+      const userProfile = await authService.getUserProfile();
 
-        setAuthState(prev => ({
-          ...prev,
-          user: userProfile,
-          loading: false,
-        }));
-      } catch (error: any) {
-        setAuthState(prev => ({
-          ...prev,
-          error: error.message,
-          loading: false,
-        }));
-        throw error;
-      }
-    },
-    [getUserProfile]
-  );
+      setAuthState(prev => ({
+        ...prev,
+        user: userProfile,
+        loading: false,
+      }));
+    } catch (error: any) {
+      setAuthState(prev => ({
+        ...prev,
+        error: error.message,
+        loading: false,
+      }));
+      throw error;
+    }
+  }, []);
 
   // Refresh user profile from database
   const refreshUserProfile = useCallback(async () => {
     try {
-      const userProfile = await getUserProfile();
+      const userProfile = await authService.getUserProfile();
       setAuthState(prev => ({
         ...prev,
         user: userProfile,
@@ -201,7 +211,7 @@ export const useAuth = () => {
       console.error('Error refreshing user profile:', error);
       throw error;
     }
-  }, [getUserProfile]);
+  }, []);
 
   // Sign out
   const signOut = useCallback(async () => {
@@ -340,6 +350,7 @@ export const useAuth = () => {
     resetPassword,
     handleOAuthCallback,
     refreshUserProfile,
+    getUserProfile,
   };
 };
 

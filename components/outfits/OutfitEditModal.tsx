@@ -1,33 +1,26 @@
-import { Image } from 'expo-image';
+import { Save, Shirt, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
-  Check,
-  Edit3,
-  Palette,
-  Plus,
-  Save,
-  Star,
-  Trash2,
-  X,
-} from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import {
+  Alert,
   Dimensions,
   FlatList,
   Modal,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
-import { Typography } from '../../constants/Typography';
-import { useOutfitScoring } from '../../hooks/useOutfitScoring';
 import { useWardrobe } from '../../hooks/useWardrobe';
-import { ClothingCategory, ClothingItem } from '../../types/wardrobe';
+import { OutfitService } from '../../lib/outfitService';
+import { ClothingItem } from '../../types/wardrobe';
+import { BodyMedium, Button, Input } from '../ui';
+import { MinimalAddItemCard } from './MinimalAddItemCard';
+import { MinimalOutfitItemCard } from './MinimalOutfitItemCard';
 
 interface OutfitEditModalProps {
   visible: boolean;
@@ -36,19 +29,14 @@ interface OutfitEditModalProps {
     id: string;
     name: string;
     items: ClothingItem[];
-    score: {
-      total: number;
-      color: number;
-      style: number;
-      season: number;
-      occasion: number;
-    };
+    notes?: string;
     source_type?: 'manual' | 'ai_generated';
   } | null;
-  onSave: (updatedOutfit: any) => void;
+  onSave?: (updatedOutfit: any) => void;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 56) / 2;
 
 export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
   visible,
@@ -56,249 +44,133 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
   outfit,
   onSave,
 }) => {
-  const { filteredItems } = useWardrobe();
-  const { calculateDetailedScore } = useOutfitScoring();
+  const { items } = useWardrobe();
 
-  const [editedName, setEditedName] = useState('');
-  const [editedItems, setEditedItems] = useState<ClothingItem[]>([]);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [showItemSelector, setShowItemSelector] = useState(false);
-  const [updatedScore, setUpdatedScore] = useState<any>(null);
-  const [smartSuggestions, setSmartSuggestions] = useState<ClothingItem[]>([]);
+  const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
+  const [outfitName, setOutfitName] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (outfit) {
-      setEditedName(outfit.name);
-      setEditedItems([...outfit.items]);
-      setUpdatedScore(outfit.score);
+    if (outfit && visible) {
+      setOutfitItems([...outfit.items]);
+      setOutfitName(outfit.name);
+      setNotes(outfit.notes || '');
     }
-  }, [outfit]);
+  }, [outfit, visible]);
 
-  // Analyze outfit completeness and generate smart suggestions
-  const analyzeOutfitAndGenerateSuggestions = useCallback(() => {
-    if (editedItems.length === 0) {
-      setSmartSuggestions([]);
+  const availableItems = items.filter(
+    item => !outfitItems.some(outfitItem => outfitItem.id === item.id)
+  );
+
+  const handleAddItem = (item: ClothingItem) => {
+    setOutfitItems(prev => [...prev, item]);
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setOutfitItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleToggleItem = (item: ClothingItem) => {
+    const isInOutfit = outfitItems.some(
+      outfitItem => outfitItem.id === item.id
+    );
+
+    if (isInOutfit) {
+      handleRemoveItem(item.id);
+    } else {
+      handleAddItem(item);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!outfitName.trim()) {
+      Alert.alert('Error', 'Please enter an outfit name');
       return;
     }
 
-    // Check what essential categories are missing
-    const hasTop = editedItems.some(
-      item =>
-        item.category === ClothingCategory.TOPS ||
-        item.category === ClothingCategory.DRESSES
-    );
-    const hasBottom = editedItems.some(
-      item =>
-        item.category === ClothingCategory.BOTTOMS ||
-        item.category === ClothingCategory.DRESSES
-    );
-    const hasShoes = editedItems.some(
-      item => item.category === ClothingCategory.SHOES
-    );
-    const hasAccessory = editedItems.some(
-      item =>
-        item.category === ClothingCategory.ACCESSORIES ||
-        item.category === ClothingCategory.JEWELRY ||
-        item.category === ClothingCategory.BAGS ||
-        item.category === ClothingCategory.BELTS ||
-        item.category === ClothingCategory.HATS ||
-        item.category === ClothingCategory.SCARVES
-    );
-
-    console.log(
-      `🔍 Outfit analysis - Top: ${hasTop}, Bottom: ${hasBottom}, Shoes: ${hasShoes}, Accessory: ${hasAccessory}`
-    );
-
-    // Get available items that aren't already in the outfit
-    const availableItems = filteredItems.filter(
-      item => !editedItems.find(editedItem => editedItem.id === item.id)
-    );
-
-    let prioritizedItems: ClothingItem[] = [];
-
-    // Prioritize missing essential categories
-    if (
-      !hasTop &&
-      !editedItems.some(item => item.category === ClothingCategory.DRESSES)
-    ) {
-      const tops = availableItems.filter(
-        item => item.category === ClothingCategory.TOPS
-      );
-      prioritizedItems.push(...tops.slice(0, 3));
+    if (outfitItems.length === 0) {
+      Alert.alert('Error', 'Please add at least one item to the outfit');
+      return;
     }
 
-    if (
-      !hasBottom &&
-      !editedItems.some(item => item.category === ClothingCategory.DRESSES)
-    ) {
-      const bottoms = availableItems.filter(
-        item => item.category === ClothingCategory.BOTTOMS
-      );
-      prioritizedItems.push(...bottoms.slice(0, 3));
-    }
-
-    if (!hasShoes) {
-      const shoes = availableItems.filter(
-        item => item.category === ClothingCategory.SHOES
-      );
-      prioritizedItems.push(...shoes.slice(0, 3));
-    }
-
-    // If missing accessories, prioritize them with fallback categories
-    if (!hasAccessory) {
-      console.log('🎯 Missing accessory, prioritizing accessory categories...');
-
-      // Primary accessory category
-      const accessories = availableItems.filter(
-        item => item.category === ClothingCategory.ACCESSORIES
-      );
-      prioritizedItems.push(...accessories.slice(0, 2));
-
-      // Fallback accessory categories if primary is empty
-      if (accessories.length === 0) {
-        console.log('⚠️ No primary accessories, using fallback categories...');
-
-        const fallbackCategories = [
-          ClothingCategory.JEWELRY,
-          ClothingCategory.BAGS,
-          ClothingCategory.BELTS,
-          ClothingCategory.HATS,
-          ClothingCategory.SCARVES,
-        ];
-
-        for (const category of fallbackCategories) {
-          const items = availableItems.filter(
-            item => item.category === category
-          );
-          if (items.length > 0) {
-            prioritizedItems.push(...items.slice(0, 2));
-            console.log(
-              `✅ Found ${items.length} items in fallback category: ${category}`
-            );
-            break; // Only use one fallback category
-          }
-        }
-      }
-    }
-
-    // Add other complementary items
-    const remainingItems = availableItems.filter(
-      item => !prioritizedItems.find(prioritized => prioritized.id === item.id)
-    );
-
-    // Sort remaining items by compatibility (you could implement a simple compatibility score here)
-    const sortedRemainingItems = remainingItems.sort((a, b) => {
-      // Simple priority based on category usefulness
-      const categoryPriority: Record<ClothingCategory, number> = {
-        [ClothingCategory.OUTERWEAR]: 8,
-        [ClothingCategory.JEWELRY]: 7,
-        [ClothingCategory.BAGS]: 7,
-        [ClothingCategory.BELTS]: 6,
-        [ClothingCategory.HATS]: 6,
-        [ClothingCategory.SCARVES]: 6,
-        [ClothingCategory.ACCESSORIES]: 9,
-        [ClothingCategory.TOPS]: 5,
-        [ClothingCategory.BOTTOMS]: 5,
-        [ClothingCategory.SHOES]: 5,
-        [ClothingCategory.DRESSES]: 4,
-        [ClothingCategory.UNDERWEAR]: 1,
-        [ClothingCategory.SOCKS]: 2,
-        [ClothingCategory.UNDERSHIRTS]: 1,
-        [ClothingCategory.BRAS]: 1,
-        [ClothingCategory.SHORTS_UNDERWEAR]: 1,
-        [ClothingCategory.ACTIVEWEAR]: 3,
-        [ClothingCategory.SLEEPWEAR]: 2,
-        [ClothingCategory.SWIMWEAR]: 2,
-      };
-
-      const aPriority = categoryPriority[a.category] || 0;
-      const bPriority = categoryPriority[b.category] || 0;
-      return bPriority - aPriority;
-    });
-
-    // Combine prioritized and remaining items
-    const finalSuggestions = [
-      ...prioritizedItems,
-      ...sortedRemainingItems.slice(0, 10), // Limit to keep performance good
-    ].slice(0, 20); // Total limit
-
-    setSmartSuggestions(finalSuggestions);
-
-    console.log(`💡 Generated ${finalSuggestions.length} smart suggestions`);
-    console.log(
-      `🎯 Prioritized missing categories: ${!hasTop ? 'TOPS ' : ''}${!hasBottom ? 'BOTTOMS ' : ''}${!hasShoes ? 'SHOES ' : ''}${!hasAccessory ? 'ACCESSORIES ' : ''}`
-    );
-  }, [editedItems, filteredItems]);
-
-  useEffect(() => {
-    analyzeOutfitAndGenerateSuggestions();
-  }, [editedItems, analyzeOutfitAndGenerateSuggestions]);
-
-  const recalculateScore = useCallback(() => {
-    if (editedItems.length > 0) {
-      try {
-        const scoreData = calculateDetailedScore(editedItems);
-        const formattedScore = {
-          total: scoreData.total,
-          color: scoreData.colorMatch,
-          style: scoreData.styleHarmony,
-          season: scoreData.seasonFit,
-          occasion: scoreData.occasion,
-        };
-        setUpdatedScore(formattedScore);
-      } catch (error) {
-        console.warn('Error calculating outfit score:', error);
-      }
-    } else {
-      setUpdatedScore(null);
-    }
-  }, [editedItems, calculateDetailedScore]);
-
-  useEffect(() => {
-    recalculateScore();
-  }, [editedItems]);
-
-  const handleSave = useCallback(() => {
     if (!outfit) return;
 
-    const updatedOutfit = {
-      ...outfit,
-      name: editedName.trim() || outfit.name,
-      items: editedItems,
-      score: updatedScore || outfit.score,
-    };
+    setIsSaving(true);
 
-    onSave(updatedOutfit);
-    onClose();
-  }, [outfit, editedName, editedItems, updatedScore, onSave, onClose]);
+    try {
+      await OutfitService.updateOutfit(
+        outfit.id,
+        outfitName.trim(),
+        outfitItems,
+        [],
+        [],
+        notes.trim()
+      );
 
-  const handleRemoveItem = useCallback((itemId: string) => {
-    setEditedItems(prev => prev.filter(item => item.id !== itemId));
-  }, []);
+      Alert.alert('Success', 'Your outfit has been updated successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            onSave?.({
+              ...outfit,
+              name: outfitName.trim(),
+              items: outfitItems,
+              notes: notes.trim(),
+            });
+            onClose();
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error('Error updating outfit:', error);
+      Alert.alert('Error', 'Failed to update outfit. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  const handleAddItem = useCallback(
-    (item: ClothingItem) => {
-      if (!editedItems.find(existingItem => existingItem.id === item.id)) {
-        setEditedItems(prev => [...prev, item]);
-      }
-      setShowItemSelector(false);
-    },
-    [editedItems]
+  const renderOutfitItem = ({
+    item,
+    index,
+  }: {
+    item: ClothingItem;
+    index: number;
+  }) => (
+    <View
+      style={[
+        styles.outfitItemContainer,
+        index < outfitItems.length - 1 && { marginRight: Spacing.lg },
+      ]}
+    >
+      <MinimalOutfitItemCard
+        item={item}
+        index={index}
+        onRemove={() => handleToggleItem(item)}
+      />
+    </View>
   );
 
-  // Use smart suggestions if available, otherwise fall back to all available items
-  const itemsToDisplay =
-    smartSuggestions.length > 0
-      ? smartSuggestions
-      : filteredItems.filter(
-          item => !editedItems.find(editedItem => editedItem.id === item.id)
-        );
-
-  const getScoreColor = (score: number) => {
-    if (score >= 0.8) return Colors.success[500];
-    if (score >= 0.6) return Colors.warning[500];
-    return Colors.error[500];
-  };
+  const renderAvailableItem = ({
+    item,
+    index,
+  }: {
+    item: ClothingItem;
+    index: number;
+  }) => (
+    <View
+      style={[
+        styles.availableItemContainer,
+        index < availableItems.length - 1 && { marginRight: Spacing.lg },
+      ]}
+    >
+      <MinimalAddItemCard
+        item={item}
+        index={index}
+        onAdd={() => handleToggleItem(item)}
+      />
+    </View>
+  );
 
   if (!outfit) return null;
 
@@ -307,8 +179,6 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
     return null;
   }
 
-  const totalScore = updatedScore ? Math.round(updatedScore.total * 100) : 0;
-
   return (
     <Modal
       visible={visible}
@@ -316,221 +186,111 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            {isEditingName ? (
-              <View style={styles.nameEditContainer}>
-                <TextInput
-                  style={styles.nameInput}
-                  value={editedName}
-                  onChangeText={setEditedName}
-                  placeholder="Outfit name"
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={() => setIsEditingName(false)}
-                  maxLength={50}
-                />
-                <TouchableOpacity
-                  style={styles.nameEditButton}
-                  onPress={() => setIsEditingName(false)}
-                >
-                  <Check size={16} color={Colors.success[500]} />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.nameContainer}
-                onPress={() => setIsEditingName(true)}
-              >
-                <Text style={styles.modalTitle} numberOfLines={1}>
-                  {editedName}
-                </Text>
-                <Edit3 size={16} color={Colors.text.secondary} />
-              </TouchableOpacity>
-            )}
-            <View style={styles.totalScoreContainer}>
-              <Star
-                size={16}
-                color={Colors.warning[500]}
-                fill={Colors.warning[500]}
-              />
-              <Text style={styles.totalScoreText}>{totalScore}% Match</Text>
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Shirt size={24} color="#A428FC" />
+              <Text style={styles.headerTitle}>Edit Outfit</Text>
             </View>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Save size={20} color={Colors.primary[500]} />
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
           </View>
-        </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Score Breakdown */}
-          {updatedScore && (
-            <View style={styles.scoresSection}>
-              <Text style={styles.sectionTitle}>Updated Match Details</Text>
-              <View style={styles.scoreGrid}>
-                {[
-                  {
-                    key: 'style',
-                    label: 'Style',
-                    value: updatedScore.style,
-                    icon: <Palette size={16} color={Colors.primary[500]} />,
-                  },
-                  {
-                    key: 'color',
-                    label: 'Color',
-                    value: updatedScore.color,
-                    icon: <Star size={16} color={Colors.success[500]} />,
-                  },
-                  {
-                    key: 'season',
-                    label: 'Season',
-                    value: updatedScore.season,
-                    icon: <Star size={16} color={Colors.info[500]} />,
-                  },
-                  {
-                    key: 'occasion',
-                    label: 'Occasion',
-                    value: updatedScore.occasion,
-                    icon: <Star size={16} color={Colors.warning[500]} />,
-                  },
-                ].map(scoreItem => (
-                  <View key={scoreItem.key} style={styles.scoreCard}>
-                    <View style={styles.scoreCardHeader}>
-                      {scoreItem.icon}
-                      <Text style={styles.scoreCardTitle}>
-                        {scoreItem.label}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.scoreCardValue,
-                        { color: getScoreColor(scoreItem.value) },
-                      ]}
-                    >
-                      {Math.round(scoreItem.value * 100)}%
-                    </Text>
-                  </View>
-                ))}
-              </View>
+          {/* Outfit Details */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Outfit Details</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Outfit Name *</Text>
+              <Input
+                placeholder="Enter outfit name"
+                value={outfitName}
+                onChangeText={setOutfitName}
+                inputStyle={styles.input}
+              />
             </View>
-          )}
-
-          {/* Outfit Items with Edit Controls */}
-          <View style={styles.itemsSection}>
-            <View style={styles.itemsSectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Outfit Items ({editedItems.length})
-              </Text>
-              <TouchableOpacity
-                style={styles.addItemButton}
-                onPress={() => setShowItemSelector(true)}
-              >
-                <Plus size={16} color={Colors.primary[500]} />
-                <Text style={styles.addItemButtonText}>Add Item</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.itemsGrid}>
-              {editedItems.map((item: ClothingItem, index: number) => (
-                <View key={item.id} style={styles.editableItemCard}>
-                  <View style={styles.itemImageContainer}>
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles.itemImage}
-                      contentFit="cover"
-                    />
-                    <TouchableOpacity
-                      style={styles.removeItemButton}
-                      onPress={() => handleRemoveItem(item.id)}
-                    >
-                      <Trash2 size={14} color={Colors.error[500]} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text
-                    style={styles.itemName}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {item.name}
-                  </Text>
-                  <Text style={styles.itemCategory}>
-                    {item.category.charAt(0).toUpperCase() +
-                      item.category.slice(1)}
-                  </Text>
-                </View>
-              ))}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Notes</Text>
+              <Input
+                placeholder="Add notes about this outfit"
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={3}
+                inputStyle={styles.textArea}
+              />
             </View>
           </View>
-        </ScrollView>
 
-        {/* Item Selector Modal */}
-        <Modal
-          visible={showItemSelector}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowItemSelector(false)}
-        >
-          <View style={styles.itemSelectorContainer}>
-            <View style={styles.itemSelectorHeader}>
-              <View style={styles.itemSelectorTitleContainer}>
-                <Text style={styles.itemSelectorTitle}>
-                  {smartSuggestions.length > 0
-                    ? 'Smart Suggestions'
-                    : 'Add Item to Outfit'}
-                </Text>
-                {smartSuggestions.length > 0 && (
-                  <Text style={styles.itemSelectorSubtitle}>
-                    Prioritized items to complete your outfit
-                  </Text>
-                )}
+          {/* Current Outfit Items */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Outfit Items ({outfitItems.length})
+            </Text>
+            {outfitItems.length > 0 ? (
+              <FlatList
+                data={outfitItems}
+                renderItem={renderOutfitItem}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.outfitItemsList}
+                style={styles.outfitScrollView}
+                decelerationRate="fast"
+                snapToAlignment="center"
+              />
+            ) : (
+              <View style={styles.emptyOutfit}>
+                <BodyMedium color="secondary">
+                  No items added yet. Select items from below to build your
+                  outfit.
+                </BodyMedium>
               </View>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowItemSelector(false)}
-              >
-                <X size={24} color={Colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={itemsToDisplay}
-              keyExtractor={item => item.id}
-              numColumns={2}
-              contentContainerStyle={styles.itemSelectorList}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.selectableItemCard}
-                  onPress={() => handleAddItem(item)}
-                >
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={styles.selectableItemImage}
-                    contentFit="cover"
-                  />
-                  <Text
-                    style={styles.selectableItemName}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {item.name}
-                  </Text>
-                  <Text style={styles.selectableItemCategory}>
-                    {item.category.charAt(0).toUpperCase() +
-                      item.category.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              )}
+            )}
+          </View>
+
+          {/* Save Button */}
+          <View style={styles.saveSection}>
+            <Button
+              title={isSaving ? 'Saving...' : 'Save Changes'}
+              onPress={handleSave}
+              disabled={
+                isSaving || !outfitName.trim() || outfitItems.length === 0
+              }
+              loading={isSaving}
+              leftIcon={<Save size={20} color={Colors.white} />}
+              variant="primary"
+              size="medium"
+              fullWidth
             />
           </View>
-        </Modal>
-      </View>
+
+          {/* Available Items */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Add Items</Text>
+            {availableItems.length > 0 ? (
+              <FlatList
+                data={availableItems}
+                renderItem={renderAvailableItem}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.availableItemsList}
+                decelerationRate="fast"
+                snapToAlignment="center"
+              />
+            ) : (
+              <View style={styles.emptyAvailable}>
+                <BodyMedium color="secondary">
+                  All items have been added to the outfit.
+                </BodyMedium>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -538,265 +298,104 @@ export const OutfitEditModal: React.FC<OutfitEditModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.primary,
+    backgroundColor: Colors.background.secondary,
+  },
+  content: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.md,
+    paddingVertical: Spacing.md,
     backgroundColor: Colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.primary,
     ...Shadows.sm,
-    zIndex: 1,
   },
   headerLeft: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
   },
-  nameEditContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  nameInput: {
-    ...Typography.heading.h4,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: Colors.text.primary,
-    fontWeight: '600',
-    flex: 1,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.md,
-    marginRight: Spacing.sm,
-  },
-  nameEditButton: {
-    width: 32,
-    height: 32,
-    backgroundColor: Colors.success[50],
-    borderRadius: Layout.borderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalTitle: {
-    ...Typography.heading.h4,
-    color: Colors.text.primary,
-    fontWeight: '600',
-    marginRight: Spacing.sm,
-  },
-  totalScoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.warning[50],
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    alignSelf: 'flex-start',
-  },
-  totalScoreText: {
-    ...Typography.body.small,
-    color: Colors.warning[700],
-    fontWeight: '600',
-    marginLeft: Spacing.xs,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary[500],
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-    marginRight: Spacing.sm,
-  },
-  saveButtonText: {
-    ...Typography.body.medium,
-    color: Colors.surface.primary,
-    fontWeight: '600',
-    marginLeft: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
   closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.surface.secondary,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-  },
-  scoresSection: {
-    marginBottom: Spacing.xl,
+  section: {
+    backgroundColor: Colors.surface.primary,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
-    ...Typography.heading.h5,
-    color: Colors.text.primary,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: Spacing.md,
-  },
-  scoreGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  scoreCard: {
-    flex: 1,
-    minWidth: (screenWidth - Spacing.lg * 2 - Spacing.sm) / 2,
-    backgroundColor: Colors.surface.secondary,
-    padding: Spacing.md,
-    borderRadius: Layout.borderRadius.lg,
-    alignItems: 'center',
-  },
-  scoreCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  scoreCardTitle: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    marginLeft: Spacing.xs,
-  },
-  scoreCardValue: {
-    ...Typography.heading.h5,
-    fontWeight: '700',
-  },
-  itemsSection: {
-    marginBottom: Spacing.xl,
-  },
-  itemsSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  addItemButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary[50],
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-  },
-  addItemButtonText: {
-    ...Typography.body.small,
-    color: Colors.primary[600],
-    fontWeight: '600',
-    marginLeft: Spacing.xs,
-  },
-  itemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  editableItemCard: {
-    width: (screenWidth - Spacing.lg * 2 - Spacing.md * 2) / 3,
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.sm,
-    alignItems: 'center',
-  },
-  itemImageContainer: {
-    position: 'relative',
-    width: '100%',
-    aspectRatio: 1,
-    marginBottom: Spacing.sm,
-  },
-  itemImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: Layout.borderRadius.md,
-  },
-  removeItemButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    backgroundColor: Colors.error[500],
-    borderRadius: Layout.borderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  itemName: {
-    ...Typography.body.small,
     color: Colors.text.primary,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  itemCategory: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  itemSelectorContainer: {
-    flex: 1,
-    backgroundColor: Colors.surface.primary,
-  },
-  itemSelectorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.md,
-    backgroundColor: Colors.surface.primary,
-    ...Shadows.sm,
+    paddingTop: Spacing.lg,
   },
-  itemSelectorTitleContainer: {
-    flex: 1,
-    marginRight: Spacing.md,
+  outfitItemsList: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
-  itemSelectorTitle: {
-    ...Typography.heading.h4,
-    color: Colors.text.primary,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
+  outfitScrollView: {
+    flexGrow: 0,
   },
-  itemSelectorSubtitle: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    fontStyle: 'italic',
+  outfitItemContainer: {
+    position: 'relative',
+    width: cardWidth,
   },
-  itemSelectorList: {
+  availableItemsList: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  emptyOutfit: {
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  selectableItemCard: {
-    flex: 1,
+    marginHorizontal: Spacing.lg,
+    alignItems: 'center',
     backgroundColor: Colors.surface.secondary,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.border.primary,
+    borderStyle: 'dashed',
+  },
+  emptyAvailable: {
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.lg,
     alignItems: 'center',
-    marginHorizontal: Spacing.xs,
   },
-  selectableItemImage: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: Layout.borderRadius.md,
+  saveSection: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+  },
+  inputGroup: {
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
     marginBottom: Spacing.sm,
-  },
-  selectableItemName: {
-    ...Typography.body.small,
     color: Colors.text.primary,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
   },
-  selectableItemCategory: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    textAlign: 'center',
+  input: {
+    fontSize: 16,
+  },
+  textArea: {
+    fontSize: 16,
+    textAlignVertical: 'top',
+  },
+  availableItemContainer: {
+    position: 'relative',
+    width: cardWidth,
   },
 });

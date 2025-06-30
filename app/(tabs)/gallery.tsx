@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OutfitDetailModal } from '../../components/outfits';
 import { FavoriteOutfitCard } from '../../components/outfits/FavoriteOutfitCard';
+import { OutfitEditModal } from '../../components/outfits/OutfitEditModal';
 import { FloatingActionButton } from '../../components/ui';
 import { useAccessibility } from '../../components/ui/AccessibilityProvider';
 import { AccessibleText } from '../../components/ui/AccessibleText';
@@ -31,6 +32,7 @@ interface FavoriteOutfit {
   name: string;
   items: ClothingItem[];
   created_at: string;
+  notes?: string;
   occasion?: string;
   source_type?: 'ai_generated' | 'manual';
 }
@@ -60,6 +62,14 @@ export default function GalleryScreen() {
     source_type?: 'ai_generated' | 'manual';
   } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [outfitToEdit, setOutfitToEdit] = useState<{
+    id: string;
+    name: string;
+    items: ClothingItem[];
+    notes?: string;
+    source_type?: 'manual' | 'ai_generated';
+  } | null>(null);
 
   const fetchFavoriteOutfits = async () => {
     if (!user) return;
@@ -72,6 +82,7 @@ export default function GalleryScreen() {
           id,
           name,
           created_at,
+          notes,
           occasions,
           source_type,
           outfit_items (
@@ -112,6 +123,7 @@ export default function GalleryScreen() {
         id: outfit.id,
         name: outfit.name,
         created_at: outfit.created_at,
+        notes: outfit.notes,
         occasion: outfit.occasions?.[0] || undefined,
         source_type: outfit.source_type,
         items: outfit.outfit_items
@@ -273,6 +285,57 @@ export default function GalleryScreen() {
     console.log('Item pressed:', item.name);
   };
 
+  const handleEditOutfit = async (outfitId: string) => {
+    console.log('📝 Edit outfit:', outfitId);
+
+    // Find the outfit to edit
+    const outfitToEdit = favoriteOutfits.find(outfit => outfit.id === outfitId);
+    if (outfitToEdit) {
+      setOutfitToEdit({
+        id: outfitToEdit.id,
+        name: outfitToEdit.name,
+        items: outfitToEdit.items,
+        notes: outfitToEdit.notes,
+        source_type: outfitToEdit.source_type,
+      });
+
+      // First open the edit modal
+      setEditModalVisible(true);
+
+      // Then close the detail modal after a small delay for smooth transition
+      setTimeout(() => {
+        setModalVisible(false);
+      }, 300);
+    }
+  };
+
+  const handleEditModalClose = () => {
+    setEditModalVisible(false);
+    setOutfitToEdit(null);
+
+    // If selectedOutfit still exists, user canceled editing - reopen detail modal
+    if (selectedOutfit) {
+      setTimeout(() => {
+        setModalVisible(true);
+      }, 300);
+    }
+  };
+
+  const handleOutfitUpdate = (updatedOutfit: any) => {
+    console.log('Outfit updated:', updatedOutfit);
+    // Refresh the favorite outfits list
+    fetchFavoriteOutfits();
+
+    // Close edit modal
+    setEditModalVisible(false);
+    setOutfitToEdit(null);
+
+    // Clear selected outfit state
+    setSelectedOutfit(null);
+
+    // Don't reopen detail modal - user should see the updated outfit in the list
+  };
+
   const renderTabButton = (tabType: TabType, label: string, icon: any) => (
     <TouchableOpacity
       style={[
@@ -391,12 +454,21 @@ export default function GalleryScreen() {
           onClose={handleCloseModal}
           userImage={user?.full_body_image_url || undefined}
           onSave={handleSaveOutfit}
+          onEdit={handleEditOutfit}
           onProve={handleProveOutfit}
           onVirtualTryOnComplete={handleVirtualTryOnComplete}
           onVirtualTryOnSave={handleVirtualTryOnSave}
           onVirtualTryOnShare={handleVirtualTryOnShare}
         />
       )}
+
+      {/* Edit Modal */}
+      <OutfitEditModal
+        visible={editModalVisible}
+        outfit={outfitToEdit}
+        onClose={handleEditModalClose}
+        onSave={handleOutfitUpdate}
+      />
 
       <FloatingActionButton
         onPress={() => router.push('/generate')}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   GeneratedOutfitRecord,
   OutfitService,
@@ -18,7 +18,11 @@ export const useManualOutfits = () => {
     error: null,
   });
 
-  const loadManualOutfits = useCallback(async () => {
+  const loadManualOutfitsRef = useRef<(() => Promise<void>) | undefined>(
+    undefined
+  );
+
+  loadManualOutfitsRef.current = async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -44,18 +48,21 @@ export const useManualOutfits = () => {
             : 'Failed to load manual outfits',
       }));
     }
-  }, []);
+  };
 
   const refreshManualOutfits = useCallback(async () => {
     console.log('🔄 Refreshing manual outfits from database...');
-    await loadManualOutfits();
-  }, [loadManualOutfits]);
+    if (loadManualOutfitsRef.current) {
+      await loadManualOutfitsRef.current();
+    }
+  }, []);
 
   useEffect(() => {
-    loadManualOutfits();
-  }, [loadManualOutfits]);
+    if (loadManualOutfitsRef.current) {
+      loadManualOutfitsRef.current();
+    }
+  }, []);
 
-  // Subscribe to outfit favorite changes
   useEffect(() => {
     console.log(
       '🔗 useManualOutfits: Subscribing to outfit favorite changes...'
@@ -65,7 +72,6 @@ export const useManualOutfits = () => {
         '🔔 useManualOutfits: Outfit favorite status changed, refreshing manual outfits...'
       );
 
-      // Add a small delay to ensure database transaction is complete
       setTimeout(async () => {
         try {
           setState(prev => ({ ...prev, loading: true }));
@@ -98,7 +104,7 @@ export const useManualOutfits = () => {
                 : 'Failed to refresh manual outfits',
           }));
         }
-      }, 100); // 100ms delay to ensure database consistency
+      }, 100);
     });
 
     return unsubscribe;

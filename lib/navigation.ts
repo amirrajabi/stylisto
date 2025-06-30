@@ -115,3 +115,22 @@ export const authNavigation = {
     }
   },
 };
+
+export const navigateToOutfitBuilder = () => {
+  router.push('/outfit-builder');
+};
+
+export const navigateToOutfitEditor = (outfitId: string) => {
+  router.push({
+    pathname: '/outfit-builder',
+    params: { editOutfitId: outfitId },
+  });
+};
+
+export const navigateBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.push('/(tabs)');
+  }
+};

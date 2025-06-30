@@ -27,7 +27,7 @@
  */
 
 import { Image } from 'expo-image';
-import { ArrowLeft, CheckCircle, Heart } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Edit2, Heart } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -69,6 +69,7 @@ export interface OutfitGalleryModalProps {
   } | null;
   userImage?: string;
   onSave?: (outfitId: string) => void;
+  onEdit?: (outfitId: string) => void;
   onProve?: (outfitId: string) => void;
   onTry?: (outfitId: string) => void;
   onVirtualTryOnComplete?: (result: VirtualTryOnResult) => void;
@@ -84,6 +85,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   outfit,
   userImage,
   onSave,
+  onEdit,
   onProve,
   onTry,
   onVirtualTryOnComplete,
@@ -204,6 +206,13 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     onVirtualTryOnShare?.(result);
   };
 
+  const handleEditOutfit = () => {
+    console.log('📝 Edit outfit function called for outfit:', outfit.id);
+    if (onEdit) {
+      onEdit(outfit.id);
+    }
+  };
+
   const getProveButtonText = () => {
     if (isProcessing) {
       return `${processingPhase || 'Processing'}...`;
@@ -284,6 +293,19 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                     activeOpacity={0.8}
                   >
                     <Text style={styles.tryButtonText}>Try</Text>
+                  </TouchableOpacity>
+                )}
+
+                {false && (
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={handleEditOutfit}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.editButtonContent}>
+                      <Edit2 size={20} color={Colors.primary[500]} />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </View>
                   </TouchableOpacity>
                 )}
 
@@ -487,6 +509,27 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tryButtonText: {
+    ...Typography.body.large,
+    color: Colors.surface.primary,
+    fontWeight: '600',
+  },
+  editButton: {
+    backgroundColor: Colors.primary[500],
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+    elevation: 2,
+  },
+  editButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  editButtonText: {
     ...Typography.body.large,
     color: Colors.surface.primary,
     fontWeight: '600',
