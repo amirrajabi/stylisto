@@ -13,6 +13,7 @@ interface FavoriteOutfit {
   created_at: string;
   occasion?: string;
   source_type?: 'ai_generated' | 'manual';
+  is_favorite?: boolean;
 }
 
 interface FavoriteOutfitCardProps {
@@ -20,6 +21,7 @@ interface FavoriteOutfitCardProps {
   onPress: (outfit: FavoriteOutfit) => void;
   onToggleFavorite: (outfitId: string) => void;
   style?: ViewStyle;
+  showOnlyFavorites?: boolean;
 }
 
 export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
@@ -27,6 +29,7 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
   onPress,
   onToggleFavorite,
   style,
+  showOnlyFavorites = true,
 }) => {
   const { colors } = useAccessibility();
 
@@ -61,9 +64,24 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
           onPress={() => onToggleFavorite(outfit.id)}
           style={styles.modernFavoriteButton}
           accessibilityRole="button"
-          accessibilityLabel="Remove from favorites"
+          accessibilityLabel={
+            showOnlyFavorites || outfit.is_favorite
+              ? 'Remove from favorites'
+              : 'Add to favorites'
+          }
         >
-          <Heart size={16} color="#ef4444" fill="#ef4444" strokeWidth={1.5} />
+          <Heart
+            size={16}
+            color={
+              showOnlyFavorites || outfit.is_favorite ? '#ef4444' : '#9ca3af'
+            }
+            fill={
+              showOnlyFavorites || outfit.is_favorite
+                ? '#ef4444'
+                : 'transparent'
+            }
+            strokeWidth={1.5}
+          />
         </TouchableOpacity>
       </View>
 

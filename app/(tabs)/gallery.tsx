@@ -501,6 +501,7 @@ export default function GalleryScreen() {
       onPress={handleOutfitPress}
       onToggleFavorite={handleRemoveFromFavorites}
       style={styles.outfitCard}
+      showOnlyFavorites={true}
     />
   );
 
@@ -538,6 +539,7 @@ export default function GalleryScreen() {
         }
       }}
       style={styles.outfitCard}
+      showOnlyFavorites={false}
     />
   );
 
