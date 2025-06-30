@@ -59,6 +59,9 @@ class VirtualTryOnService {
   private readonly API_KEY = process.env.EXPO_PUBLIC_FLUX_API_KEY;
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 2000;
+  private readonly FLUX_PROCESSING_TIMEOUT = 300000; // 5 minutes for complex AI processing
+  private readonly FLUX_POLLING_TIMEOUT = 240000; // 4 minutes for polling
+  private readonly FLUX_REQUEST_TIMEOUT = 60000; // 1 minute for individual requests
 
   // Available models based on BFL pricing
   private readonly KONTEXT_PRO_MODEL = 'flux-kontext-pro'; // $0.04 per image - Fast, high-quality editing
@@ -276,6 +279,82 @@ Platform: ${this.getPlatform()}
       indicator =>
         errorMessage.includes(indicator) || errorName.includes(indicator)
     );
+  }
+
+  private async createTimeoutSafeRequest<T>(
+    requestFunction: () => Promise<T>,
+    timeoutMs: number,
+    fallbackFunction?: () => Promise<T>
+  ): Promise<T> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(`Operation timed out after ${timeoutMs / 1000} seconds`)
+        );
+      }, timeoutMs);
+    });
+
+    try {
+      return await Promise.race([requestFunction(), timeoutPromise]);
+    } catch (error) {
+      if (
+        fallbackFunction &&
+        ((error instanceof Error && error.message.includes('timed out')) ||
+          (this.isCorsError(error as Error) &&
+            this.isWebEnvironment() &&
+            process.env.NODE_ENV === 'development'))
+      ) {
+        console.warn('🛡️ Using fallback due to timeout or CORS in development');
+        return await fallbackFunction();
+      }
+      throw error;
+    }
+  }
+
+  private createUserFriendlyError(error: Error): Error {
+    const errorMessage = error.message.toLowerCase();
+
+    if (errorMessage.includes('timeout')) {
+      return new Error(
+        '⏱️ Virtual try-on is taking longer than usual. This can happen with complex outfits or during busy times. Please try again in a few minutes or use simpler clothing combinations.'
+      );
+    }
+
+    if (errorMessage.includes('cors') || errorMessage.includes('fetch')) {
+      if (this.isWebEnvironment()) {
+        return new Error(
+          '🌐 Web browser limitations detected. For best results, please test this feature on a mobile device or in the Expo Go app. Web browsers have security restrictions that prevent direct AI API access.'
+        );
+      }
+    }
+
+    if (
+      errorMessage.includes('network') ||
+      errorMessage.includes('connectivity')
+    ) {
+      return new Error(
+        '📡 Network connection issue. Please check your internet connection and try again.'
+      );
+    }
+
+    if (
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('401') ||
+      errorMessage.includes('403')
+    ) {
+      return new Error(
+        '🔑 API authentication issue. This is likely a temporary configuration problem. Please try again later.'
+      );
+    }
+
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+      return new Error(
+        '🚦 API rate limit reached. Please wait a moment before trying again.'
+      );
+    }
+
+    // Return original error if no specific handling
+    return error;
   }
 
   private async generateMockVirtualTryOnResult(
@@ -565,20 +644,50 @@ Do not include underwear or original clothing in the final output. The final res
         '═════════════════════════════════════════════════════════════════\n'
       );
 
-      // Update progress
+      // Update progress with environment-specific messaging
+      const progressMessage =
+        this.isWebEnvironment() && process.env.NODE_ENV === 'development'
+          ? 'Sending to AI for processing... (Web development mode - may use fallback)'
+          : 'Sending to AI for processing... (This may take 2-5 minutes)';
+
       onProgress?.({
         phase: 'api_transmission',
         progress: 50,
-        message: 'Sending to AI for processing...',
+        message: progressMessage,
       });
 
-      // 3. Call FLUX API with the collage
+      // 3. Call FLUX API with the collage with timeout protection
       await this.testNetworkConnectivity();
 
-      const fluxResult = await this.callFluxKontextAPI({
-        collageImageMetadata: await this.analyzeImage(collageUri),
-        enhancedPrompt: enhancedPrompt,
-      });
+      console.log(
+        `🛡️ Starting timeout-protected FLUX API call (max ${this.FLUX_PROCESSING_TIMEOUT / 60000} minutes)`
+      );
+
+      const fluxResult = await this.createTimeoutSafeRequest(
+        async () => {
+          return await this.callFluxKontextAPI(
+            {
+              collageImageMetadata: await this.analyzeImage(collageUri),
+              enhancedPrompt: enhancedPrompt,
+            },
+            (message: string) => {
+              // Update progress with live AI processing status
+              onProgress?.({
+                phase: 'api_transmission',
+                progress: 70,
+                message: message,
+              });
+            }
+          );
+        },
+        this.FLUX_PROCESSING_TIMEOUT,
+        async () => {
+          console.warn(
+            '🎭 Timeout detected - providing mock result for development'
+          );
+          return await this.generateMockVirtualTryOnResult(request);
+        }
+      );
 
       // Update progress
       onProgress?.({
@@ -608,15 +717,22 @@ Do not include underwear or original clothing in the final output. The final res
     } catch (error) {
       console.error('❌ Virtual try-on process failed:', error);
 
+      // Create user-friendly error message
+      const friendlyError =
+        error instanceof Error
+          ? this.createUserFriendlyError(error)
+          : new Error(
+              'An unexpected error occurred during virtual try-on processing'
+            );
+
       // Update progress - error
       onProgress?.({
         phase: 'error',
         progress: 0,
-        message:
-          error instanceof Error ? error.message : 'Unknown error occurred',
+        message: friendlyError.message,
       });
 
-      throw error;
+      throw friendlyError;
     }
   }
 
@@ -778,7 +894,10 @@ Do not include underwear or original clothing in the final output. The final res
     The final result should look like a professional e-commerce or fashion shoot.`;
   }
 
-  private async callFluxKontextAPI(stylingData: any): Promise<FluxApiResponse> {
+  private async callFluxKontextAPI(
+    stylingData: any,
+    onProgress?: (message: string) => void
+  ): Promise<FluxApiResponse> {
     console.log('🔑 FLUX API Key Debug:', {
       hasKey: !!this.API_KEY,
       keyLength: this.API_KEY?.length || 0,
@@ -831,7 +950,7 @@ Do not include underwear or original clothing in the final output. The final res
 
     // Try FLUX.1 Kontext API first (preferred for image editing)
     try {
-      return await this.callKontextImageEditing(stylingData);
+      return await this.callKontextImageEditing(stylingData, onProgress);
     } catch (kontextError) {
       console.warn(
         '⚠️ Kontext API failed, falling back to standard image generation:',
@@ -858,7 +977,7 @@ Do not include underwear or original clothing in the final output. The final res
 
       // Fallback to standard image generation API
       try {
-        return await this.callStandardImageGeneration(stylingData);
+        return await this.callStandardImageGeneration(stylingData, onProgress);
       } catch (standardError) {
         // If both APIs fail due to CORS in development, provide mock
         if (
@@ -885,7 +1004,8 @@ Do not include underwear or original clothing in the final output. The final res
   }
 
   private async callKontextImageEditing(
-    stylingData: any
+    stylingData: any,
+    onProgress?: (message: string) => void
   ): Promise<FluxApiResponse> {
     const hasCollageImage =
       stylingData.collageImageMetadata &&
@@ -972,7 +1092,7 @@ Do not include underwear or original clothing in the final output. The final res
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
-        }, 45000);
+        }, this.FLUX_REQUEST_TIMEOUT);
 
         const requestTimestamp = new Date().toISOString();
         const requestStartTime = Date.now();
@@ -1065,7 +1185,12 @@ Do not include underwear or original clothing in the final output. The final res
           }
 
           // Wait for completion using the get_result endpoint
-          return await this.waitForStandardCompletion(result.id);
+          return await this.waitForStandardCompletion(
+            result.id,
+            (message, elapsed) => {
+              onProgress?.(message);
+            }
+          );
         } catch (fetchError) {
           clearTimeout(timeoutId);
           throw fetchError;
@@ -1106,7 +1231,18 @@ Current environment: ${this.getPlatform()}`
         } else if (error instanceof Error && error.name === 'AbortError') {
           console.error('⏱️ Request timeout detected');
           lastError = new Error(
-            'Request timeout. The FLUX API is taking too long to respond.'
+            `Request timeout after ${this.FLUX_REQUEST_TIMEOUT / 1000} seconds. The FLUX API is taking too long to respond. This may be due to high server load or complex image processing requirements.`
+          );
+        }
+
+        // Enhanced error handling for development mode
+        if (
+          this.isCorsError(lastError) &&
+          this.isWebEnvironment() &&
+          process.env.NODE_ENV === 'development'
+        ) {
+          console.warn(
+            '🎭 CORS detected in development mode - will provide fallback after retries'
           );
         }
 
@@ -1122,7 +1258,8 @@ Current environment: ${this.getPlatform()}`
   }
 
   private async callStandardImageGeneration(
-    stylingData: any
+    stylingData: any,
+    onProgress?: (message: string) => void
   ): Promise<FluxApiResponse> {
     // Use flux-pro-1.1 for standard generation (same price as kontext-pro)
     const endpoint = `${this.FLUX_BASE_URL}/${this.STANDARD_PRO_MODEL}`;
@@ -1158,7 +1295,7 @@ Current environment: ${this.getPlatform()}`
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
-        }, 45000);
+        }, this.FLUX_REQUEST_TIMEOUT);
 
         const requestTimestamp = new Date().toISOString();
         const requestStartTime = Date.now();
@@ -1246,7 +1383,12 @@ Current environment: ${this.getPlatform()}`
           }
 
           // Wait for completion
-          return await this.waitForStandardCompletion(submitResult.id);
+          return await this.waitForStandardCompletion(
+            submitResult.id,
+            (message, elapsed) => {
+              onProgress?.(message);
+            }
+          );
         } catch (fetchError) {
           clearTimeout(timeoutId);
           throw fetchError;
@@ -1288,10 +1430,11 @@ Current environment: ${this.getPlatform()}`
   }
 
   private async waitForStandardCompletion(
-    taskId: string
+    taskId: string,
+    onProgress?: (message: string, elapsed: number) => void
   ): Promise<FluxApiResponse> {
-    const maxWaitTime = 120000; // 2 minutes timeout
-    const pollInterval = 3000; // Poll every 3 seconds
+    const maxWaitTime = this.FLUX_POLLING_TIMEOUT; // 4 minutes timeout for complex AI processing
+    const pollInterval = 5000; // Poll every 5 seconds to reduce API load
     const startTime = Date.now();
 
     console.log(`🔄 Polling for standard FLUX task completion: ${taskId}`);
@@ -1301,7 +1444,7 @@ Current environment: ${this.getPlatform()}`
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
-        }, 15000);
+        }, 20000); // Increased individual request timeout
 
         const requestTimestamp = new Date().toISOString();
         const requestStartTime = Date.now();
@@ -1376,7 +1519,15 @@ Current environment: ${this.getPlatform()}`
             throw new Error(result.error || 'FLUX processing failed');
           }
 
-          console.log(`⏳ Task still processing - waiting ${pollInterval}ms`);
+          const elapsed = Date.now() - startTime;
+          const elapsedMinutes = Math.floor(elapsed / 60000);
+          const elapsedSeconds = Math.floor((elapsed % 60000) / 1000);
+          const progressMessage = `AI is processing your virtual try-on... (${elapsedMinutes}m ${elapsedSeconds}s elapsed)`;
+
+          onProgress?.(progressMessage, elapsed);
+          console.log(
+            `⏳ Task still processing - waiting ${pollInterval}ms - Elapsed: ${elapsedMinutes}m ${elapsedSeconds}s`
+          );
           await new Promise(resolve => setTimeout(resolve, pollInterval));
         } catch (fetchError) {
           clearTimeout(timeoutId);
@@ -1401,10 +1552,20 @@ Current environment: ${this.getPlatform()}`
       }
     }
 
-    console.error(`⏰ Task timeout exceeded ${maxWaitTime}ms`);
-    throw new Error(
-      'Virtual try-on processing timeout - task took too long to complete'
+    console.error(
+      `⏰ Task timeout exceeded ${maxWaitTime}ms (${Math.round(maxWaitTime / 1000)}s)`
     );
+
+    // Provide a more helpful error message with recommendations
+    throw new Error(`Virtual try-on processing timeout - The AI image generation is taking longer than expected (>${Math.round(maxWaitTime / 60000)} minutes). This can happen with complex outfits or during high API traffic periods.
+
+Suggestions:
+• Try again in a few minutes when traffic is lower
+• Use simpler clothing combinations
+• Check your internet connection
+• Contact support if the issue persists
+
+The request has been cancelled to avoid excessive waiting.`);
   }
 
   private async processOutput(

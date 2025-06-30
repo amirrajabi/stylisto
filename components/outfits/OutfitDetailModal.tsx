@@ -53,12 +53,15 @@ import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
+import { useAuth } from '../../hooks/useAuth';
 import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
 import { useVirtualTryOnStore } from '../../hooks/useVirtualTryOnStore';
+import { storageService } from '../../lib/storage';
 import { VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
 import { NativeCollageView } from '../ui/NativeCollageView';
 import { ProgressBar } from '../ui/ProgressBar';
+import { Toast } from '../ui/Toast';
 import { ZoomableImage } from '../ui/ZoomableImage';
 import { ClothingItemCard } from '../wardrobe/ClothingItemCard';
 
@@ -111,7 +114,11 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   const [tryOnResult, setTryOnResult] = useState<VirtualTryOnResult | null>(
     null
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const viewShotRef = useRef<ViewShot | null>(null);
+
+  const { user } = useAuth();
 
   const {
     userFullBodyImageUrl,
@@ -300,11 +307,21 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       return;
     }
 
-    // Start new try-on process
-    setModalViewState('processing');
+    // Reset previous try-on state first
     resetVirtualTryOn();
 
+    // Ensure outfit is synced to store
+    console.log('👔 Syncing outfit to store before try-on...');
+    updateCurrentOutfit(outfit.id, outfit.name, outfit.items);
+
+    // Give store a moment to update
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Start new try-on process immediately
+    setModalViewState('processing');
+
     try {
+      // Pass outfit data directly to avoid store dependency issues
       await startVirtualTryOn(outfit.id, actualUserImage, outfit.items);
       if (onProve) {
         onProve(outfit.id);
@@ -320,27 +337,75 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   };
 
   const handleSaveResult = async () => {
-    console.log('💾 Saving AI Try-On result...');
+    if (!user?.id || !outfit?.id) {
+      console.error('❌ Missing required data for saving');
+      return;
+    }
+
+    setIsSaving(true);
+    console.log('💾 Starting virtual try-on save process...');
 
     try {
+      let imageUrlToSave: string | null = null;
+
+      if (tryOnResult?.generatedImageUrl) {
+        imageUrlToSave = tryOnResult.generatedImageUrl;
+      } else if (lastGeneratedImageUrl) {
+        imageUrlToSave = lastGeneratedImageUrl;
+      }
+
+      if (!imageUrlToSave) {
+        console.error('❌ No generated image URL found to save');
+        return;
+      }
+
+      console.log('📸 Saving virtual try-on result:', {
+        outfitId: outfit.id,
+        outfitName: outfit.name,
+        userId: user.id,
+        hasImage: !!imageUrlToSave,
+      });
+
+      const result = await storageService.saveVirtualTryOnResult(
+        imageUrlToSave,
+        user.id,
+        outfit.id,
+        outfit.name,
+        {
+          processingTime: tryOnResult?.processingTime || 30000,
+          confidence: tryOnResult?.confidence || 0.85,
+          prompt:
+            tryOnResult?.metadata?.prompt ||
+            lastGeneratedPrompt ||
+            `Virtual try-on of ${outfit.name}`,
+          styleInstructions:
+            tryOnResult?.metadata?.styleInstructions ||
+            'natural fit, professional photography',
+          itemsUsed:
+            tryOnResult?.metadata?.itemsUsed ||
+            outfit.items.map(item => item.name),
+          userImageUrl: userFullBodyImageUrl || userImage,
+        }
+      );
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      console.log('✅ Virtual try-on result saved successfully!');
+
+      // Show success toast
+      setShowSuccessToast(true);
+
       if (tryOnResult) {
-        // Save the complete result data including image
-        const resultData = {
+        const enhancedResult = {
           ...tryOnResult,
           savedAt: new Date().toISOString(),
           outfitId: outfit.id,
           outfitName: outfit.name,
         };
-
-        console.log('✅ Saving try-on result with complete data:', {
-          hasImage: !!tryOnResult.generatedImageUrl,
-          imageUrl: tryOnResult.generatedImageUrl?.substring(0, 50) + '...',
-          outfitId: outfit.id,
-        });
-
-        onVirtualTryOnSave?.(resultData);
+        onVirtualTryOnSave?.(enhancedResult);
       } else if (lastGeneratedImageUrl) {
-        // Create result from store data
         const storeResult: VirtualTryOnResult = {
           generatedImageUrl: lastGeneratedImageUrl,
           processingTime: 30000,
@@ -353,27 +418,18 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
           },
         };
 
-        // Add additional save metadata
         const enhancedResult = {
           ...storeResult,
           savedAt: new Date().toISOString(),
           outfitId: outfit.id,
           outfitName: outfit.name,
         };
-
-        console.log('✅ Saving store result with image data:', {
-          hasImage: !!lastGeneratedImageUrl,
-          imageUrl: lastGeneratedImageUrl?.substring(0, 50) + '...',
-          outfitId: outfit.id,
-        });
-
         onVirtualTryOnSave?.(enhancedResult);
       }
-
-      // Visual feedback
-      console.log('🎉 Try-on result saved successfully!');
     } catch (error) {
-      console.error('❌ Failed to save try-on result:', error);
+      console.error('❌ Failed to save virtual try-on result:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -626,7 +682,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
         <View style={styles.stepsContainer}>
           <View style={styles.stepIndicator}>
             <View style={[styles.stepDot, styles.stepActive]} />
-            <Text style={styles.stepText}>Analyzing</Text>
+            <Text style={styles.stepText} numberOfLines={1}>
+              Analyzing
+            </Text>
           </View>
           <View style={styles.stepConnector} />
           <View style={styles.stepIndicator}>
@@ -638,7 +696,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                   : styles.stepInactive,
               ]}
             />
-            <Text style={styles.stepText}>AI Processing</Text>
+            <Text style={styles.stepText} numberOfLines={1}>
+              AI Process
+            </Text>
           </View>
           <View style={styles.stepConnector} />
           <View style={styles.stepIndicator}>
@@ -650,7 +710,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                   : styles.stepInactive,
               ]}
             />
-            <Text style={styles.stepText}>Generating</Text>
+            <Text style={styles.stepText} numberOfLines={1}>
+              Generating
+            </Text>
           </View>
         </View>
       </View>
@@ -700,12 +762,27 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.saveResultButton}
+            style={[
+              styles.saveResultButton,
+              isSaving && styles.saveResultButtonDisabled,
+            ]}
             onPress={handleSaveResult}
             activeOpacity={0.8}
+            disabled={isSaving}
           >
-            <Download size={20} color={Colors.surface.primary} />
-            <Text style={styles.saveResultButtonText}>Save</Text>
+            {isSaving ? (
+              <>
+                <Sparkles size={20} color={Colors.text.secondary} />
+                <Text style={styles.saveResultButtonTextDisabled}>
+                  Saving...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Download size={20} color={Colors.surface.primary} />
+                <Text style={styles.saveResultButtonText}>Save</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -724,6 +801,14 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
         {modalViewState === 'processing' && renderProcessingView()}
         {modalViewState === 'result' && renderResultView()}
       </SafeAreaView>
+
+      <Toast
+        visible={showSuccessToast}
+        message="Virtual try-on saved successfully!"
+        type="success"
+        onHide={() => setShowSuccessToast(false)}
+        duration={3000}
+      />
     </Modal>
   );
 };
@@ -929,7 +1014,8 @@ const styles = StyleSheet.create({
   },
   processingContent: {
     alignItems: 'center',
-    width: '85%',
+    width: '90%',
+    maxWidth: 320,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
     backgroundColor: Colors.surface.primary,
@@ -940,8 +1026,8 @@ const styles = StyleSheet.create({
     ...Typography.heading.h2,
     color: Colors.text.primary,
     fontWeight: '600',
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.md,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   processingSubtitle: {
@@ -949,10 +1035,11 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginBottom: Spacing.xl,
     textAlign: 'center',
+    paddingHorizontal: Spacing.sm,
   },
   progressSection: {
     width: '100%',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   progressLabelContainer: {
     flexDirection: 'row',
@@ -978,11 +1065,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    width: '100%',
   },
   stepIndicator: {
     alignItems: 'center',
-    flex: 1,
+    minWidth: 80,
+    maxWidth: 90,
   },
   stepDot: {
     width: 12,
@@ -998,16 +1087,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.secondary,
   },
   stepText: {
-    ...Typography.body.small,
+    ...Typography.caption.medium,
     color: Colors.text.secondary,
     fontWeight: '500',
     textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 14,
   },
   stepConnector: {
     flex: 1,
     height: 2,
     backgroundColor: Colors.background.secondary,
     marginHorizontal: Spacing.xs,
+    maxWidth: 40,
   },
   resultContainer: {
     flex: 1,
@@ -1131,5 +1223,21 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.primary[100],
     ...Shadows.lg,
+  },
+  saveResultButtonDisabled: {
+    backgroundColor: Colors.background.secondary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Layout.borderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  saveResultButtonTextDisabled: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    fontWeight: '500',
   },
 });
