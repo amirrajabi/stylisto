@@ -147,11 +147,18 @@ export default function OutfitBuilderScreen() {
     item: ClothingItem;
     index: number;
   }) => (
-    <MinimalAddItemCard
-      item={item}
-      index={index}
-      onAdd={() => handleToggleItem(item)}
-    />
+    <View
+      style={[
+        styles.availableItemContainer,
+        index < availableItems.length - 1 && { marginRight: Spacing.lg },
+      ]}
+    >
+      <MinimalAddItemCard
+        item={item}
+        index={index}
+        onAdd={() => handleToggleItem(item)}
+      />
+    </View>
   );
 
   return (
@@ -249,10 +256,11 @@ export default function OutfitBuilderScreen() {
               data={availableItems}
               renderItem={renderAvailableItem}
               keyExtractor={item => item.id}
-              numColumns={2}
-              scrollEnabled={false}
+              horizontal
+              showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.availableItemsList}
-              columnWrapperStyle={styles.gridRow}
+              decelerationRate="fast"
+              snapToAlignment="center"
             />
           ) : (
             <View style={styles.emptyAvailable}>
@@ -322,8 +330,8 @@ const styles = StyleSheet.create({
     width: cardWidth,
   },
   availableItemsList: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
   emptyOutfit: {
     padding: Spacing.lg,
@@ -390,5 +398,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     fontFamily: 'Inter-Regular',
+  },
+  availableItemContainer: {
+    position: 'relative',
+    width: cardWidth,
   },
 });

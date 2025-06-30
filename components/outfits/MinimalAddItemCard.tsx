@@ -67,7 +67,6 @@ const styles = StyleSheet.create({
     width: cardWidth,
     backgroundColor: Colors.surface.primary,
     borderRadius: Layout.borderRadius.lg,
-    marginBottom: Spacing.md,
     ...Shadows.md,
   },
   imageContainer: {
