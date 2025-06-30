@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Clock, Star, Trash2, X } from 'lucide-react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -13,13 +13,9 @@ import {
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
+import { supabase } from '../../lib/supabase';
 import { VirtualTryOnResult } from '../../services/virtualTryOnService';
-import {
-  ClothingCategory,
-  ClothingItem,
-  Occasion,
-  Season,
-} from '../../types/wardrobe';
+import { ClothingCategory, ClothingItem } from '../../types/wardrobe';
 import { AccessibleText } from '../ui/AccessibleText';
 import { ClothingItemCard } from '../wardrobe/ClothingItemCard';
 
@@ -38,6 +34,94 @@ export function VirtualTryOnModal({
   onClose,
   onDelete,
 }: VirtualTryOnModalProps) {
+  const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+
+  const fetchOutfitItems = async (outfitId: string) => {
+    try {
+      setLoadingItems(true);
+
+      const { data: outfitData, error } = await supabase
+        .from('saved_outfits')
+        .select(
+          `
+          *,
+          outfit_items (
+            clothing_items (
+              id,
+              name,
+              category,
+              subcategory,
+              color,
+              brand,
+              size,
+              seasons,
+              occasions,
+              image_url,
+              tags,
+              is_favorite,
+              last_worn,
+              times_worn,
+              purchase_date,
+              price,
+              notes,
+              description_with_ai,
+              created_at,
+              updated_at
+            )
+          )
+        `
+        )
+        .eq('id', outfitId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching outfit items:', error);
+        return;
+      }
+
+      const items: ClothingItem[] = outfitData.outfit_items
+        .map((oi: any) => oi.clothing_items)
+        .filter(Boolean)
+        .map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category as ClothingCategory,
+          subcategory: item.subcategory,
+          color: item.color,
+          brand: item.brand,
+          size: item.size,
+          season: item.seasons || [],
+          occasion: item.occasions || [],
+          imageUrl: item.image_url,
+          tags: item.tags || [],
+          isFavorite: item.is_favorite || false,
+          lastWorn: item.last_worn,
+          timesWorn: item.times_worn || 0,
+          purchaseDate: item.purchase_date,
+          price: item.price,
+          notes: item.notes,
+          description_with_ai: item.description_with_ai,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+        }));
+
+      setOutfitItems(items);
+    } catch (error) {
+      console.error('Error fetching outfit items:', error);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
+  useEffect(() => {
+    if (visible && result?.outfit_id) {
+      fetchOutfitItems(result.outfit_id);
+    } else {
+      setOutfitItems([]);
+    }
+  }, [visible, result?.outfit_id]);
+
   if (!result) return null;
 
   const formatDate = (dateString: string) => {
@@ -75,28 +159,6 @@ export function VirtualTryOnModal({
       ]
     );
   };
-
-  const mockClothingItems: ClothingItem[] = result.items_used
-    ? result.items_used.map((item, index) => ({
-        id: `item-${index}`,
-        name: item,
-        category: ClothingCategory.TOPS,
-        subcategory: 'shirt',
-        color: '#000000',
-        size: 'M',
-        season: [Season.SPRING],
-        occasion: [Occasion.CASUAL],
-        tags: [],
-        imageUrl:
-          'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isFavorite: false,
-        timesWorn: 0,
-        lastWorn: undefined,
-        isForSale: false,
-      }))
-    : [];
 
   const renderClothingItem = ({ item }: { item: ClothingItem }) => (
     <View style={styles.clothingItemContainer}>
@@ -168,20 +230,26 @@ export function VirtualTryOnModal({
             </View>
 
             {/* Items Used - with horizontal ClothingItemCard */}
-            {result.items_used && result.items_used.length > 0 && (
+            {outfitItems.length > 0 && (
               <View style={styles.section}>
                 <AccessibleText style={styles.sectionTitle}>
                   Items Used
                 </AccessibleText>
-                <FlatList
-                  data={mockClothingItems}
-                  renderItem={renderClothingItem}
-                  keyExtractor={item => item.id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalList}
-                  style={styles.itemsCarousel}
-                />
+                {loadingItems ? (
+                  <AccessibleText style={styles.loadingText}>
+                    Loading items...
+                  </AccessibleText>
+                ) : (
+                  <FlatList
+                    data={outfitItems}
+                    renderItem={renderClothingItem}
+                    keyExtractor={item => item.id}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalList}
+                    style={styles.itemsCarousel}
+                  />
+                )}
               </View>
             )}
 
@@ -246,7 +314,6 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    marginLeft: Spacing.md,
   },
   headerTitle: {
     fontSize: 18,
@@ -309,6 +376,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
   },
   itemsCarousel: {
     marginHorizontal: -Spacing.lg,
