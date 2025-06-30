@@ -57,6 +57,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
 import { useVirtualTryOnStore } from '../../hooks/useVirtualTryOnStore';
 import { storageService } from '../../lib/storage';
+import { supabase } from '../../lib/supabase';
 import { VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
 import { NativeCollageView } from '../ui/NativeCollageView';
@@ -116,6 +117,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [hasExistingTryOn, setHasExistingTryOn] = useState(false);
   const viewShotRef = useRef<ViewShot | null>(null);
 
   const { user } = useAuth();
@@ -169,6 +171,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       resetVirtualTryOn();
       setModalViewState('outfit');
       setTryOnResult(null);
+      setHasExistingTryOn(false);
     }
   }, [visible, outfit, updateCurrentOutfit, clearOutfit, resetVirtualTryOn]);
 
@@ -177,6 +180,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     if (hookResult) {
       setTryOnResult(hookResult);
       setModalViewState('result');
+      setHasExistingTryOn(true);
       onVirtualTryOnComplete?.(hookResult);
     }
   }, [hookResult, onVirtualTryOnComplete]);
@@ -255,6 +259,64 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     }
   }, [lastGeneratedImageUrl, lastGeneratedPrompt, outfit, modalViewState]);
 
+  // Check for existing virtual try-on results for this outfit
+  useEffect(() => {
+    const checkExistingTryOn = async () => {
+      if (!outfit?.id || !user?.id || !visible) {
+        setHasExistingTryOn(false);
+        return;
+      }
+
+      try {
+        console.log('🔍 Checking for existing virtual try-on results...', {
+          outfitId: outfit.id,
+          userId: user.id,
+        });
+
+        const { data, error } = await supabase
+          .from('virtual_try_on_results')
+          .select('id, generated_image_url, created_at')
+          .eq('user_id', user.id)
+          .eq('outfit_id', outfit.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error('❌ Error checking existing try-on:', error);
+          setHasExistingTryOn(false);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          console.log('✅ Found existing virtual try-on result');
+          setHasExistingTryOn(true);
+
+          // Optionally load the existing result
+          const existingResult: VirtualTryOnResult = {
+            generatedImageUrl: data[0].generated_image_url,
+            processingTime: 30000,
+            confidence: 0.85,
+            metadata: {
+              prompt: `Virtual try-on of ${outfit.name}`,
+              styleInstructions: 'natural fit, professional photography',
+              itemsUsed: outfit.items.map(item => item.name),
+              timestamp: data[0].created_at,
+            },
+          };
+          setTryOnResult(existingResult);
+        } else {
+          console.log('ℹ️ No existing virtual try-on found');
+          setHasExistingTryOn(false);
+        }
+      } catch (error) {
+        console.error('❌ Error checking existing try-on:', error);
+        setHasExistingTryOn(false);
+      }
+    };
+
+    checkExistingTryOn();
+  }, [outfit?.id, user?.id, visible]);
+
   if (!outfit) {
     return null;
   }
@@ -301,8 +363,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       return;
     }
 
-    // If we already have results, just show them
-    if (lastGeneratedImageUrl || tryOnResult) {
+    // If we already have results (from store or database), just show them
+    if (hasExistingTryOn || lastGeneratedImageUrl || tryOnResult) {
+      console.log('📱 Showing existing virtual try-on result');
       setModalViewState('result');
       return;
     }
@@ -397,6 +460,9 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       // Show success toast
       setShowSuccessToast(true);
 
+      // Mark as having existing try-on
+      setHasExistingTryOn(true);
+
       if (tryOnResult) {
         const enhancedResult = {
           ...tryOnResult,
@@ -469,8 +535,8 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     if (isProcessing || hookIsProcessing) {
       return `${processingPhase || 'Processing'}...`;
     }
-    if (lastGeneratedImageUrl || tryOnResult) {
-      return 'View AI Try-On';
+    if (hasExistingTryOn || lastGeneratedImageUrl || tryOnResult) {
+      return 'View Try-On';
     }
     return 'AI Try-On';
   };
