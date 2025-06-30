@@ -40,7 +40,8 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
   // Layout configuration
   const padding = 12;
   const itemGap = 8;
-  const bottomSafeArea = 24; // Account for bottom padding to prevent cutoff
+  const columnGap = 12;
+  const bottomSafeArea = 24;
 
   // Left side for clothing items (45% of width)
   const leftWidth = width * 0.45;
@@ -49,18 +50,56 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
   // Adjust available height for full body image
   const fullBodyHeight = height - bottomSafeArea;
 
-  // Calculate item size based on available space - show ALL items
-  const maxItemsToShow = clothingImages.length; // Show all items
-  const availableHeight = fullBodyHeight - padding * 2;
-  const itemHeight =
-    (availableHeight - itemGap * (maxItemsToShow - 1)) / maxItemsToShow;
-  const itemSize = Math.min(itemHeight, leftWidth - padding * 2);
+  // Two column layout: Maximum 10 items (5 per column)
+  const maxItemsToShow = Math.min(clothingImages.length, 10);
+  const itemsPerColumn = 5;
+  const numberOfColumns = Math.min(
+    Math.ceil(maxItemsToShow / itemsPerColumn),
+    2
+  );
 
-  // Adjust item height if needed to fit nicely
-  const finalItemHeight = itemSize;
-  const totalItemsHeight =
-    finalItemHeight * maxItemsToShow + itemGap * (maxItemsToShow - 1);
-  const topOffset = Math.max(0, (fullBodyHeight - totalItemsHeight) / 2);
+  // Calculate column dimensions
+  const availableWidth = leftWidth - padding * 2;
+  const availableHeight = fullBodyHeight - padding * 2;
+
+  // Column width calculation
+  const columnWidth =
+    numberOfColumns === 1 ? availableWidth : (availableWidth - columnGap) / 2;
+
+  // Item size calculation for each column
+  const itemsInFirstColumn = Math.min(clothingImages.length, itemsPerColumn);
+  const itemsInSecondColumn = Math.max(
+    0,
+    clothingImages.length - itemsPerColumn
+  );
+
+  const itemWidth = columnWidth;
+  const itemHeight =
+    itemsInFirstColumn > 0
+      ? (availableHeight - itemGap * (itemsInFirstColumn - 1)) /
+        itemsInFirstColumn
+      : availableHeight;
+
+  // Center the columns vertically if needed
+  const totalColumnHeight =
+    itemsInFirstColumn * itemHeight + (itemsInFirstColumn - 1) * itemGap;
+  const columnTopOffset = Math.max(
+    0,
+    (availableHeight - totalColumnHeight) / 2
+  );
+
+  // Function to get position for an item
+  const getItemPosition = (index: number) => {
+    const isFirstColumn = index < itemsPerColumn;
+    const columnIndex = isFirstColumn ? 0 : 1;
+    const itemIndexInColumn = isFirstColumn ? index : index - itemsPerColumn;
+
+    const x = padding + columnIndex * (columnWidth + columnGap);
+    const y =
+      padding + columnTopOffset + itemIndexInColumn * (itemHeight + itemGap);
+
+    return { x, y };
+  };
 
   return (
     <ViewShot
@@ -72,29 +111,32 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
       {/* Background */}
       <View style={styles.background} />
 
-      {/* Left side - Clothing items in single column */}
+      {/* Left side - Clothing items in two vertical columns */}
       <View
         style={[
           styles.leftColumn,
           { width: leftWidth, height: fullBodyHeight },
         ]}
       >
-        {clothingImages.map((image, index) => (
-          <Image
-            key={index}
-            source={{ uri: image }}
-            style={[
-              styles.clothingItem,
-              {
-                width: itemSize,
-                height: finalItemHeight,
-                left: padding,
-                top: topOffset + index * (finalItemHeight + itemGap),
-              },
-            ]}
-            resizeMode="cover"
-          />
-        ))}
+        {clothingImages.slice(0, maxItemsToShow).map((image, index) => {
+          const position = getItemPosition(index);
+          return (
+            <Image
+              key={index}
+              source={{ uri: image }}
+              style={[
+                styles.clothingItem,
+                {
+                  width: itemWidth,
+                  height: itemHeight,
+                  left: position.x,
+                  top: position.y,
+                },
+              ]}
+              resizeMode="cover"
+            />
+          );
+        })}
       </View>
 
       {/* Right side - User full body image */}

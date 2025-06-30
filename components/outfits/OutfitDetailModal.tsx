@@ -26,10 +26,21 @@
  * />
  */
 
-import { ArrowLeft, Brain, Edit2, Heart } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Brain,
+  Download,
+  Edit2,
+  Heart,
+  RotateCcw,
+  Share,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
+  Image,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -43,12 +54,13 @@ import { Colors } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import { Layout, Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
+import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
 import { useVirtualTryOnStore } from '../../hooks/useVirtualTryOnStore';
 import { VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
 import { NativeCollageView } from '../ui/NativeCollageView';
+import { ProgressBar } from '../ui/ProgressBar';
 import { ClothingItemCard } from '../wardrobe/ClothingItemCard';
-import { VirtualTryOnModal } from './VirtualTryOnModal';
 
 export interface OutfitGalleryModalProps {
   visible: boolean;
@@ -77,6 +89,8 @@ export interface OutfitGalleryModalProps {
   onVirtualTryOnShare?: (result: VirtualTryOnResult) => void;
 }
 
+type ModalViewState = 'outfit' | 'processing' | 'result';
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
@@ -92,8 +106,11 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
   onVirtualTryOnSave,
   onVirtualTryOnShare,
 }) => {
-  const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
-  const [gptGeneratedPrompt, setGptGeneratedPrompt] = useState<string>('');
+  const [modalViewState, setModalViewState] =
+    useState<ModalViewState>('outfit');
+  const [tryOnResult, setTryOnResult] = useState<VirtualTryOnResult | null>(
+    null
+  );
   const viewShotRef = useRef<ViewShot | null>(null);
 
   const {
@@ -113,6 +130,15 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     history,
   } = useVirtualTryOnStore();
 
+  const {
+    startVirtualTryOn,
+    resetVirtualTryOn,
+    isProcessing: hookIsProcessing,
+    progress: hookProgress,
+    error: hookError,
+    result: hookResult,
+  } = useVirtualTryOn();
+
   // Auto-sync outfit data with Redux store when outfit changes
   useEffect(() => {
     if (visible && outfit) {
@@ -127,42 +153,54 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
 
       updateCurrentOutfit(outfit.id, outfit.name, outfit.items);
     } else if (!visible) {
-      // Clear outfit when modal closes
       clearOutfit();
-      setGptGeneratedPrompt('');
+      resetVirtualTryOn();
+      setModalViewState('outfit');
+      setTryOnResult(null);
     }
-  }, [visible, outfit, updateCurrentOutfit, clearOutfit]);
+  }, [visible, outfit, updateCurrentOutfit, clearOutfit, resetVirtualTryOn]);
 
-  // Get the latest prompt from history or processing result
+  // Handle try-on result updates
   useEffect(() => {
-    if (lastGeneratedPrompt) {
-      setGptGeneratedPrompt(lastGeneratedPrompt);
+    if (hookResult) {
+      setTryOnResult(hookResult);
+      setModalViewState('result');
+      onVirtualTryOnComplete?.(hookResult);
     }
-  }, [lastGeneratedPrompt]);
+  }, [hookResult, onVirtualTryOnComplete]);
+
+  // Handle processing state
+  useEffect(() => {
+    if (hookIsProcessing) {
+      setModalViewState('processing');
+    }
+  }, [hookIsProcessing]);
+
+  // Handle existing results from store
+  useEffect(() => {
+    if (lastGeneratedImageUrl && modalViewState === 'outfit') {
+      const storeResult: VirtualTryOnResult = {
+        generatedImageUrl: lastGeneratedImageUrl,
+        processingTime: 30000,
+        confidence: 0.85,
+        metadata: {
+          prompt: lastGeneratedPrompt || `Virtual try-on of ${outfit?.name}`,
+          styleInstructions: 'natural fit, professional photography',
+          itemsUsed: outfit?.items.map(item => item.name) || [],
+          timestamp: new Date().toISOString(),
+        },
+      };
+      setTryOnResult(storeResult);
+    }
+  }, [lastGeneratedImageUrl, lastGeneratedPrompt, outfit, modalViewState]);
 
   if (!outfit) {
     return null;
   }
 
-  const handleProveOutfit = () => {
-    console.log('🚀 Prove outfit function called - checking prerequisites...');
+  const handleTryOutfit = async () => {
+    console.log('👕 Try outfit function called');
 
-    // If results are already available, show them instead of starting new process
-    if (lastGeneratedImageUrl) {
-      console.log(
-        '📸 Results available, showing Virtual Try-On modal with results',
-        {
-          lastGeneratedImageUrl,
-          showVirtualTryOn,
-          outfitId: outfit.id,
-        }
-      );
-      setShowVirtualTryOn(true);
-      console.log('✅ setShowVirtualTryOn(true) called');
-      return;
-    }
-
-    // Use Redux store data for better accuracy
     const actualUserImage = userFullBodyImageUrl || userImage;
 
     if (!actualUserImage) {
@@ -174,36 +212,95 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
       return;
     }
 
-    console.log('✅ All prerequisites met, starting virtual try-on...');
-    setShowVirtualTryOn(true);
+    setModalViewState('processing');
+    resetVirtualTryOn();
 
-    // Start the virtual try-on process
-    processVirtualTryOn()
-      .then(result => {
-        if (result) {
-          console.log('🎉 Virtual try-on completed successfully!');
-          onVirtualTryOnComplete?.(result);
-        }
-      })
-      .catch(error => {
-        console.error('💥 Virtual try-on failed:', error);
-      });
-
-    if (onProve) {
-      onProve(outfit.id);
+    try {
+      await startVirtualTryOn(outfit.id, actualUserImage, outfit.items);
+      if (onTry) {
+        onTry(outfit.id);
+      }
+    } catch (error) {
+      console.error('Virtual try-on failed:', error);
+      setModalViewState('outfit');
     }
   };
 
-  const handleVirtualTryOnComplete = (result: VirtualTryOnResult) => {
-    onVirtualTryOnComplete?.(result);
+  const handleProveOutfit = async () => {
+    console.log('🚀 AI Try-On button clicked');
+
+    const actualUserImage = userFullBodyImageUrl || userImage;
+
+    if (!actualUserImage) {
+      console.log('❌ No user image available for virtual try-on');
+      alert(
+        'Virtual Try-On requires a full-body photo.\n\n' +
+          'Please go to Profile → Edit Profile → Upload Full Body Image to use this feature.'
+      );
+      return;
+    }
+
+    // If we already have results, just show them
+    if (lastGeneratedImageUrl || tryOnResult) {
+      setModalViewState('result');
+      return;
+    }
+
+    // Start new try-on process
+    setModalViewState('processing');
+    resetVirtualTryOn();
+
+    try {
+      await startVirtualTryOn(outfit.id, actualUserImage, outfit.items);
+      if (onProve) {
+        onProve(outfit.id);
+      }
+    } catch (error) {
+      console.error('Virtual try-on failed:', error);
+      setModalViewState('outfit');
+    }
   };
 
-  const handleVirtualTryOnSave = (result: VirtualTryOnResult) => {
-    onVirtualTryOnSave?.(result);
+  const handleBackToOutfit = () => {
+    setModalViewState('outfit');
   };
 
-  const handleVirtualTryOnShare = (result: VirtualTryOnResult) => {
-    onVirtualTryOnShare?.(result);
+  const handleSaveResult = () => {
+    if (tryOnResult) {
+      onVirtualTryOnSave?.(tryOnResult);
+    } else if (lastGeneratedImageUrl) {
+      const storeResult: VirtualTryOnResult = {
+        generatedImageUrl: lastGeneratedImageUrl,
+        processingTime: 30000,
+        confidence: 0.85,
+        metadata: {
+          prompt: lastGeneratedPrompt || `Virtual try-on of ${outfit.name}`,
+          styleInstructions: 'natural fit, professional photography',
+          itemsUsed: outfit.items.map(item => item.name),
+          timestamp: new Date().toISOString(),
+        },
+      };
+      onVirtualTryOnSave?.(storeResult);
+    }
+  };
+
+  const handleShareResult = () => {
+    if (tryOnResult) {
+      onVirtualTryOnShare?.(tryOnResult);
+    } else if (lastGeneratedImageUrl) {
+      const storeResult: VirtualTryOnResult = {
+        generatedImageUrl: lastGeneratedImageUrl,
+        processingTime: 30000,
+        confidence: 0.85,
+        metadata: {
+          prompt: lastGeneratedPrompt || `Virtual try-on of ${outfit.name}`,
+          styleInstructions: 'natural fit, professional photography',
+          itemsUsed: outfit.items.map(item => item.name),
+          timestamp: new Date().toISOString(),
+        },
+      };
+      onVirtualTryOnShare?.(storeResult);
+    }
   };
 
   const handleEditOutfit = () => {
@@ -213,204 +310,281 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
     }
   };
 
-  const getProveButtonText = () => {
-    if (isProcessing) {
-      return `${processingPhase || 'Processing'}...`;
-    }
-    if (lastGeneratedImageUrl) {
-      return 'View Results';
-    }
-    return 'Prove This Outfit';
+  const handleRetryTryOn = () => {
+    resetVirtualTryOn();
+    setTryOnResult(null);
+    handleProveOutfit();
   };
 
-  // Check if we have user image and outfit items for collage
+  const getProveButtonText = () => {
+    if (isProcessing || hookIsProcessing) {
+      return `${processingPhase || 'Processing'}...`;
+    }
+    if (lastGeneratedImageUrl || tryOnResult) {
+      return 'View AI Try-On';
+    }
+    return 'AI Try-On';
+  };
+
   const hasCollageData =
     (userFullBodyImageUrl || userImage) && outfit.items.length > 0;
 
-  return (
+  const renderOutfitView = () => (
     <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={onClose}
-      >
-        <SafeAreaView style={styles.container}>
-          {/* Collage Header Section */}
-          <View style={styles.collageSection}>
-            {hasCollageData ? (
-              <NativeCollageView
-                userImage={userFullBodyImageUrl || userImage || ''}
-                clothingImages={outfit.items.map(item => item.imageUrl)}
-                width={screenWidth}
-                height={screenHeight * 0.5}
-                viewShotRef={viewShotRef}
-              />
-            ) : (
-              <View style={styles.placeholderCollage}>
-                <Text style={styles.placeholderText}>No Preview Available</Text>
-              </View>
-            )}
+      {/* Collage Header Section */}
+      <View style={styles.collageSection}>
+        {hasCollageData ? (
+          <NativeCollageView
+            userImage={userFullBodyImageUrl || userImage || ''}
+            clothingImages={outfit.items.map(item => item.imageUrl)}
+            width={screenWidth}
+            height={screenHeight * 0.5}
+            viewShotRef={viewShotRef}
+          />
+        ) : (
+          <View style={styles.placeholderCollage}>
+            <Text style={styles.placeholderText}>No Preview Available</Text>
+          </View>
+        )}
 
-            {/* Overlay Controls */}
-            <TouchableOpacity onPress={onClose} style={styles.backButton}>
-              <ArrowLeft size={24} color={Colors.white} />
-            </TouchableOpacity>
+        {/* Overlay Controls */}
+        <TouchableOpacity onPress={onClose} style={styles.backButton}>
+          <ArrowLeft size={24} color={Colors.white} />
+        </TouchableOpacity>
 
-            {onSave && (
+        {onSave && (
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => onSave(outfit.id)}
+          >
+            <Heart size={20} color={Colors.white} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Content Section */}
+      <View style={styles.contentSection}>
+        <ScrollView
+          style={styles.scrollableContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Outfit Name and AI Proven Button */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.outfitName}>{outfit.name}</Text>
+            {onProve && (
               <TouchableOpacity
-                style={styles.saveButton}
-                onPress={() => onSave(outfit.id)}
+                style={[
+                  styles.aiProvenButton,
+                  (isProcessing || hookIsProcessing) &&
+                    styles.aiProvenButtonProcessing,
+                ]}
+                onPress={handleProveOutfit}
+                activeOpacity={0.8}
+                disabled={isProcessing || hookIsProcessing}
               >
-                <Heart size={20} color={Colors.white} />
+                <Brain
+                  size={14}
+                  color={
+                    isProcessing || hookIsProcessing
+                      ? Colors.text.secondary
+                      : Colors.surface.primary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.aiProvenButtonText,
+                    (isProcessing || hookIsProcessing) &&
+                      styles.aiProvenButtonTextProcessing,
+                  ]}
+                >
+                  {getProveButtonText()}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Content Section */}
-          <View style={styles.contentSection}>
-            <ScrollView
-              style={styles.scrollableContent}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {/* Outfit Name and AI Proven Button */}
-              <View style={styles.titleContainer}>
-                <Text style={styles.outfitName}>{outfit.name}</Text>
-                {onProve && (
-                  <TouchableOpacity
-                    style={[
-                      styles.aiProvenButton,
-                      isProcessing && styles.aiProvenButtonProcessing,
-                      !isReadyForTryOn && styles.aiProvenButtonDisabled,
-                    ]}
-                    onPress={handleProveOutfit}
-                    activeOpacity={0.8}
-                    disabled={isProcessing}
-                  >
-                    <Brain
-                      size={14}
-                      color={
-                        isProcessing
-                          ? Colors.text.secondary
-                          : Colors.surface.primary
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.aiProvenButtonText,
-                        isProcessing && styles.aiProvenButtonTextProcessing,
-                      ]}
-                    >
-                      {isProcessing
-                        ? (processingPhase || 'Processing') + '...'
-                        : 'AI Try-On'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Items Horizontal Scroll */}
-              <View style={styles.itemsContainer}>
-                <Text style={styles.itemsTitle}>
-                  Items in this Outfit
-                  {outfit.source_type === 'ai_generated' && (
-                    <Text style={styles.itemsTitleSubtext}>
-                      {' '}
-                      • AI Generated
-                    </Text>
-                  )}
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalItemsContent}
-                  style={styles.horizontalItemsScroll}
-                >
-                  {outfit.items.map((item, index) => (
-                    <View key={item.id} style={styles.horizontalItemContainer}>
-                      <ClothingItemCard
-                        item={item}
-                        index={index}
-                        onPress={() => {}}
-                        onToggleFavorite={() => {}}
-                        onMoreOptions={() => {}}
-                        showStats={false}
-                      />
-                    </View>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.actionButtonsContainer}>
-                {onTry && (
-                  <TouchableOpacity
-                    style={styles.tryButton}
-                    onPress={() => onTry(outfit.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.tryButtonText}>Try</Text>
-                  </TouchableOpacity>
-                )}
-
-                {false && (
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={handleEditOutfit}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.editButtonContent}>
-                      <Edit2 size={20} color={Colors.primary[500]} />
-                      <Text style={styles.editButtonText}>Edit</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Error Display */}
-              {error && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
-                  <TouchableOpacity onPress={clearProcessingError}>
-                    <Text style={styles.errorDismiss}>Dismiss</Text>
-                  </TouchableOpacity>
-                </View>
+          {/* Items Horizontal Scroll */}
+          <View style={styles.itemsContainer}>
+            <Text style={styles.itemsTitle}>
+              Items in this Outfit
+              {outfit.source_type === 'ai_generated' && (
+                <Text style={styles.itemsTitleSubtext}> • AI Generated</Text>
               )}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalItemsContent}
+              style={styles.horizontalItemsScroll}
+            >
+              {outfit.items.map((item, index) => (
+                <View key={item.id} style={styles.horizontalItemContainer}>
+                  <ClothingItemCard
+                    item={item}
+                    index={index}
+                    onPress={() => {}}
+                    onToggleFavorite={() => {}}
+                    onMoreOptions={() => {}}
+                    showStats={false}
+                  />
+                </View>
+              ))}
             </ScrollView>
           </View>
-        </SafeAreaView>
-      </Modal>
 
-      {/* Virtual Try-On Modal */}
-      <VirtualTryOnModal
-        visible={showVirtualTryOn}
-        onClose={() => setShowVirtualTryOn(false)}
-        outfitId={outfit.id}
-        clothingItems={outfit.items}
-        userImage={userFullBodyImageUrl || userImage}
-        existingResult={
-          lastGeneratedImageUrl
-            ? {
-                generatedImageUrl: lastGeneratedImageUrl,
-                processingTime: 30000,
-                confidence: 0.85,
-                metadata: {
-                  prompt: `Virtual try-on of ${outfit.name}`,
-                  styleInstructions: 'natural fit, professional photography',
-                  itemsUsed: outfit.items.map(item => item.name),
-                  timestamp: new Date().toISOString(),
-                },
-              }
-            : undefined
-        }
-        onComplete={handleVirtualTryOnComplete}
-        onSave={handleVirtualTryOnSave}
-        onShare={handleVirtualTryOnShare}
-      />
+          {/* Action Buttons */}
+          <View style={styles.actionButtonsContainer}>
+            {onTry && (
+              <TouchableOpacity
+                style={styles.tryButton}
+                onPress={handleTryOutfit}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.tryButtonText}>Try</Text>
+              </TouchableOpacity>
+            )}
+
+            {false && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={handleEditOutfit}
+                activeOpacity={0.8}
+              >
+                <View style={styles.editButtonContent}>
+                  <Edit2 size={20} color={Colors.primary[500]} />
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Error Display */}
+          {(error || hookError) && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error || hookError}</Text>
+              <TouchableOpacity onPress={clearProcessingError}>
+                <Text style={styles.errorDismiss}>Dismiss</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </>
   );
+
+  const renderProcessingView = () => (
+    <View style={styles.processingContainer}>
+      <TouchableOpacity onPress={onClose} style={styles.processingBackButton}>
+        <ArrowLeft size={24} color={Colors.text.primary} />
+      </TouchableOpacity>
+
+      <View style={styles.processingContent}>
+        <ActivityIndicator size="large" color={Colors.primary[500]} />
+        <Text style={styles.processingTitle}>Generating Your AI Try-On</Text>
+        <Text style={styles.processingMessage}>
+          {processingMessage || 'Creating AI-powered virtual try-on...'}
+        </Text>
+        <View style={styles.progressContainer}>
+          <ProgressBar
+            progress={(hookProgress || processingProgress) / 100}
+            label="Progress"
+            color={Colors.primary[500]}
+          />
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderResultView = () => {
+    const resultImageUrl =
+      tryOnResult?.generatedImageUrl || lastGeneratedImageUrl;
+
+    return (
+      <View style={styles.resultContainer}>
+        {/* Header */}
+        <View style={styles.resultHeader}>
+          <TouchableOpacity
+            onPress={handleBackToOutfit}
+            style={styles.resultBackButton}
+          >
+            <RotateCcw size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.resultHeaderTitle}>AI Try-On Result</Text>
+          <TouchableOpacity onPress={onClose} style={styles.resultCloseButton}>
+            <X size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Result Image */}
+        <View style={styles.resultImageContainer}>
+          {resultImageUrl ? (
+            <Image
+              source={{ uri: resultImageUrl }}
+              style={styles.resultImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.resultPlaceholder}>
+              <Text style={styles.resultPlaceholderText}>
+                No result available
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.resultActions}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={handleRetryTryOn}
+            activeOpacity={0.8}
+          >
+            <RotateCcw size={20} color={Colors.surface.primary} />
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.saveResultButton}
+            onPress={handleSaveResult}
+            activeOpacity={0.8}
+          >
+            <Download size={20} color={Colors.surface.primary} />
+            <Text style={styles.saveResultButtonText}>Save</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.shareResultButton}
+            onPress={handleShareResult}
+            activeOpacity={0.8}
+          >
+            <Share size={20} color={Colors.primary[500]} />
+            <Text style={styles.shareResultButtonText}>Share</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.container}>
+        {modalViewState === 'outfit' && renderOutfitView()}
+        {modalViewState === 'processing' && renderProcessingView()}
+        {modalViewState === 'result' && renderResultView()}
+      </SafeAreaView>
+    </Modal>
+  );
 };
+
+// Backward compatibility export
+export const OutfitDetailModal = OutfitGalleryModal;
+export type OutfitDetailModalProps = OutfitGalleryModalProps;
 
 const styles = StyleSheet.create({
   container: {
@@ -435,7 +609,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: 30,
     left: Spacing.md,
     width: 44,
     height: 44,
@@ -447,7 +621,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     position: 'absolute',
-    top: 50,
+    top: 30,
     right: Spacing.md,
     width: 44,
     height: 44,
@@ -462,7 +636,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface.primary,
     borderTopLeftRadius: Layout.borderRadius.xl,
     borderTopRightRadius: Layout.borderRadius.xl,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
     marginTop: -Layout.borderRadius.xl,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   scrollableContent: {
     flex: 1,
@@ -497,9 +681,6 @@ const styles = StyleSheet.create({
   },
   aiProvenButtonProcessing: {
     backgroundColor: Colors.surface.secondary,
-  },
-  aiProvenButtonDisabled: {
-    backgroundColor: Colors.surface.disabled,
   },
   aiProvenButtonText: {
     ...Typography.caption.medium,
@@ -592,8 +773,172 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontWeight: '400',
   },
-});
 
-// Backward compatibility export
-export const OutfitDetailModal = OutfitGalleryModal;
-export type OutfitDetailModalProps = OutfitGalleryModalProps;
+  processingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  processingContent: {
+    alignItems: 'center',
+    width: '80%',
+  },
+  processingTitle: {
+    ...Typography.heading.h2,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  processingMessage: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xl,
+    textAlign: 'center',
+  },
+  progressContainer: {
+    width: '100%',
+    marginBottom: Spacing.xl,
+  },
+  resultContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  tryOnErrorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  tryOnErrorText: {
+    ...Typography.body.medium,
+    color: Colors.error[700],
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+  },
+  resultBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resultHeaderTitle: {
+    ...Typography.heading.h3,
+    color: Colors.text.primary,
+    fontWeight: '600',
+  },
+  resultCloseButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resultImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resultPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface.secondary,
+  },
+  resultPlaceholderText: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+  },
+  processingBackButton: {
+    position: 'absolute',
+    top: 30,
+    left: 30,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resultActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+    gap: Spacing.sm,
+  },
+  retryButton: {
+    backgroundColor: Colors.surface.secondary,
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.primary[500],
+    flex: 1,
+    ...Shadows.sm,
+  },
+  retryButtonText: {
+    ...Typography.body.medium,
+    color: Colors.primary[500],
+    fontWeight: '600',
+  },
+  saveResultButton: {
+    backgroundColor: Colors.primary[500],
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    flex: 1,
+    ...Shadows.sm,
+  },
+  saveResultButtonText: {
+    ...Typography.body.medium,
+    color: Colors.surface.primary,
+    fontWeight: '600',
+  },
+  shareResultButton: {
+    backgroundColor: Colors.surface.secondary,
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.primary[500],
+    flex: 1,
+  },
+  shareResultButtonText: {
+    ...Typography.body.medium,
+    color: Colors.primary[500],
+    fontWeight: '600',
+  },
+  resultImage: {
+    width: '90%',
+    height: '90%',
+    borderRadius: Layout.borderRadius.lg,
+  },
+});

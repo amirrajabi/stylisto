@@ -433,13 +433,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Virtual Try-On</Text>
+          <Text style={styles.title}>AI Try-On Result</Text>
           <TouchableOpacity
             onPress={handleClose}
             style={styles.closeButton}
             disabled={isProcessing}
           >
-            <X size={24} color={Colors.text.primary} />
+            <X size={32} color={Colors.text.primary} />
           </TouchableOpacity>
         </View>
 
@@ -625,27 +625,22 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
               <View style={styles.resultActions}>
                 <TouchableOpacity
+                  onPress={handleRestart}
+                  style={[styles.actionButton, styles.retryButton]}
+                  disabled={isProcessing}
+                >
+                  <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   onPress={handleSave}
                   style={[styles.actionButton, styles.saveButton]}
                   disabled={isProcessing}
                 >
-                  <Text style={styles.actionButtonText}>
-                    {isProcessing ? 'Saving...' : 'Save Result'}
+                  <Download size={20} color={Colors.surface.primary} />
+                  <Text style={styles.saveButtonText}>
+                    {isProcessing ? 'Saving...' : 'Save'}
                   </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleShare}
-                  style={styles.actionButton}
-                >
-                  <Text style={styles.actionButtonText}>Share</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleRestart}
-                  style={[styles.actionButton, styles.retryButton]}
-                >
-                  <Text style={styles.actionButtonText}>Try Again</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -676,9 +671,12 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   closeButton: {
-    padding: Spacing.sm,
+    padding: Spacing.md,
     borderRadius: Layout.borderRadius.full,
     backgroundColor: Colors.background.secondary,
+    borderWidth: 2,
+    borderColor: Colors.border.secondary,
+    ...Shadows.md,
   },
   content: {
     flex: 1,
@@ -783,14 +781,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   retryButton: {
-    backgroundColor: Colors.primary[700],
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.background.secondary,
+    borderWidth: 2,
+    borderColor: Colors.border.primary,
   },
   retryButtonText: {
     ...Typography.button.medium,
-    color: Colors.surface.primary,
+    color: Colors.text.primary,
   },
   resultContainer: {
     flex: 1,
@@ -823,22 +820,28 @@ const styles = StyleSheet.create({
   },
   resultActions: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.lg,
     width: '100%',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
   },
   actionButton: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.primary[700],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Layout.borderRadius.lg,
+    ...Shadows.md,
   },
   saveButton: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.primary[700],
+    backgroundColor: Colors.primary[600],
+    borderWidth: 1,
+    borderColor: Colors.primary[700],
   },
-  actionButtonText: {
+  saveButtonText: {
     ...Typography.button.medium,
     color: Colors.surface.primary,
   },
