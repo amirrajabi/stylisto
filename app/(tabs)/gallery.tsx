@@ -222,41 +222,49 @@ export default function GalleryScreen() {
 
       console.log(`✅ Found ${data?.length || 0} saved outfits in database`);
 
-      const formattedOutfits = (data || []).map(outfit => ({
-        id: outfit.id,
-        name: outfit.name,
-        created_at: outfit.created_at,
-        notes: outfit.notes,
-        occasion: outfit.occasions?.[0] || undefined,
-        source_type: outfit.source_type,
-        is_favorite: outfit.is_favorite,
-        items: outfit.outfit_items
-          .map(oi => oi.clothing_items)
-          .filter(Boolean)
-          .flat()
-          .map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            subcategory: item.subcategory,
-            color: item.color,
-            brand: item.brand,
-            size: item.size,
-            season: item.seasons || [],
-            occasion: item.occasions || [],
-            imageUrl: item.image_url,
-            tags: item.tags || [],
-            isFavorite: item.is_favorite || false,
-            lastWorn: item.last_worn,
-            timesWorn: item.times_worn || 0,
-            purchaseDate: item.purchase_date,
-            price: item.price,
-            notes: item.notes,
-            description_with_ai: item.description_with_ai || undefined,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })),
-      }));
+      const formattedOutfits = (data || []).map(outfit => {
+        console.log(`🔍 Processing outfit ${outfit.name}:`, {
+          id: outfit.id,
+          is_favorite: outfit.is_favorite,
+          source_type: outfit.source_type,
+        });
+
+        return {
+          id: outfit.id,
+          name: outfit.name,
+          created_at: outfit.created_at,
+          notes: outfit.notes,
+          occasion: outfit.occasions?.[0] || undefined,
+          source_type: outfit.source_type,
+          is_favorite: outfit.is_favorite,
+          items: outfit.outfit_items
+            .map(oi => oi.clothing_items)
+            .filter(Boolean)
+            .flat()
+            .map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              subcategory: item.subcategory,
+              color: item.color,
+              brand: item.brand,
+              size: item.size,
+              season: item.seasons || [],
+              occasion: item.occasions || [],
+              imageUrl: item.image_url,
+              tags: item.tags || [],
+              isFavorite: item.is_favorite || false,
+              lastWorn: item.last_worn,
+              timesWorn: item.times_worn || 0,
+              purchaseDate: item.purchase_date,
+              price: item.price,
+              notes: item.notes,
+              description_with_ai: item.description_with_ai || undefined,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })),
+        };
+      });
 
       setSavedOutfits(formattedOutfits);
       console.log('📝 Saved outfits state updated');

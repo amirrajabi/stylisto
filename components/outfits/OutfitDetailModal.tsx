@@ -243,7 +243,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                 userImage={userFullBodyImageUrl || userImage || ''}
                 clothingImages={outfit.items.map(item => item.imageUrl)}
                 width={screenWidth}
-                height={screenHeight * 0.7}
+                height={screenHeight * 0.6}
                 viewShotRef={viewShotRef}
               />
             ) : (
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.secondary,
   },
   collageSection: {
-    height: screenHeight * 0.7,
+    height: screenHeight * 0.6,
     position: 'relative',
     backgroundColor: Colors.background.secondary,
   },

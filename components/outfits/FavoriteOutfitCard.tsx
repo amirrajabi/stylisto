@@ -33,6 +33,13 @@ export const FavoriteOutfitCard: React.FC<FavoriteOutfitCardProps> = ({
 }) => {
   const { colors } = useAccessibility();
 
+  // Debug logging
+  console.log(`🎯 FavoriteOutfitCard - ${outfit.name}:`, {
+    is_favorite: outfit.is_favorite,
+    showOnlyFavorites,
+    shouldShowRed: showOnlyFavorites || outfit.is_favorite,
+  });
+
   const displayItems = outfit.items?.slice(0, 4) || [];
 
   return (
