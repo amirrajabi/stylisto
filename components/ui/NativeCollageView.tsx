@@ -40,14 +40,18 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
   // Layout configuration
   const padding = 12;
   const itemGap = 8;
+  const bottomSafeArea = 24; // Account for bottom padding to prevent cutoff
 
   // Left side for clothing items (45% of width)
   const leftWidth = width * 0.45;
   const rightWidth = width * 0.55 - padding * 2;
 
+  // Adjust available height for full body image
+  const fullBodyHeight = height - bottomSafeArea;
+
   // Calculate item size based on available space - show ALL items
   const maxItemsToShow = clothingImages.length; // Show all items
-  const availableHeight = height - padding * 2;
+  const availableHeight = fullBodyHeight - padding * 2;
   const itemHeight =
     (availableHeight - itemGap * (maxItemsToShow - 1)) / maxItemsToShow;
   const itemSize = Math.min(itemHeight, leftWidth - padding * 2);
@@ -56,7 +60,7 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
   const finalItemHeight = itemSize;
   const totalItemsHeight =
     finalItemHeight * maxItemsToShow + itemGap * (maxItemsToShow - 1);
-  const topOffset = Math.max(0, (height - totalItemsHeight) / 2);
+  const topOffset = Math.max(0, (fullBodyHeight - totalItemsHeight) / 2);
 
   return (
     <ViewShot
@@ -69,7 +73,12 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
       <View style={styles.background} />
 
       {/* Left side - Clothing items in single column */}
-      <View style={[styles.leftColumn, { width: leftWidth, height }]}>
+      <View
+        style={[
+          styles.leftColumn,
+          { width: leftWidth, height: fullBodyHeight },
+        ]}
+      >
         {clothingImages.map((image, index) => (
           <Image
             key={index}
@@ -92,7 +101,7 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
       <View
         style={[
           styles.rightColumn,
-          { left: leftWidth, width: rightWidth, height },
+          { left: leftWidth, width: rightWidth, height: fullBodyHeight },
         ]}
       >
         <Image
@@ -101,7 +110,7 @@ export const NativeCollageView: React.FC<NativeCollageViewProps> = ({
             styles.fullBodyImage,
             {
               width: rightWidth,
-              height: height,
+              height: fullBodyHeight,
             },
           ]}
           resizeMode="cover"

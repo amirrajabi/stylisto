@@ -26,7 +26,6 @@
  * />
  */
 
-import { Image } from 'expo-image';
 import { ArrowLeft, Brain, Edit2, Heart } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -48,6 +47,7 @@ import { useVirtualTryOnStore } from '../../hooks/useVirtualTryOnStore';
 import { VirtualTryOnResult } from '../../lib/virtualTryOn';
 import { ClothingItem } from '../../types/wardrobe';
 import { NativeCollageView } from '../ui/NativeCollageView';
+import { ClothingItemCard } from '../wardrobe/ClothingItemCard';
 import { VirtualTryOnModal } from './VirtualTryOnModal';
 
 export interface OutfitGalleryModalProps {
@@ -243,7 +243,7 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                 userImage={userFullBodyImageUrl || userImage || ''}
                 clothingImages={outfit.items.map(item => item.imageUrl)}
                 width={screenWidth}
-                height={screenHeight * 0.6}
+                height={screenHeight * 0.5}
                 viewShotRef={viewShotRef}
               />
             ) : (
@@ -310,6 +310,38 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                 )}
               </View>
 
+              {/* Items Horizontal Scroll */}
+              <View style={styles.itemsContainer}>
+                <Text style={styles.itemsTitle}>
+                  Items in this Outfit
+                  {outfit.source_type === 'ai_generated' && (
+                    <Text style={styles.itemsTitleSubtext}>
+                      {' '}
+                      • AI Generated
+                    </Text>
+                  )}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalItemsContent}
+                  style={styles.horizontalItemsScroll}
+                >
+                  {outfit.items.map((item, index) => (
+                    <View key={item.id} style={styles.horizontalItemContainer}>
+                      <ClothingItemCard
+                        item={item}
+                        index={index}
+                        onPress={() => {}}
+                        onToggleFavorite={() => {}}
+                        onMoreOptions={() => {}}
+                        showStats={false}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+
               {/* Action Buttons */}
               <View style={styles.actionButtonsContainer}>
                 {onTry && (
@@ -345,49 +377,6 @@ export const OutfitGalleryModal: React.FC<OutfitGalleryModalProps> = ({
                   </TouchableOpacity>
                 </View>
               )}
-
-              {/* Horizontal Items Scroll */}
-              <View style={styles.itemsContainer}>
-                <Text style={styles.itemsTitle}>
-                  Items in this Outfit
-                  {outfit.source_type === 'ai_generated' && (
-                    <Text style={styles.itemsTitleSubtext}>
-                      {' '}
-                      • AI Generated
-                    </Text>
-                  )}
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalItemsContent}
-                  style={styles.horizontalItemsScroll}
-                >
-                  {outfit.items.map((item, index) => (
-                    <View key={item.id} style={styles.horizontalItemCard}>
-                      <View style={styles.itemNumberBadge}>
-                        <Text style={styles.itemNumber}>{index + 1}</Text>
-                      </View>
-                      <Image
-                        source={{ uri: item.imageUrl }}
-                        style={styles.horizontalItemImage}
-                        contentFit="cover"
-                      />
-                      <View style={styles.horizontalItemInfo}>
-                        <Text
-                          style={styles.horizontalItemName}
-                          numberOfLines={2}
-                        >
-                          {item.name}
-                        </Text>
-                        <Text style={styles.horizontalItemCategory}>
-                          {item.category}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </ScrollView>
-              </View>
             </ScrollView>
           </View>
         </SafeAreaView>
@@ -429,9 +418,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.secondary,
   },
   collageSection: {
-    height: screenHeight * 0.6,
+    height: screenHeight * 0.5,
     position: 'relative',
     backgroundColor: Colors.background.secondary,
+    paddingBottom: Spacing.xl,
   },
   placeholderCollage: {
     flex: 1,
@@ -593,50 +583,10 @@ const styles = StyleSheet.create({
   horizontalItemsContent: {
     paddingRight: Spacing.md,
   },
-  horizontalItemCard: {
-    width: 140,
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
+  horizontalItemContainer: {
+    width: 180,
     marginRight: Spacing.md,
-    overflow: 'hidden',
-    ...Shadows.sm,
   },
-  itemNumberBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  itemNumber: {
-    ...Typography.caption.small,
-    color: Colors.surface.primary,
-    fontWeight: '600',
-  },
-  horizontalItemImage: {
-    width: '100%',
-    height: 100,
-  },
-  horizontalItemInfo: {
-    padding: Spacing.sm,
-  },
-  horizontalItemName: {
-    ...Typography.body.small,
-    color: Colors.text.primary,
-    fontWeight: '500',
-    marginBottom: Spacing.xs,
-  },
-  horizontalItemCategory: {
-    ...Typography.caption.small,
-    color: Colors.text.secondary,
-    textTransform: 'capitalize',
-  },
-
   itemsTitleSubtext: {
     ...Typography.heading.h4,
     color: Colors.text.secondary,
