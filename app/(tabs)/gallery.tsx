@@ -35,8 +35,8 @@ interface FavoriteOutfit {
 type TabType = 'outfits' | 'items';
 
 export default function GalleryScreen() {
-  const { colors } = useAccessibility();
   const { user } = useAuth();
+  const { colors } = useAccessibility();
   const { calculateDetailedScore, formatScoreForDatabase } = useOutfitScoring();
   const [activeTab, setActiveTab] = useState<TabType>('outfits');
   const [favoriteOutfits, setFavoriteOutfits] = useState<FavoriteOutfit[]>([]);
@@ -213,7 +213,7 @@ export default function GalleryScreen() {
 
   const handleRemoveFromFavorites = async (outfitId: string) => {
     try {
-      // First, check if this is an AI-generated outfit
+      // First, check if this is an AI-generated outfit or manual outfit
       const { data: outfit, error: fetchError } = await supabase
         .from('saved_outfits')
         .select('source_type')
@@ -225,8 +225,10 @@ export default function GalleryScreen() {
       }
 
       const isAIGenerated = outfit?.source_type === 'ai_generated';
+      const isManual = outfit?.source_type === 'manual';
 
       // Use OutfitService.toggleOutfitFavorite which handles the logic for both manual and AI outfits
+      // The global event emitter will automatically notify all listeners
       const result = await OutfitService.toggleOutfitFavorite(outfitId);
 
       if (result.error) {
@@ -245,6 +247,13 @@ export default function GalleryScreen() {
       if (isAIGenerated) {
         console.log(
           '🔄 AI outfit unfavorited, it will now appear in Generate screen again'
+        );
+      }
+
+      // If this was a manual outfit, it should now appear back in the Generate screen under "Your Manual Outfits"
+      if (isManual) {
+        console.log(
+          '🔄 Manual outfit unfavorited, it will now appear in Generate screen under "Your Manual Outfits" section'
         );
       }
 

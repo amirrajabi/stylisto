@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { GeneratedOutfitRecord, OutfitService } from '../lib/outfitService';
+import {
+  GeneratedOutfitRecord,
+  OutfitService,
+  outfitFavoriteChanged,
+} from '../lib/outfitService';
 
 interface UseManualOutfitsState {
   manualOutfits: GeneratedOutfitRecord[];
@@ -50,6 +54,19 @@ export const useManualOutfits = () => {
   useEffect(() => {
     loadManualOutfits();
   }, [loadManualOutfits]);
+
+  // Subscribe to outfit favorite changes
+  useEffect(() => {
+    console.log('🔗 Subscribing to outfit favorite changes...');
+    const unsubscribe = outfitFavoriteChanged.subscribe(() => {
+      console.log(
+        '🔔 Outfit favorite status changed, refreshing manual outfits...'
+      );
+      refreshManualOutfits();
+    });
+
+    return unsubscribe;
+  }, [refreshManualOutfits]);
 
   return {
     ...state,

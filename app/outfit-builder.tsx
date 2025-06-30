@@ -156,9 +156,8 @@ export default function OutfitBuilderScreen() {
         {!editOutfit && (
           <View style={styles.aiTrainingSection}>
             <BodyMedium style={styles.aiTrainingText}>
-              ✨ Your manual outfit creations help train our AI to understand
-              your style preferences and create better recommendations in the
-              future!
+              Your manual outfit creations help train our AI to understand your
+              style preferences and create better recommendations in the future!
             </BodyMedium>
           </View>
         )}

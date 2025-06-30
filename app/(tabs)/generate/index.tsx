@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Filter, Plus, Search, Sparkles } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Animated,
   SafeAreaView,
@@ -95,7 +95,7 @@ export default function StylistScreen() {
   const { user } = useAuth();
   const { filteredItems } = useWardrobe();
 
-  // Use new hook for manual outfits - direct from database without cache
+  // Use new hook for manual outfits - direct from database with global event listener
   const {
     manualOutfits: manualOutfitsFromDB,
     loading: manualOutfitsLoading,
@@ -198,6 +198,26 @@ export default function StylistScreen() {
     }, 50);
     return () => clearTimeout(timer);
   }, []);
+
+  // Refresh manual outfits when outfit favorite status changes
+  React.useEffect(() => {
+    if (screenReady) {
+      console.log(
+        '🔄 Redux outfit state changed, refreshing manual outfits...'
+      );
+      refreshManualOutfits();
+    }
+  }, [screenReady, refreshManualOutfits]);
+
+  // Refresh manual outfits when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (screenReady) {
+        console.log('🔄 Screen focused, refreshing manual outfits...');
+        refreshManualOutfits();
+      }
+    }, [screenReady, refreshManualOutfits])
+  );
 
   // Auto-generation is handled by useOutfitRecommendation hook with proper filtering
 
@@ -691,35 +711,6 @@ export default function StylistScreen() {
     }));
   }, []);
 
-  // Debug manual outfits data
-  useEffect(() => {
-    console.log('🔍 Manual outfits updated:', {
-      loading: manualOutfitsLoading,
-      count: manualOutfitsFromDB.length,
-      outfits: manualOutfitsFromDB.map(o => ({
-        id: o.id,
-        name: o.name,
-        items: o.items?.length,
-      })),
-    });
-  }, [manualOutfitsFromDB, manualOutfitsLoading]);
-
-  // Refresh saved outfits when screen comes into focus (only once per focus)
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasRefreshedOnFocus.current) {
-        console.log('🔄 Stylist screen focused, refreshing saved outfits...');
-        refreshOutfits();
-        hasRefreshedOnFocus.current = true;
-      }
-
-      return () => {
-        // Reset the flag when screen loses focus
-        hasRefreshedOnFocus.current = false;
-      };
-    }, [refreshOutfits])
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -1097,18 +1088,17 @@ export default function StylistScreen() {
                   outfits={manualOutfitsFromDB
                     .filter(outfit => !outfit.isFavorite) // Only show non-favorited manual outfits
                     .map(outfit => {
-                      console.log(
-                        '🔍 Mapping outfit for OutfitCard:',
-                        outfit.id,
-                        outfit.name,
-                        'isFavorite from DB:',
-                        outfit.isFavorite
-                      );
                       return {
                         id: `manual-db-${outfit.id}`,
                         name: outfit.name,
-                        items: outfit.items,
-                        score: outfit.score,
+                        items: outfit.items || [],
+                        score: {
+                          total: outfit.score?.total || 0.8,
+                          color: outfit.score?.color || 0.8,
+                          style: outfit.score?.style || 0.8,
+                          season: outfit.score?.season || 0.8,
+                          occasion: outfit.score?.occasion || 0.8,
+                        },
                         type: 'manual',
                         originalData: outfit,
                         isFavorite: outfit.isFavorite || false,
@@ -1120,23 +1110,17 @@ export default function StylistScreen() {
                     const id = outfitId.replace('manual-db-', '');
                     const outfit = manualOutfitsFromDB.find(o => o.id === id);
                     if (outfit) {
-                      console.log('🔍 Selected outfit for modal:', outfit);
-                      console.log('🔍 Outfit score:', outfit.score);
-
-                      // Ensure score structure matches OutfitDetailModal expectations
-                      const normalizedScore = {
-                        total: outfit.score?.total || 0.8,
-                        color: outfit.score?.color || 0.8,
-                        style: outfit.score?.style || 0.8,
-                        season: outfit.score?.season || 0.8,
-                        occasion: outfit.score?.occasion || 0.8,
-                      };
-
                       setSelectedOutfit({
                         id: `manual-db-${outfit.id}`,
                         name: outfit.name,
                         items: outfit.items || [],
-                        score: normalizedScore,
+                        score: {
+                          total: outfit.score?.total || 0.8,
+                          color: outfit.score?.color || 0.8,
+                          style: outfit.score?.style || 0.8,
+                          season: outfit.score?.season || 0.8,
+                          occasion: outfit.score?.occasion || 0.8,
+                        },
                       });
                       setModalVisible(true);
                     }

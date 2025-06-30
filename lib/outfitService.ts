@@ -25,6 +25,24 @@ export interface GeneratedOutfitRecord {
   updatedAt: string;
 }
 
+// Simple event emitter for outfit favorite changes
+class OutfitEventEmitter {
+  private listeners: (() => void)[] = [];
+
+  subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  emit() {
+    this.listeners.forEach(listener => listener());
+  }
+}
+
+export const outfitFavoriteChanged = new OutfitEventEmitter();
+
 export class OutfitService {
   private static readonly GENERATED_OUTFIT_TAG = 'ai-generated';
   private static readonly MANUAL_OUTFIT_TAG = 'manual';
@@ -418,7 +436,7 @@ export class OutfitService {
         return [];
       }
 
-      console.log('📥 Loading manual outfits for user:', user.id);
+      console.log('📥 Loading non-favorited manual outfits for user:', user.id);
 
       const { data, error } = await supabase
         .from('saved_outfits')
@@ -461,6 +479,7 @@ export class OutfitService {
         )
         .eq('user_id', user.id)
         .eq('source_type', 'manual')
+        .eq('is_favorite', false)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
@@ -470,7 +489,7 @@ export class OutfitService {
       }
 
       if (!data || data.length === 0) {
-        console.log('📝 No manual outfits found for user');
+        console.log('📝 No non-favorited manual outfits found for user');
         return [];
       }
 
@@ -844,6 +863,10 @@ export class OutfitService {
       console.log(
         `✅ Outfit ${outfitId} (${outfit.source_type}) favorite status updated to: ${newFavoriteStatus}`
       );
+
+      // Emit event for favorite changes
+      outfitFavoriteChanged.emit();
+
       return { error: null, isFavorite: newFavoriteStatus };
     } catch (error) {
       console.error('Error toggling outfit favorite:', error);
