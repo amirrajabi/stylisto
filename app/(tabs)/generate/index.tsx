@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { OutfitDetailModal } from '../../../components/outfits';
 import { OutfitCard } from '../../../components/outfits/OutfitCard';
 import { OutfitEditModal } from '../../../components/outfits/OutfitEditModal';
 import {
@@ -35,6 +34,8 @@ import { useManualOutfits } from '../../../hooks/useManualOutfits';
 import { useOutfitFavorites } from '../../../hooks/useOutfitFavorites';
 import { OutfitService } from '../../../lib/outfitService';
 import { Occasion } from '../../../types/wardrobe';
+
+import { OutfitStylistModal } from '../../../components/outfits/OutfitStylistModal';
 
 const getOccasionLabel = (occasion: Occasion): string => {
   switch (occasion) {
@@ -668,12 +669,24 @@ export default function StylistScreen() {
 
   const handleShareOutfit = useCallback(async (outfitId: string) => {
     console.log('📤 Share outfit function called for outfit:', outfitId);
-    // TODO: Add your custom share functionality here
-    // This could trigger:
-    // - Social media sharing
-    // - Export to image
-    // - Share with friends
     alert(`Share outfit functionality triggered for outfit: ${outfitId}`);
+  }, []);
+
+  const handleOutfitDelete = useCallback(
+    async (outfitId: string) => {
+      console.log('🗑️ Delete outfit function called for outfit:', outfitId);
+      if (outfitId.startsWith('outfit-')) {
+        const outfitIndex = parseInt(outfitId.replace('outfit-', ''), 10);
+        removeOutfitFromMemory(outfitIndex);
+        console.log('✅ Outfit removed from memory');
+      }
+    },
+    [removeOutfitFromMemory]
+  );
+
+  const handleOutfitLike = useCallback(async (outfitId: string) => {
+    console.log('❤️ Like outfit function called for outfit:', outfitId);
+    alert(`Like outfit functionality triggered for outfit: ${outfitId}`);
   }, []);
 
   const handleManualOutfitBuilder = useCallback(() => {
@@ -1201,17 +1214,15 @@ export default function StylistScreen() {
       />
 
       {/* Detail Modal */}
-      <OutfitDetailModal
+      <OutfitStylistModal
         visible={modalVisible}
         onClose={handleModalClose}
         outfit={selectedOutfit}
-        userImage={user?.full_body_image_url || undefined}
-        onSave={handleOutfitSave}
-        onProve={handleProveOutfit}
-        onTry={handleTryOutfit}
-        onVirtualTryOnComplete={handleVirtualTryOnComplete}
-        onVirtualTryOnSave={handleVirtualTryOnSave}
-        onVirtualTryOnShare={handleVirtualTryOnShare}
+        isOwner={true}
+        onDelete={handleOutfitDelete}
+        onEdit={handleOutfitEdit}
+        onLike={handleOutfitLike}
+        currentUserId={user?.id}
       />
 
       {/* Edit Modal */}

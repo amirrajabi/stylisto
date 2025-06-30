@@ -331,22 +331,30 @@ export default function ItemDetailScreen() {
           )}
 
           {/* Action Buttons */}
-          <View style={styles.actionButtonsContainer}>
-            <Button
-              title="Edit Item"
-              onPress={handleEdit}
-              style={styles.editButton}
-              textStyle={styles.editButtonText}
-              leftIcon={<Edit size={20} color={Colors.white} />}
-            />
-            <Button
-              title="Delete Item"
-              onPress={handleDelete}
-              variant="outline"
-              style={styles.deleteButton}
-              textStyle={styles.deleteButtonText}
-              leftIcon={<Trash2 size={20} color={Colors.error[600]} />}
-            />
+          <View style={styles.footer}>
+            <View style={styles.footerButtons}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.editButton]}
+                onPress={handleEdit}
+              >
+                <Edit size={20} color={Colors.primary[500]} />
+                <Text style={[styles.footerButtonText, styles.editButtonText]}>
+                  Edit Item
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.footerButton, styles.deleteButton]}
+                onPress={handleDelete}
+              >
+                <Trash2 size={20} color={Colors.error[500]} />
+                <Text
+                  style={[styles.footerButtonText, styles.deleteButtonText]}
+                >
+                  Delete Item
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -553,34 +561,43 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
-  actionButtonsContainer: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.lg,
+  footer: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  footerButtons: {
+    flexDirection: 'row',
     gap: Spacing.md,
   },
+  footerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.xs,
+  },
+  footerButtonText: {
+    ...Typography.body.medium,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
   editButton: {
-    backgroundColor: Colors.primary[600],
-    borderWidth: 0,
-    borderRadius: Layout.borderRadius.lg,
-    minHeight: 52,
+    borderColor: Colors.primary[200],
+    backgroundColor: Colors.primary[50],
   },
   editButtonText: {
-    color: Colors.white,
-    fontWeight: '600',
-    fontSize: 16,
+    color: Colors.primary[700],
   },
   deleteButton: {
-    borderColor: Colors.error[300],
-    backgroundColor: Colors.surface.primary,
-    borderWidth: 2,
-    borderRadius: Layout.borderRadius.lg,
-    minHeight: 52,
+    borderColor: Colors.error[200],
+    backgroundColor: Colors.error[50],
   },
   deleteButtonText: {
-    color: Colors.error[600],
-    fontWeight: '600',
-    fontSize: 16,
+    color: Colors.error[700],
   },
   errorContainer: {
     flex: 1,

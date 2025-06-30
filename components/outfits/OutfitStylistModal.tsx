@@ -200,59 +200,23 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
               {outfit.items.length === 1 ? 'item' : 'items'}
             </Text>
           </View>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <X size={24} color={Colors.text.secondary} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.likeButton,
-              isLiked && styles.likeButtonActive,
-            ]}
-            onPress={handleLike}
-          >
-            <Heart
-              size={20}
-              color={isLiked ? Colors.surface.primary : Colors.error[500]}
-              fill={isLiked ? Colors.error[500] : 'transparent'}
-            />
-            <Text
-              style={[
-                styles.actionButtonText,
-                isLiked && styles.likeButtonTextActive,
-              ]}
-            >
-              {isLiked ? 'Liked' : 'Like'}
-            </Text>
-          </TouchableOpacity>
-
-          {isOwner && onEdit && (
+          <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.actionButton, styles.editButton]}
-              onPress={handleEdit}
+              style={[styles.likeButton, isLiked && styles.likeButtonActive]}
+              onPress={handleLike}
             >
-              <Edit2 size={20} color={Colors.primary[500]} />
-              <Text style={[styles.actionButtonText, styles.editButtonText]}>
-                Edit
-              </Text>
+              <Heart
+                size={20}
+                color={isLiked ? Colors.surface.primary : Colors.error[500]}
+                fill={isLiked ? Colors.error[500] : 'transparent'}
+              />
             </TouchableOpacity>
-          )}
 
-          {isOwner && onDelete && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
-              onPress={handleDelete}
-            >
-              <Trash2 size={20} color={Colors.error[500]} />
-              <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-                Delete
-              </Text>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <X size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         {/* Items List */}
@@ -267,6 +231,41 @@ export const OutfitStylistModal: React.FC<OutfitStylistModalProps> = ({
             ItemSeparatorComponent={() => <View style={styles.separator} />}
           />
         </View>
+
+        {/* Footer Actions */}
+        {isOwner && (onEdit || onDelete) && (
+          <View style={styles.footer}>
+            <View style={styles.footerButtons}>
+              {onEdit && (
+                <TouchableOpacity
+                  style={[styles.footerButton, styles.editButton]}
+                  onPress={handleEdit}
+                >
+                  <Edit2 size={20} color={Colors.primary[500]} />
+                  <Text
+                    style={[styles.footerButtonText, styles.editButtonText]}
+                  >
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {onDelete && (
+                <TouchableOpacity
+                  style={[styles.footerButton, styles.deleteButton]}
+                  onPress={handleDelete}
+                >
+                  <Trash2 size={20} color={Colors.error[500]} />
+                  <Text
+                    style={[styles.footerButtonText, styles.deleteButtonText]}
+                  >
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -310,33 +309,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface.primary,
-    gap: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-  },
-  actionButton: {
-    flex: 1,
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Layout.borderRadius.md,
-    borderWidth: 1,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   likeButton: {
-    borderColor: Colors.error[200],
+    width: 40,
+    height: 40,
+    borderRadius: Layout.borderRadius.full,
     backgroundColor: Colors.error[50],
+    borderWidth: 1,
+    borderColor: Colors.error[200],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   likeButtonActive: {
-    borderColor: Colors.error[500],
     backgroundColor: Colors.error[500],
+    borderColor: Colors.error[500],
   },
   editButton: {
     borderColor: Colors.primary[200],
@@ -346,13 +336,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.error[200],
     backgroundColor: Colors.error[50],
   },
-  actionButtonText: {
+  footerButtonText: {
     ...Typography.body.medium,
     fontWeight: '600',
     color: Colors.text.primary,
-  },
-  likeButtonTextActive: {
-    color: Colors.surface.primary,
   },
   editButtonText: {
     color: Colors.primary[700],
@@ -459,5 +446,28 @@ const styles = StyleSheet.create({
     ...Typography.caption.small,
     color: Colors.text.tertiary,
     fontStyle: 'italic',
+  },
+  footer: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface.primary,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+  },
+  footerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  footerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.xs,
   },
 });
