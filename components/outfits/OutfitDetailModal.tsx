@@ -2,11 +2,9 @@
  * OutfitDetailModal Component
  *
  * Features:
- * - Displays detailed outfit information including match scores
- * - Shows individual clothing items with their details
- * - Provides action buttons for save, share operations
- * - Shows "Try" button above Match Details section when onTry callback is provided
- * - Shows big attractive "Prove This Outfit" button for favorite outfits (isFavorite = true)
+ * - Displays outfit collage in full-height header
+ * - Shows outfit name and horizontal scrolling items below
+ * - Clean and minimal design focused on visual presentation
  * - Integrates Virtual Try-On functionality with FLUX API
  *
  * Props:
@@ -24,25 +22,16 @@
  *   onTry={(outfitId) => handleTryOutfit(outfitId)}
  *   onProve={(outfitId) => handleProveOutfit(outfitId)}
  *   onSave={(outfitId) => handleSaveOutfit(outfitId)}
- *   onShare={(outfitId) => handleShareOutfit(outfitId)}
  * />
  */
 
 import { Image } from 'expo-image';
-import {
-  Calendar,
-  CheckCircle,
-  Heart,
-  Palette,
-  Share2,
-  Star,
-  Sun,
-  X,
-} from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Heart } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Modal,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -78,7 +67,6 @@ interface OutfitDetailModalProps {
   } | null;
   userImage?: string;
   onSave?: (outfitId: string) => void;
-  onShare?: (outfitId: string) => void;
   onProve?: (outfitId: string) => void;
   onTry?: (outfitId: string) => void;
   onVirtualTryOnComplete?: (result: VirtualTryOnResult) => void;
@@ -94,7 +82,6 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   outfit,
   userImage,
   onSave,
-  onShare,
   onProve,
   onTry,
   onVirtualTryOnComplete,
@@ -134,27 +121,11 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
         }
       );
 
-      // Debug: بررسی وضعیت description_with_ai در آیتم‌های دریافتی
-      console.log('🔍 DEBUG: Checking items received by OutfitDetailModal:');
-      outfit.items.forEach((item, index) => {
-        console.log(`Item ${index + 1} (${item.name}):`);
-        console.log(
-          `  - Has description_with_ai: ${!!item.description_with_ai}`
-        );
-        console.log(
-          `  - Description content: ${item.description_with_ai || 'NULL'}`
-        );
-        console.log(`  - Item ID: ${item.id}`);
-        console.log(
-          `  - Other fields: category=${item.category}, color=${item.color}`
-        );
-      });
-
       updateCurrentOutfit(outfit.id, outfit.name, outfit.items);
     } else if (!visible) {
       // Clear outfit when modal closes
       clearOutfit();
-      setGptGeneratedPrompt(''); // Clear prompt when modal closes
+      setGptGeneratedPrompt('');
     }
   }, [visible, outfit, updateCurrentOutfit, clearOutfit]);
 
@@ -199,22 +170,7 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
       return;
     }
 
-    if (!isReadyForTryOn) {
-      console.log('❌ Not ready for virtual try-on:', {
-        hasUserImage: !!actualUserImage,
-        hasOutfitItems: outfit.items.length > 0,
-        isProcessing,
-      });
-      alert(
-        'Virtual Try-On is not ready. Please ensure you have a full-body image and outfit items.'
-      );
-      return;
-    }
-
-    console.log('✅ User image available, starting virtual try-on...');
-    console.log('📷 User image URL:', actualUserImage);
-    console.log('👔 Outfit items:', outfit.items.length);
-
+    console.log('✅ All prerequisites met, starting virtual try-on...');
     setShowVirtualTryOn(true);
 
     // Start the virtual try-on process
@@ -235,53 +191,30 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
   };
 
   const handleVirtualTryOnComplete = (result: VirtualTryOnResult) => {
-    console.log('Virtual try-on completed:', result);
     onVirtualTryOnComplete?.(result);
   };
 
   const handleVirtualTryOnSave = (result: VirtualTryOnResult) => {
-    console.log('Saving virtual try-on result:', result);
     onVirtualTryOnSave?.(result);
   };
 
   const handleVirtualTryOnShare = (result: VirtualTryOnResult) => {
-    console.log('Sharing virtual try-on result:', result);
     onVirtualTryOnShare?.(result);
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 0.8) return Colors.success[500];
-    if (score >= 0.6) return Colors.warning[500];
-    return Colors.error[500];
-  };
-
-  const getScoreIcon = (type: string) => {
-    switch (type) {
-      case 'style':
-        return <Star size={16} color={Colors.primary[500]} />;
-      case 'color':
-        return <Palette size={16} color={Colors.success[500]} />;
-      case 'season':
-        return <Sun size={16} color={Colors.info[500]} />;
-      case 'occasion':
-        return <Calendar size={16} color={Colors.warning[500]} />;
-      default:
-        return <Star size={16} color={Colors.text.secondary} />;
-    }
-  };
-
-  const totalScore = Math.round((outfit.score?.total || 0) * 100);
-
-  // Enhanced button text based on Redux state
   const getProveButtonText = () => {
     if (isProcessing) {
-      return `${processingMessage} (${processingProgress}%)`;
+      return `${processingPhase || 'Processing'}...`;
     }
     if (lastGeneratedImageUrl) {
       return 'View Results';
     }
     return 'Prove This Outfit';
   };
+
+  // Check if we have user image and outfit items for collage
+  const hasCollageData =
+    (userFullBodyImageUrl || userImage) && outfit.items.length > 0;
 
   return (
     <>
@@ -291,97 +224,92 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
         presentationStyle="pageSheet"
         onRequestClose={onClose}
       >
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.modalTitle} numberOfLines={1}>
-                {outfit.name}
-              </Text>
-              <View style={styles.totalScoreContainer}>
-                <Star
-                  size={16}
-                  color={Colors.warning[500]}
-                  fill={Colors.warning[500]}
-                />
-                <Text style={styles.totalScoreText}>{totalScore}% Match</Text>
+        <SafeAreaView style={styles.container}>
+          {/* Collage Header Section */}
+          <View style={styles.collageSection}>
+            {hasCollageData ? (
+              <NativeCollageView
+                userImage={userFullBodyImageUrl || userImage || ''}
+                clothingImages={outfit.items.map(item => item.imageUrl)}
+                width={screenWidth}
+                height={screenHeight * 0.7}
+                viewShotRef={viewShotRef}
+              />
+            ) : (
+              <View style={styles.placeholderCollage}>
+                <Text style={styles.placeholderText}>No Preview Available</Text>
               </View>
-            </View>
-            <View style={styles.headerActions}>
-              {onShare && (
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => onShare(outfit.id)}
-                >
-                  <Share2 size={20} color={Colors.text.secondary} />
-                </TouchableOpacity>
-              )}
-              {onSave && (
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => onSave(outfit.id)}
-                >
-                  <Heart size={20} color={Colors.error[500]} />
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <X size={24} color={Colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Try Button */}
-            {onTry && (
-              <TouchableOpacity
-                style={styles.tryButton}
-                onPress={() => onTry(outfit.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.tryButtonText}>Try</Text>
-              </TouchableOpacity>
             )}
 
-            {/* Score Breakdown */}
-            <View style={styles.scoresSection}>
-              <Text style={styles.sectionTitle}>Match Details</Text>
+            {/* Overlay Controls */}
+            <TouchableOpacity onPress={onClose} style={styles.backButton}>
+              <ArrowLeft size={24} color={Colors.white} />
+            </TouchableOpacity>
 
-              {/* Enhanced Prove Button for All Outfits */}
-              {onProve && (
-                <TouchableOpacity
-                  style={[
-                    styles.bigProveButton,
-                    isProcessing && styles.bigProveButtonProcessing,
-                    !isReadyForTryOn && styles.bigProveButtonDisabled,
-                  ]}
-                  onPress={handleProveOutfit}
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                >
-                  <View style={styles.bigProveContent}>
-                    <CheckCircle
-                      size={24}
-                      color={
-                        isProcessing
-                          ? Colors.text.secondary
-                          : Colors.surface.primary
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.bigProveText,
-                        isProcessing && styles.bigProveTextProcessing,
-                      ]}
-                    >
-                      {getProveButtonText()}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+            {onSave && (
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={() => onSave(outfit.id)}
+              >
+                <Heart size={20} color={Colors.white} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Content Section */}
+          <View style={styles.contentSection}>
+            <ScrollView
+              style={styles.scrollableContent}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* Outfit Name */}
+              <Text style={styles.outfitName}>{outfit.name}</Text>
+
+              {/* Action Buttons */}
+              <View style={styles.actionButtonsContainer}>
+                {onTry && (
+                  <TouchableOpacity
+                    style={styles.tryButton}
+                    onPress={() => onTry(outfit.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.tryButtonText}>Try</Text>
+                  </TouchableOpacity>
+                )}
+
+                {onProve && (
+                  <TouchableOpacity
+                    style={[
+                      styles.proveButton,
+                      isProcessing && styles.proveButtonProcessing,
+                      !isReadyForTryOn && styles.proveButtonDisabled,
+                    ]}
+                    onPress={handleProveOutfit}
+                    activeOpacity={0.8}
+                    disabled={isProcessing}
+                  >
+                    <View style={styles.proveButtonContent}>
+                      <CheckCircle
+                        size={20}
+                        color={
+                          isProcessing
+                            ? Colors.text.secondary
+                            : Colors.surface.primary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.proveButtonText,
+                          isProcessing && styles.proveButtonTextProcessing,
+                        ]}
+                      >
+                        {getProveButtonText()}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               {/* Error Display */}
               {error && (
@@ -393,169 +321,43 @@ export const OutfitDetailModal: React.FC<OutfitDetailModalProps> = ({
                 </View>
               )}
 
-              <View style={styles.scoreGrid}>
-                {[
-                  {
-                    key: 'style',
-                    label: 'Style Harmony',
-                    value: outfit.score?.style || 0,
-                  },
-                  {
-                    key: 'color',
-                    label: 'Color Match',
-                    value: outfit.score?.color || 0,
-                  },
-                  {
-                    key: 'season',
-                    label: 'Season Fit',
-                    value: outfit.score?.season || 0,
-                  },
-                  {
-                    key: 'occasion',
-                    label: 'Occasion',
-                    value: outfit.score?.occasion || 0,
-                  },
-                ].map(item => (
-                  <View key={item.key} style={styles.scoreItem}>
-                    <View style={styles.scoreItemHeader}>
-                      {getScoreIcon(item.key)}
-                      <Text style={styles.scoreLabel}>{item.label}</Text>
-                    </View>
-                    <View style={styles.scoreBarContainer}>
-                      <View
-                        style={[
-                          styles.scoreBar,
-                          {
-                            width: `${item.value * 100}%`,
-                            backgroundColor: getScoreColor(item.value),
-                          },
-                        ]}
+              {/* Horizontal Items Scroll */}
+              <View style={styles.itemsContainer}>
+                <Text style={styles.itemsTitle}>Items in this Outfit</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalItemsContent}
+                  style={styles.horizontalItemsScroll}
+                >
+                  {outfit.items.map((item, index) => (
+                    <View key={item.id} style={styles.horizontalItemCard}>
+                      <View style={styles.itemNumberBadge}>
+                        <Text style={styles.itemNumber}>{index + 1}</Text>
+                      </View>
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={styles.horizontalItemImage}
+                        contentFit="cover"
                       />
+                      <View style={styles.horizontalItemInfo}>
+                        <Text
+                          style={styles.horizontalItemName}
+                          numberOfLines={2}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text style={styles.horizontalItemCategory}>
+                          {item.category}
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={styles.scorePercentage}>
-                      {Math.round(item.value * 100)}%
-                    </Text>
-                  </View>
-                ))}
+                  ))}
+                </ScrollView>
               </View>
-            </View>
-
-            {/* Outfit Preview Collage */}
-            {(userFullBodyImageUrl || userImage) && outfit.items.length > 0 && (
-              <View style={styles.collageSection}>
-                <Text style={styles.sectionTitle}>Outfit Preview</Text>
-                <View style={styles.collageContainer}>
-                  <NativeCollageView
-                    userImage={userFullBodyImageUrl || userImage || ''}
-                    clothingImages={outfit.items.map(item => item.imageUrl)}
-                    width={screenWidth - Spacing.md * 2}
-                    height={(screenWidth - Spacing.md * 2) * 1.2}
-                    viewShotRef={viewShotRef}
-                  />
-                </View>
-              </View>
-            )}
-
-            {/* GPT-4 Generated Prompt */}
-            {gptGeneratedPrompt && (
-              <View style={styles.promptSection}>
-                <Text style={styles.sectionTitle}>AI Generated Prompt</Text>
-                <View style={styles.promptContainer}>
-                  <Text style={styles.promptText}>{gptGeneratedPrompt}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* FLUX Generated Result */}
-            {lastGeneratedImageUrl && (
-              <View style={styles.resultSection}>
-                <Text style={styles.sectionTitle}>Virtual Try-On Result</Text>
-                <View style={styles.resultImageContainer}>
-                  <Image
-                    source={{ uri: lastGeneratedImageUrl }}
-                    style={styles.resultImage}
-                    contentFit="contain"
-                  />
-                  <View style={styles.resultActions}>
-                    <TouchableOpacity
-                      style={styles.resultActionButton}
-                      onPress={() => {
-                        if (onVirtualTryOnSave) {
-                          onVirtualTryOnSave({
-                            generatedImageUrl: lastGeneratedImageUrl,
-                            processingTime: 30000,
-                            confidence: 0.85,
-                            metadata: {
-                              prompt: gptGeneratedPrompt || '',
-                              styleInstructions: 'professional photography',
-                              itemsUsed: outfit.items.map(item => item.name),
-                              timestamp: new Date().toISOString(),
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      <Heart size={20} color={Colors.error[500]} />
-                      <Text style={styles.resultActionText}>Save</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.resultActionButton}
-                      onPress={() => {
-                        if (onVirtualTryOnShare) {
-                          onVirtualTryOnShare({
-                            generatedImageUrl: lastGeneratedImageUrl,
-                            processingTime: 30000,
-                            confidence: 0.85,
-                            metadata: {
-                              prompt: gptGeneratedPrompt || '',
-                              styleInstructions: 'professional photography',
-                              itemsUsed: outfit.items.map(item => item.name),
-                              timestamp: new Date().toISOString(),
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      <Share2 size={20} color={Colors.primary[500]} />
-                      <Text style={styles.resultActionText}>Share</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* Outfit Items (2) */}
-            <View style={styles.itemsSection}>
-              <Text style={styles.sectionTitle}>
-                Outfit Items ({outfit.items.length})
-              </Text>
-              <View style={styles.itemsGrid}>
-                {outfit.items.map((item, index) => (
-                  <View key={item.id} style={styles.itemContainer}>
-                    <View style={styles.itemNumberBadge}>
-                      <Text style={styles.itemNumber}>{index + 1}</Text>
-                    </View>
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles.itemImage}
-                      contentFit="cover"
-                    />
-                    <View style={styles.itemInfo}>
-                      <Text
-                        style={styles.itemName}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {item.name}
-                      </Text>
-                      <Text style={styles.itemCategory}>{item.category}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
       </Modal>
 
       {/* Virtual Try-On Modal */}
@@ -593,163 +395,152 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.secondary,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.primary,
-    ...Shadows.sm,
+  collageSection: {
+    height: screenHeight * 0.7,
+    position: 'relative',
+    backgroundColor: Colors.background.secondary,
   },
-  headerLeft: {
+  placeholderCollage: {
     flex: 1,
-    marginRight: Spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface.secondary,
   },
-  modalTitle: {
-    ...Typography.heading.h3,
+  placeholderText: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: Spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  saveButton: {
+    position: 'absolute',
+    top: 50,
+    right: Spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  contentSection: {
+    flex: 1,
+    backgroundColor: Colors.surface.primary,
+    borderTopLeftRadius: Layout.borderRadius.xl,
+    borderTopRightRadius: Layout.borderRadius.xl,
+    marginTop: -Layout.borderRadius.xl,
+  },
+  scrollableContent: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl * 2,
+  },
+  outfitName: {
+    ...Typography.heading.h1,
     color: Colors.text.primary,
     fontWeight: '700',
-    marginBottom: Spacing.xs,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
   },
-  totalScoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.warning[50],
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    alignSelf: 'flex-start',
-  },
-  totalScoreText: {
-    ...Typography.body.small,
-    color: Colors.warning[700],
-    fontWeight: '600',
-    marginLeft: Spacing.xs,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  proveButton: {
-    backgroundColor: Colors.success[50],
-    borderWidth: 1,
-    borderColor: Colors.success[200],
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: Spacing.md,
+  actionButtonsContainer: {
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   tryButton: {
     backgroundColor: Colors.primary[500],
     borderRadius: Layout.borderRadius.lg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.sm,
     elevation: 2,
   },
   tryButtonText: {
-    ...Typography.body.medium,
+    ...Typography.body.large,
     color: Colors.surface.primary,
     fontWeight: '600',
   },
-  scoresSection: {
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    ...Typography.heading.h4,
-    color: Colors.text.primary,
-    fontWeight: '600',
-    marginBottom: Spacing.md,
-  },
-  bigProveButton: {
+  proveButton: {
     backgroundColor: Colors.success[500],
-    borderRadius: Layout.borderRadius.xl,
-    paddingVertical: Spacing.lg,
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
     ...Shadows.md,
     elevation: 4,
   },
-  bigProveContent: {
+  proveButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  bigProveText: {
-    ...Typography.heading.h4,
+  proveButtonText: {
+    ...Typography.body.large,
     color: Colors.surface.primary,
-    fontWeight: '700',
-  },
-  scoreGrid: {
-    gap: Spacing.md,
-  },
-  scoreItem: {
-    marginBottom: Spacing.md,
-  },
-  scoreItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  scoreLabel: {
-    ...Typography.body.medium,
-    color: Colors.text.primary,
-    fontWeight: '500',
-    marginLeft: Spacing.sm,
-  },
-  scoreBarContainer: {
-    flex: 1,
-    height: 8,
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  scoreBar: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  scorePercentage: {
-    ...Typography.body.small,
     fontWeight: '600',
-    minWidth: 40,
-    textAlign: 'right',
   },
-  itemsSection: {
+  proveButtonProcessing: {
+    backgroundColor: Colors.warning[500],
+  },
+  proveButtonDisabled: {
+    backgroundColor: Colors.text.disabled,
+  },
+  proveButtonTextProcessing: {
+    color: Colors.text.secondary,
+  },
+  errorContainer: {
+    backgroundColor: Colors.error[50],
+    borderWidth: 1,
+    borderColor: Colors.error[200],
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  errorText: {
+    ...Typography.body.small,
+    color: Colors.error[700],
+    fontWeight: '600',
+  },
+  errorDismiss: {
+    ...Typography.body.small,
+    color: Colors.error[500],
+    fontWeight: '600',
+    marginTop: Spacing.xs,
+  },
+  itemsContainer: {
     marginBottom: Spacing.xl,
   },
-  itemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
+  itemsTitle: {
+    ...Typography.heading.h4,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginBottom: Spacing.md,
   },
-  itemContainer: {
-    width: (screenWidth - Spacing.md * 3) / 2,
+  horizontalItemsScroll: {
+    flexGrow: 0,
+  },
+  horizontalItemsContent: {
+    paddingRight: Spacing.md,
+  },
+  horizontalItemCard: {
+    width: 140,
     backgroundColor: Colors.surface.primary,
     borderRadius: Layout.borderRadius.lg,
+    marginRight: Spacing.md,
     overflow: 'hidden',
     ...Shadows.sm,
   },
@@ -763,114 +554,29 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1,
   },
   itemNumber: {
     ...Typography.caption.small,
     color: Colors.surface.primary,
     fontWeight: '600',
   },
-  itemImage: {
+  horizontalItemImage: {
     width: '100%',
-    height: 120,
+    height: 100,
   },
-  itemInfo: {
+  horizontalItemInfo: {
     padding: Spacing.sm,
   },
-  itemName: {
+  horizontalItemName: {
     ...Typography.body.small,
     color: Colors.text.primary,
     fontWeight: '500',
     marginBottom: Spacing.xs,
   },
-  itemCategory: {
+  horizontalItemCategory: {
     ...Typography.caption.small,
     color: Colors.text.secondary,
     textTransform: 'capitalize',
-    marginBottom: Spacing.xs,
-  },
-  bigProveButtonProcessing: {
-    backgroundColor: Colors.warning[500],
-  },
-  bigProveButtonDisabled: {
-    backgroundColor: Colors.text.disabled,
-  },
-  bigProveTextProcessing: {
-    color: Colors.text.secondary,
-  },
-  errorContainer: {
-    backgroundColor: Colors.error[50],
-    borderWidth: 1,
-    borderColor: Colors.error[200],
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  errorText: {
-    ...Typography.body.small,
-    color: Colors.error[700],
-    fontWeight: '600',
-  },
-  errorDismiss: {
-    ...Typography.body.small,
-    color: Colors.error[500],
-    fontWeight: '600',
-  },
-  collageSection: {
-    marginBottom: Spacing.xl,
-  },
-  collageContainer: {
-    borderRadius: Layout.borderRadius.lg,
-    overflow: 'hidden',
-    ...Shadows.sm,
-  },
-  promptSection: {
-    marginBottom: Spacing.xl,
-  },
-  promptContainer: {
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
-    ...Shadows.sm,
-  },
-  promptText: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    fontStyle: 'italic',
-    lineHeight: 22,
-  },
-  resultSection: {
-    marginBottom: Spacing.xl,
-  },
-  resultImageContainer: {
-    backgroundColor: Colors.surface.primary,
-    borderRadius: Layout.borderRadius.lg,
-    overflow: 'hidden',
-    ...Shadows.sm,
-  },
-  resultImage: {
-    width: '100%',
-    height: screenWidth - Spacing.md * 2,
-    backgroundColor: Colors.background.secondary,
-  },
-  resultActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.lg,
-  },
-  resultActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: Layout.borderRadius.md,
-  },
-  resultActionText: {
-    ...Typography.body.medium,
-    color: Colors.text.primary,
-    fontWeight: '500',
   },
 });
